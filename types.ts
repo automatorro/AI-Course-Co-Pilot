@@ -1,3 +1,4 @@
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 export enum Plan {
   Trial = 'Trial',
@@ -5,11 +6,9 @@ export enum Plan {
   Pro = 'Pro',
 }
 
-export interface User {
-  id: string;
-  email: string;
+// Combines Supabase auth user with our custom profile data
+export interface User extends SupabaseUser {
   plan: Plan;
-  coursesCreated: number;
 }
 
 export enum GenerationEnvironment {
@@ -19,18 +18,23 @@ export enum GenerationEnvironment {
 
 export interface Course {
   id: string;
+  user_id: string;
+  created_at: string;
   title: string;
   subject: string;
-  targetAudience: string;
+  target_audience: string;
   environment: GenerationEnvironment;
   language: string;
-  progress: number; // Percentage from 0 to 100
-  steps: CourseStep[];
+  progress: number;
+  steps?: CourseStep[]; // Optional, as we might load them separately
 }
 
 export interface CourseStep {
   id: string;
-  titleKey: string; // key for i18n
+  course_id: string;
+  user_id: string;
+  title_key: string;
   content: string;
-  isCompleted: boolean;
+  is_completed: boolean;
+  step_order: number;
 }

@@ -1,41 +1,65 @@
-
-import React, { createContext, useState, useContext, useMemo } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import { supabase } from '../services/supabaseClient';
 import { User, Plan } from '../types';
+import { AuthChangeEvent, Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string) => void;
-  logout: () => void;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user data
-const MOCK_USER: User = {
-  id: '1',
-  email: 'user@example.com',
-  plan: Plan.Basic,
-  coursesCreated: 2,
-};
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (email: string) => {
-    // In a real app, this would be an API call
-    console.log(`Logging in ${email}`);
-    setUser({ ...MOCK_USER, email });
-  };
+  useEffect(() => {
+    const handleAuthStateChange = async (event: AuthChangeEvent, session: Session | null) => {
+      setLoading(true);
+      if (session?.user) {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
 
-  const logout = () => {
-    setUser(null);
+        if (error) {
+          console.error('Error fetching profile:', error);
+          setUser(null);
+        } else {
+           const fullUser: User = {
+            ...session.user,
+            plan: profile.plan as Plan,
+          };
+          setUser(fullUser);
+        }
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    };
+    
+    // Set initial user
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleAuthStateChange('INITIAL_SESSION', session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const value = {
+    user,
+    loading,
   };
-  
-  const value = useMemo(() => ({ user, login, logout }), [user]);
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

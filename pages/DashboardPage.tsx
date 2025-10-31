@@ -1,45 +1,102 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/I18nContext';
 import NewCourseModal from '../components/NewCourseModal';
 import { Course, GenerationEnvironment, Plan } from '../types';
-import { PRICING_PLANS } from '../constants';
-import { PlusCircle } from 'lucide-react';
-
-const mockCourses: Course[] = [
-  { id: '1', title: 'Advanced React Patterns', subject: 'React', targetAudience: 'Senior Developers', environment: GenerationEnvironment.Corporate, language: 'en', progress: 75, steps: [] },
-  { id: '2', title: 'Introduction to Quantum Physics', subject: 'Physics', targetAudience: 'University Students', environment: GenerationEnvironment.Academic, language: 'en', progress: 40, steps: [] },
-];
+import { PRICING_PLANS, COURSE_STEPS_KEYS } from '../constants';
+import { supabase } from '../services/supabaseClient';
+import { PlusCircle, Loader2 } from 'lucide-react';
 
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [courses, setCourses] = useState<Course[]>(mockCourses);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const courseLimit = user ? PRICING_PLANS[user.plan].courseLimit : 0;
   const canCreateCourse = user ? courses.length < courseLimit : false;
 
-  const handleCreateCourse = (details: {
+  useEffect(() => {
+    const fetchCourses = async () => {
+      if (!user) return;
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('courses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching courses:', error);
+      } else {
+        setCourses(data as Course[]);
+      }
+      setIsLoading(false);
+    };
+
+    fetchCourses();
+  }, [user]);
+
+
+  const handleCreateCourse = async (details: {
     title: string;
     subject: string;
     targetAudience: string;
+
     environment: GenerationEnvironment;
     language: string;
   }) => {
-    const newCourse: Course = {
-      id: (courses.length + 1).toString(),
-      progress: 0,
-      steps: [],
-      ...details
-    };
-    setCourses(prev => [...prev, newCourse]);
+    if (!user) return;
+
+    // 1. Insert the course
+    const { data: newCourseData, error: courseError } = await supabase
+      .from('courses')
+      .insert({
+        user_id: user.id,
+        title: details.title,
+        subject: details.subject,
+        target_audience: details.targetAudience,
+        environment: details.environment,
+        language: details.language,
+        progress: 0,
+      })
+      .select()
+      .single();
+
+    if (courseError) {
+      console.error("Error creating course:", courseError);
+      return;
+    }
+
+    // 2. Insert the course steps
+    const stepsToInsert = COURSE_STEPS_KEYS.map((key, index) => ({
+      course_id: newCourseData.id,
+      user_id: user.id,
+      title_key: key,
+      content: '',
+      is_completed: false,
+      step_order: index,
+    }));
+
+    const { error: stepsError } = await supabase.from('course_steps').insert(stepsToInsert);
+
+    if (stepsError) {
+        console.error("Error creating course steps:", stepsError);
+        // Here you might want to delete the course that was just created
+        return;
+    }
+
+    setCourses(prev => [newCourseData as Course, ...prev]);
     setIsModalOpen(false);
-    navigate(`/course/${newCourse.id}`);
+    navigate(`/course/${newCourseData.id}`);
   };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-[calc(100vh-8rem)]"><Loader2 className="animate-spin text-primary-500" size={48}/></div>;
+  }
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
