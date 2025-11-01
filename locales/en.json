@@ -46,6 +46,7 @@
     "homepage.pricing.proFeatures": ["20 Courses/Month", "Full AI Suite", "Dedicated Support", "Early Access to Features"],
     "homepage.pricing.getStarted": "Get Started",
     "homepage.pricing.currentPlan": "Current Plan",
+    "homepage.pricing.subscribing": "Processing...",
     "homepage.finalCta.title": "Ready to Revolutionize Your Course Creation?",
     "homepage.finalCta.subtitle": "Join hundreds of educators and trainers who are building better courses, faster.",
     "homepage.finalCta.cta": "Start for Free",
@@ -87,5 +88,7 @@
     "billing.title": "Manage Your Subscription",
     "billing.currentPlan": "Your current plan is",
     "billing.manage": "Manage Subscription",
-    "billing.manage.subtitle": "You will be redirected to the Stripe customer portal to manage your subscription, view invoices, and update payment methods."
+    "billing.manage.subtitle": "You will be redirected to the Stripe customer portal to manage your subscription, view invoices, and update payment methods.",
+    "billing.redirecting": "Redirecting...",
+    "billing.goToPortal": "Go to Stripe Portal"
 }

@@ -9,7 +9,6 @@ import { Course, CourseStep } from '../types';
 // const ai = new GoogleGenAI({ apiKey: process.env.API_KEY }); // This would be in the backend.
 
 const generateSystemInstruction = (course: Course): string => {
-  // FIX: Property 'targetAudience' does not exist on type 'Course'. Use 'target_audience' instead.
   const baseInstruction = `You are an expert instructional designer creating content for a course titled "${course.title}". The target audience is ${course.target_audience}. The content language must be ${course.language}.`;
 
   if (course.environment === 'Corporate') {
@@ -27,14 +26,12 @@ const generateSystemInstruction = (course: Course): string => {
 
 
 export const generateCourseContent = async (course: Course, step: CourseStep): Promise<string> => {
-  // FIX: Property 'titleKey' does not exist on type 'CourseStep'. Use 'title_key' instead.
   console.log('Generating content for step:', step.title_key);
   console.log('Using environment:', course.environment);
 
   // In a real backend function:
   /*
   const systemInstruction = generateSystemInstruction(course);
-  // FIX: Property 'titleKey' does not exist on type 'CourseStep'. Use 'title_key' instead.
   const prompt = `Generate the content for the course section: "${step.title_key}". Previous sections have covered: ${course.steps?.filter(s => s.is_completed).map(s => s.title_key).join(', ')}. Focus on creating comprehensive, engaging material for this specific section.`;
 
   try {
@@ -55,13 +52,11 @@ export const generateCourseContent = async (course: Course, step: CourseStep): P
   // Mock implementation for frontend development
   return new Promise((resolve) => {
     setTimeout(() => {
-      // FIX: Property 'titleKey' does not exist on type 'CourseStep'. Use 'title_key' instead.
       const mockContent = `## ${step.title_key.toUpperCase()} - Mock Content
 
 This is AI-generated mock content for the "${course.title}" course.
 
 **Environment:** ${course.environment}
-// FIX: Property 'targetAudience' does not exist on type 'Course'. Use 'target_audience' instead.
 **Target Audience:** ${course.target_audience}
 **Language:** ${course.language}
 

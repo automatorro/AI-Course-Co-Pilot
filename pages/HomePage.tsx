@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PricingTable from '../components/PricingTable';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,6 +10,7 @@ const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [pricingError, setPricingError] = useState<string | null>(null);
 
   const handleCTA = () => {
     navigate(user ? '/dashboard' : '/login');
@@ -154,14 +155,19 @@ const HomePage: React.FC = () => {
        </section>
       
       {/* Pricing Section */}
-      <section className="py-20 sm:py-32 animate-fade-in-up" style={{animationDelay: '0.8s'}}>
+      <section id="pricing" className="py-20 sm:py-32 animate-fade-in-up" style={{animationDelay: '0.8s'}}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-5xl">
             <h2 className="text-3xl font-bold tracking-tight text-center text-gray-900 dark:text-white sm:text-4xl">
                 {t('homepage.pricing.title')}
             </h2>
-            <div className="mt-12">
-                <PricingTable user={user} />
+            {pricingError && (
+                <div className="mt-8 p-4 text-center text-sm text-red-800 bg-red-100 dark:bg-red-900/30 dark:text-red-300 rounded-md">
+                    <strong>Error:</strong> {pricingError}
+                </div>
+            )}
+            <div className="mt-8">
+                <PricingTable user={user} error={pricingError} setError={setPricingError} />
             </div>
             </div>
         </div>

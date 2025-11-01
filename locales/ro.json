@@ -46,6 +46,7 @@
     "homepage.pricing.proFeatures": ["20 Cursuri/Lună", "Suită AI Completă", "Suport Dedicat", "Acces la Funcționalități Noi"],
     "homepage.pricing.getStarted": "Începe Acum",
     "homepage.pricing.currentPlan": "Plan Curent",
+    "homepage.pricing.subscribing": "Se procesează...",
     "homepage.finalCta.title": "Ești Gata să Revoluționezi Crearea de Cursuri?",
     "homepage.finalCta.subtitle": "Alătură-te sutelor de educatori și traineri care construiesc cursuri mai bune, mai rapid.",
     "homepage.finalCta.cta": "Începe Gratuit",
@@ -87,5 +88,7 @@
     "billing.title": "Gestionează-ți Abonamentul",
     "billing.currentPlan": "Planul tău curent este",
     "billing.manage": "Gestionează Abonament",
-    "billing.manage.subtitle": "Vei fi redirecționat către portalul de client Stripe pentru a gestiona abonamentul, a vizualiza facturile și a actualiza metodele de plată."
+    "billing.manage.subtitle": "Vei fi redirecționat către portalul de client Stripe pentru a gestiona abonamentul, a vizualiza facturile și a actualiza metodele de plată.",
+    "billing.redirecting": "Se redirecționează...",
+    "billing.goToPortal": "Mergi la Portalul Stripe"
 }

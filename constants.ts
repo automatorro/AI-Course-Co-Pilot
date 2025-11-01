@@ -1,6 +1,9 @@
 
 import { Plan } from './types';
 
+// IMPORTANT: Replace with your actual Stripe publishable key
+export const STRIPE_PUBLISHABLE_KEY = 'pk_test_51PcaBDRs5hwfG01Q5kT9IeP4yO0nL0f1d1g0O0v0n0e0r0T0E0S0T0K0E0Y0placeholder';
+
 export const PRICING_PLANS = {
   [Plan.Trial]: {
     name: Plan.Trial,
@@ -15,6 +18,8 @@ export const PRICING_PLANS = {
     courseLimit: 3,
     duration: '/month',
     featuresKey: 'basicFeatures',
+    // IMPORTANT: Replace with your actual Stripe Price ID for the Basic plan
+    priceId: 'price_1PcaGHRs5hwfG01QZabCDefg',
   },
   [Plan.Pro]: {
     name: Plan.Pro,
@@ -22,6 +27,8 @@ export const PRICING_PLANS = {
     courseLimit: 20,
     duration: '/month',
     featuresKey: 'proFeatures',
+    // IMPORTANT: Replace with your actual Stripe Price ID for the Pro plan
+    priceId: 'price_1PcaGzRs5hwfG01QAbcDEfgh',
   },
 };
 

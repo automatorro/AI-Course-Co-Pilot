@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from '../contexts/I18nContext';
@@ -60,7 +61,6 @@ const CourseWorkspacePage: React.FC = () => {
     const currentStep = course.steps[activeStepIndex];
     
     // We pass a copy of the course and step to the generation service
-    // FIX: The mockStepForGeneration object must conform to the CourseStep interface.
     const mockStepForGeneration: CourseStep = {
       id: currentStep.id,
       course_id: currentStep.course_id,
