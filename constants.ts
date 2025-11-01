@@ -1,4 +1,3 @@
-
 import { Plan } from './types';
 
 // IMPORTANT: Replace with your actual Stripe publishable key
@@ -29,6 +28,13 @@ export const PRICING_PLANS = {
     featuresKey: 'proFeatures',
     // IMPORTANT: Replace with your actual Stripe Price ID for the Pro plan
     priceId: 'price_1PcaGzRs5hwfG01QAbcDEfgh',
+  },
+  [Plan.Admin]: {
+    name: Plan.Admin,
+    price: 0, // Admin plan is free for the admin
+    courseLimit: 999, // Effectively unlimited courses
+    duration: '',
+    featuresKey: 'proFeatures', // Can reuse pro features description
   },
 };
 

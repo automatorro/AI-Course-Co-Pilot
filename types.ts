@@ -4,6 +4,7 @@ export enum Plan {
   Trial = 'Trial',
   Basic = 'Basic',
   Pro = 'Pro',
+  Admin = 'Admin',
 }
 
 // Combines Supabase auth user with our custom profile data

@@ -1,76 +1,38 @@
-
-import { GoogleGenAI } from "@google/genai";
+// ABOUTME: This service handles communication with the Supabase Edge Function
+// ABOUTME: for generating course content using the Gemini API.
+import { supabase } from './supabaseClient';
 import { Course, CourseStep } from '../types';
 
-// This is a MOCK service. In a real application, this logic would be in a Supabase Edge Function.
-// The frontend would call the edge function, not the Gemini API directly.
-// The API key would be stored as an environment variable in Supabase.
-
-// const ai = new GoogleGenAI({ apiKey: process.env.API_KEY }); // This would be in the backend.
-
-const generateSystemInstruction = (course: Course): string => {
-  const baseInstruction = `You are an expert instructional designer creating content for a course titled "${course.title}". The target audience is ${course.target_audience}. The content language must be ${course.language}.`;
-
-  if (course.environment === 'Corporate') {
-    return `${baseInstruction} Structure the content based on modern corporate learning principles:
-1.  **Merrill's Principles of Instruction**: Ensure content is problem-centered, activates existing knowledge, demonstrates new skills, allows for application, and facilitates integration into work.
-2.  **Bloom's Taxonomy**: Progress learning objectives from remembering and understanding to applying, analyzing, evaluating, and creating.
-3.  **Andragogy (Adult Learning)**: Make the content relevant, practical, experience-based, and clearly explain "the why" behind the concepts.`;
-  } else { // Academic
-    return `${baseInstruction} Structure the content based on academic pedagogical principles:
-1.  **Constructivism**: Encourage students to build their own understanding through open-ended questions and exploration.
-2.  **Bloom's Taxonomy**: Focus on developing critical thinking and theoretical foundations, progressing from lower to higher-order thinking skills.
-3.  **Scaffolding**: Introduce concepts logically, building upon previous knowledge and providing gradual support for complex topics.`;
-  }
-};
-
-
+/**
+ * Invokes a Supabase Edge Function to generate content for a specific course step.
+ * The Edge Function is responsible for prompt engineering and calling the Google Gemini API.
+ * @param course The full course object, providing context.
+ * @param step The specific step for which to generate content.
+ * @returns A promise that resolves to the AI-generated content string.
+ */
 export const generateCourseContent = async (course: Course, step: CourseStep): Promise<string> => {
-  console.log('Generating content for step:', step.title_key);
-  console.log('Using environment:', course.environment);
-
-  // In a real backend function:
-  /*
-  const systemInstruction = generateSystemInstruction(course);
-  const prompt = `Generate the content for the course section: "${step.title_key}". Previous sections have covered: ${course.steps?.filter(s => s.is_completed).map(s => s.title_key).join(', ')}. Focus on creating comprehensive, engaging material for this specific section.`;
+  console.log(`Invoking Edge Function 'generate-course-content' for step: ${step.title_key}`);
 
   try {
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: {
-            systemInstruction: systemInstruction,
-        }
+    // We pass the entire course and the current step to the Edge Function.
+    // The function will handle constructing the appropriate prompt and system instructions.
+    const { data, error } = await supabase.functions.invoke('generate-course-content', {
+      body: { course, step },
     });
-    return response.text;
-  } catch (error) {
-    console.error("Error calling Gemini API:", error);
-    return "Error generating content. Please try again.";
+
+    if (error) {
+      console.error('Error invoking Supabase Edge Function:', error);
+      return `Error from server: ${error.message}. Make sure the 'generate-course-content' function is deployed correctly in Supabase.`;
+    }
+    
+    if (!data || typeof data.content !== 'string') {
+        console.error('Unexpected response format from Edge Function. Expected { content: string }, received:', data);
+        return 'Error: Received an invalid or empty response from the generation service.';
+    }
+
+    return data.content;
+  } catch (err: any) {
+    console.error('Client-side error calling generateCourseContent:', err);
+    return `An unexpected error occurred: ${err.message}. Please check your network connection and try again.`;
   }
-  */
-
-  // Mock implementation for frontend development
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const mockContent = `## ${step.title_key.toUpperCase()} - Mock Content
-
-This is AI-generated mock content for the "${course.title}" course.
-
-**Environment:** ${course.environment}
-**Target Audience:** ${course.target_audience}
-**Language:** ${course.language}
-
-### Key Concepts
-- Concept A: Detailed explanation based on ${course.environment} principles.
-- Concept B: Another detailed point.
-- Concept C: Practical application or theoretical foundation.
-
-### Example/Exercise
-${course.environment === 'Corporate' ? 'A real-world business problem to solve.' : 'A thought-provoking question for exploration.'}
-
-This content is for demonstration purposes. The real implementation would use Google Gemini with sophisticated, pedagogically-sound prompts.
-`;
-      resolve(mockContent);
-    }, 2500);
-  });
 };

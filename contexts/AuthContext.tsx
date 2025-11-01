@@ -24,13 +24,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           .eq('id', session.user.id)
           .single();
 
-        if (error) {
+        // The error 'PGRST116' from Supabase means the profile row doesn't exist yet,
+        // which is expected for a brand new user. We'll handle this gracefully
+        // by assigning a default 'Trial' plan.
+        if (error && error.code !== 'PGRST116') {
           console.error('Error fetching profile:', error);
           setUser(null);
         } else {
+           let userPlan = (profile?.plan as Plan) || Plan.Trial;
+
+           // Special override for the admin user to grant unlimited access
+           if (session.user.email === 'lucian.cebuc@gmail.com') {
+             userPlan = Plan.Admin;
+           }
+
            const fullUser: User = {
             ...session.user,
-            plan: profile.plan as Plan,
+            plan: userPlan,
           };
           setUser(fullUser);
         }

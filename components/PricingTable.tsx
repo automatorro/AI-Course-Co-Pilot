@@ -19,7 +19,8 @@ interface PricingTableProps {
 
 const PricingTable: React.FC<PricingTableProps> = ({ user, error, setError }) => {
     const { t } = useTranslation();
-    const plans = Object.values(PRICING_PLANS);
+    // Filter out the Admin plan so it's not displayed on the public pricing page
+    const plans = Object.values(PRICING_PLANS).filter(p => p.name !== Plan.Admin);
     const navigate = useNavigate();
     const [loadingPriceId, setLoadingPriceId] = useState<string | null>(null);
 
