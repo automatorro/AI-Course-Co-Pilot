@@ -1,4 +1,5 @@
 
+
 {
     "header.title": "AI Course Co-Pilot",
     "header.dashboard": "Dashboard",
@@ -85,6 +86,9 @@
     "course.generate": "Generate Content",
     "course.generating": "Generating...",
     "course.generating.waitMessage": "Please wait, the AI is crafting your content...",
+    "course.improve": "Improve Content",
+    "course.improving": "Improving...",
+    "course.improve.used": "Content has been improved once. You can now edit it manually.",
     "course.saveAndContinue": "Save & Continue",
     "course.completed": "Course Completed!",
     "billing.title": "Manage Your Subscription",

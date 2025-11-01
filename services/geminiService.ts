@@ -1,45 +1,37 @@
 // ABOUTME: This service handles communication with the Supabase Edge Function
-// ABOUTME: for generating course content using the Gemini API.
+// ABOUTME: for generating and improving course content using the Gemini API.
 import { supabase } from './supabaseClient';
 import { Course, CourseStep } from '../types';
 
-/**
- * Invokes a Supabase Edge Function to generate content for a specific course step.
- * The Edge Function is responsible for prompt engineering and securely calling the Google Gemini API.
- * @param course The full course object, providing context.
- * @param step The specific step for which to generate content.
- * @returns A promise that resolves to the AI-generated content string.
- */
-export const generateCourseContent = async (course: Course, step: CourseStep): Promise<string> => {
-  console.log(`Invoking Edge Function 'generate-course-content' for step: ${step.title_key}`);
+const invokeContentFunction = async (action: 'generate' | 'improve', course: Course, step: CourseStep, originalContent?: string): Promise<string> => {
+  console.log(`Invoking Edge Function with action '${action}' for step: ${step.title_key}`);
 
   try {
-    // To prevent hitting payload size limits, we create a pruned version of the course object.
-    // The AI only needs the content from *previous* steps for context, not the content of
-    // the current step (which is being generated) or any future steps.
     const courseForPayload: Course = {
       ...course,
       steps: course.steps?.map(s => {
         if (s.step_order >= step.step_order) {
-          // Strip content from current and future steps
           return { ...s, content: '' };
         }
-        // Keep previous steps as they are, with their content for context
         return s;
       })
     };
 
-    // We are now calling the Edge Function.
-    const { data, error } = await supabase.functions.invoke('generate-course-content', {
-        body: { 
-            course: courseForPayload, 
-            step: step 
-        }
-    });
+    const body: { course: Course, step: CourseStep, action: string, originalContent?: string } = {
+      course: courseForPayload,
+      step: step,
+      action: action
+    };
+
+    if (action === 'improve') {
+      body.originalContent = originalContent;
+    }
+
+    const { data, error } = await supabase.functions.invoke('generate-course-content', { body });
 
     if (error) {
       console.error('Error invoking Supabase Edge Function:', error);
-      return `Error from server: ${error.message}. Make sure the 'generate-course-content' function is deployed correctly in Supabase.`;
+      return `Error from server: ${error.message}.`;
     }
     
     if (!data || typeof data.content !== 'string') {
@@ -49,7 +41,22 @@ export const generateCourseContent = async (course: Course, step: CourseStep): P
 
     return data.content;
   } catch (err: any) {
-    console.error('Client-side error calling generateCourseContent:', err);
-    return `An unexpected error occurred: ${err.message}. Please check your network connection and try again.`;
+    console.error(`Client-side error during '${action}':`, err);
+    return `An unexpected error occurred: ${err.message}.`;
   }
+};
+
+
+/**
+ * Invokes the Edge Function to generate initial content for a course step.
+ */
+export const generateCourseContent = async (course: Course, step: CourseStep): Promise<string> => {
+  return invokeContentFunction('generate', course, step);
+};
+
+/**
+ * Invokes the Edge Function to improve existing content for a course step.
+ */
+export const improveCourseContent = async (course: Course, step: CourseStep, originalContent: string): Promise<string> => {
+  return invokeContentFunction('improve', course, step, originalContent);
 };

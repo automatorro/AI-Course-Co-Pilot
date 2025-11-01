@@ -1,4 +1,5 @@
 
+
 {
     "header.title": "AI Course Co-Pilot",
     "header.dashboard": "Panou de control",
@@ -85,6 +86,9 @@
     "course.generate": "Generează Conținut",
     "course.generating": "Se generează...",
     "course.generating.waitMessage": "Vă rugăm așteptați, AI-ul creează conținutul...",
+    "course.improve": "Îmbunătățește",
+    "course.improving": "Se îmbunătățește...",
+    "course.improve.used": "Conținutul a fost îmbunătățit o dată. Acum îl puteți edita manual.",
     "course.saveAndContinue": "Salvează și Continuă",
     "course.completed": "Curs Finalizat!",
     "billing.title": "Gestionează-ți Abonamentul",

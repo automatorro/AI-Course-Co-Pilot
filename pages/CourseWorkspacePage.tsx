@@ -1,11 +1,12 @@
 
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from '../contexts/I18nContext';
-import { Course, CourseStep, GenerationEnvironment } from '../types';
-import { generateCourseContent } from '../services/geminiService';
+import { Course, CourseStep } from '../types';
+import { generateCourseContent, improveCourseContent } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
-import { CheckCircle, Circle, Loader2, Sparkles } from 'lucide-react';
+import { CheckCircle, Circle, Loader2, Sparkles, Wand } from 'lucide-react';
 
 
 const CourseWorkspacePage: React.FC = () => {
@@ -14,6 +15,8 @@ const CourseWorkspacePage: React.FC = () => {
   const [course, setCourse] = useState<Course | null>(null);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isImproving, setIsImproving] = useState(false);
+  const [hasBeenImproved, setHasBeenImproved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editedContent, setEditedContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -24,17 +27,13 @@ const CourseWorkspacePage: React.FC = () => {
     
     const { data, error } = await supabase
         .from('courses')
-        .select(`
-            *,
-            steps:course_steps(*)
-        `)
+        .select(`*, steps:course_steps(*)`)
         .eq('id', id)
         .single();
     
     if (error) {
         console.error("Error fetching course data:", error);
     } else {
-        // Sort steps by their order
         data.steps.sort((a: CourseStep, b: CourseStep) => a.step_order - b.step_order);
         setCourse(data as Course);
         const firstIncompleteStep = data.steps.findIndex((s: CourseStep) => !s.is_completed);
@@ -52,29 +51,31 @@ const CourseWorkspacePage: React.FC = () => {
   useEffect(() => {
     if (course) {
       setEditedContent(course.steps?.[activeStepIndex]?.content || '');
+      setHasBeenImproved(false); // Reset improve state when step changes
     }
   }, [activeStepIndex, course]);
 
   const handleGenerate = useCallback(async () => {
     if (!course || !course.steps) return;
     setIsGenerating(true);
+    setHasBeenImproved(false); // Reset improvement state on new generation
     const currentStep = course.steps[activeStepIndex];
     
-    // We pass a copy of the course and step to the generation service
-    const mockStepForGeneration: CourseStep = {
-      id: currentStep.id,
-      course_id: currentStep.course_id,
-      user_id: currentStep.user_id,
-      title_key: currentStep.title_key,
-      content: '', // Not needed for generation
-      is_completed: false, // Not needed for generation logic
-      step_order: currentStep.step_order,
-    };
-    
-    const generatedContent = await generateCourseContent(course, mockStepForGeneration);
+    const generatedContent = await generateCourseContent(course, currentStep);
     setEditedContent(generatedContent);
     setIsGenerating(false);
   }, [course, activeStepIndex]);
+
+  const handleImprove = useCallback(async () => {
+    if (!course || !course.steps || !editedContent) return;
+    setIsImproving(true);
+    const currentStep = course.steps[activeStepIndex];
+
+    const improvedContent = await improveCourseContent(course, currentStep, editedContent);
+    setEditedContent(improvedContent);
+    setHasBeenImproved(true);
+    setIsImproving(false);
+  }, [course, activeStepIndex, editedContent]);
 
   const handleSaveAndContinue = async () => {
     if (!course || !course.steps) return;
@@ -82,7 +83,6 @@ const CourseWorkspacePage: React.FC = () => {
     
     const currentStep = course.steps[activeStepIndex];
 
-    // 1. Update the step content and completion status
     const { error: stepError } = await supabase
       .from('course_steps')
       .update({ content: editedContent, is_completed: true })
@@ -94,7 +94,6 @@ const CourseWorkspacePage: React.FC = () => {
       return;
     }
 
-    // 2. Update course progress
     const updatedSteps = course.steps.map(step => 
         step.id === currentStep.id ? { ...step, content: editedContent, is_completed: true } : step
     );
@@ -108,10 +107,8 @@ const CourseWorkspacePage: React.FC = () => {
     
     if(courseError) {
         console.error("Error updating course progress:", courseError);
-        // continue anyway as step was saved
     }
     
-    // 3. Update local state to reflect changes
     setCourse({ ...course, steps: updatedSteps, progress: newProgress });
 
     if (activeStepIndex < course.steps.length - 1) {
@@ -127,6 +124,7 @@ const CourseWorkspacePage: React.FC = () => {
   const currentStep = course.steps[activeStepIndex];
   const isLastStep = activeStepIndex === course.steps.length - 1;
   const isCourseComplete = course.steps.every(s => s.is_completed);
+  const isBusy = isGenerating || isImproving;
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">
@@ -163,11 +161,11 @@ const CourseWorkspacePage: React.FC = () => {
             <h1 className="text-2xl font-bold">{t(currentStep.title_key)}</h1>
           </div>
           <div className="flex-1 p-1 relative">
-            {isGenerating && (
+            {isBusy && (
                 <div className="absolute inset-1 bg-gray-100/50 dark:bg-gray-900/50 flex items-center justify-center z-10 rounded-lg">
                     <div className="text-center p-6 bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg backdrop-blur-sm">
                         <Loader2 className="animate-spin text-primary-500 mx-auto" size={40} />
-                        <p className="mt-3 text-lg font-semibold">{t('course.generating')}</p>
+                        <p className="mt-3 text-lg font-semibold">{isGenerating ? t('course.generating') : t('course.improving')}</p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">{t('course.generating.waitMessage')}</p>
                     </div>
                 </div>
@@ -176,28 +174,30 @@ const CourseWorkspacePage: React.FC = () => {
               value={editedContent}
               onChange={(e) => setEditedContent(e.target.value)}
               placeholder={t('course.editor.placeholder')}
-              disabled={isGenerating}
+              disabled={isBusy}
               className="w-full h-full p-5 text-base bg-transparent border-none focus:ring-0 resize-none dark:placeholder-gray-500 disabled:opacity-50"
             />
           </div>
           <div className="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center">
-             <button
-              onClick={handleGenerate}
-              disabled={isGenerating || currentStep.is_completed}
-              className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-primary-500 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 disabled:opacity-50"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="animate-spin" size={16}/>
-                  {t('course.generating')}
-                </>
-              ) : (
-                <>
-                  <Sparkles size={16}/>
-                  {t('course.generate')}
-                </>
-              )}
-            </button>
+             <div className="flex gap-2">
+                <button
+                  onClick={handleGenerate}
+                  disabled={isBusy || currentStep.is_completed}
+                  className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-primary-500 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 disabled:opacity-50"
+                >
+                  {isGenerating ? <Loader2 className="animate-spin" size={16}/> : <Sparkles size={16}/>}
+                  {t(isGenerating ? 'course.generating' : 'course.generate')}
+                </button>
+                <button
+                  onClick={handleImprove}
+                  disabled={isBusy || currentStep.is_completed || !editedContent || hasBeenImproved}
+                  className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 disabled:opacity-50"
+                  title={hasBeenImproved ? t('course.improve.used') : ''}
+                >
+                  {isImproving ? <Loader2 className="animate-spin" size={16}/> : <Wand size={16}/>}
+                  {t(isImproving ? 'course.improving' : 'course.improve')}
+                </button>
+             </div>
             {isCourseComplete ? (
                  <div className="px-4 py-2 text-sm font-semibold text-green-700 bg-green-100 dark:bg-green-900 dark:text-green-200 rounded-md">
                     {t('course.completed')}
@@ -205,7 +205,7 @@ const CourseWorkspacePage: React.FC = () => {
             ) : (
                  <button
                   onClick={handleSaveAndContinue}
-                  disabled={!editedContent || currentStep.is_completed || isSaving}
+                  disabled={!editedContent || currentStep.is_completed || isSaving || isBusy}
                   className="px-6 py-2 rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400"
                 >
                   {isSaving && <Loader2 className="animate-spin inline-block mr-2" size={16}/>}
