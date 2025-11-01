@@ -52,4 +52,5 @@ export const CONTENT_LANGUAGES = [
     { code: 'fr', name: 'Français' },
     { code: 'de', name: 'Deutsch' },
     { code: 'it', name: 'Italiano' },
+    { code: 'ro', name: 'Română' },
 ];
