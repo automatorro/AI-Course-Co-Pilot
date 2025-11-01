@@ -162,12 +162,22 @@ const CourseWorkspacePage: React.FC = () => {
           <div className="p-6 border-b dark:border-gray-700">
             <h1 className="text-2xl font-bold">{t(currentStep.title_key)}</h1>
           </div>
-          <div className="flex-1 p-1">
+          <div className="flex-1 p-1 relative">
+            {isGenerating && (
+                <div className="absolute inset-1 bg-gray-100/50 dark:bg-gray-900/50 flex items-center justify-center z-10 rounded-lg">
+                    <div className="text-center p-6 bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg backdrop-blur-sm">
+                        <Loader2 className="animate-spin text-primary-500 mx-auto" size={40} />
+                        <p className="mt-3 text-lg font-semibold">{t('course.generating')}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{t('course.generating.waitMessage')}</p>
+                    </div>
+                </div>
+            )}
             <textarea
               value={editedContent}
               onChange={(e) => setEditedContent(e.target.value)}
               placeholder={t('course.editor.placeholder')}
-              className="w-full h-full p-5 text-base bg-transparent border-none focus:ring-0 resize-none dark:placeholder-gray-500"
+              disabled={isGenerating}
+              className="w-full h-full p-5 text-base bg-transparent border-none focus:ring-0 resize-none dark:placeholder-gray-500 disabled:opacity-50"
             />
           </div>
           <div className="p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex justify-between items-center">

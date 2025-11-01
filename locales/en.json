@@ -1,3 +1,4 @@
+
 {
     "header.title": "AI Course Co-Pilot",
     "header.dashboard": "Dashboard",
@@ -83,6 +84,7 @@
     "course.editor.placeholder": "AI-generated content will appear here...",
     "course.generate": "Generate Content",
     "course.generating": "Generating...",
+    "course.generating.waitMessage": "Please wait, the AI is crafting your content...",
     "course.saveAndContinue": "Save & Continue",
     "course.completed": "Course Completed!",
     "billing.title": "Manage Your Subscription",

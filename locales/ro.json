@@ -1,3 +1,4 @@
+
 {
     "header.title": "AI Course Co-Pilot",
     "header.dashboard": "Panou de control",
@@ -35,7 +36,7 @@
     "homepage.pedagogy.corporate.andragogy.desc": "Materialul este relevant, practic și respectă experiența cursantului.",
     "homepage.pedagogy.academic.title": "Pentru Cursuri Academice",
     "homepage.pedagogy.academic.constructivism": "Constructivism",
-    "homepage.pedagogy.academic.constructivism.desc": "Încurajează studenții să-și construiască propria înțelegere prin explorare.",
+    "homepage.pedagogy.academic.constructivism.desc": "Încurajează studienții să-și construiască propria înțelegere prin explorare.",
     "homepage.pedagogy.academic.bloom": "Taxonomia lui Bloom",
     "homepage.pedagogy.academic.bloom.desc": "Accent pe gândirea critică și construirea unor fundații teoretice solide.",
     "homepage.pedagogy.academic.scaffolding": "Eșafodaj (Scaffolding)",
@@ -83,6 +84,7 @@
     "course.editor.placeholder": "Conținutul generat de AI va apărea aici...",
     "course.generate": "Generează Conținut",
     "course.generating": "Se generează...",
+    "course.generating.waitMessage": "Vă rugăm așteptați, AI-ul creează conținutul...",
     "course.saveAndContinue": "Salvează și Continuă",
     "course.completed": "Curs Finalizat!",
     "billing.title": "Gestionează-ți Abonamentul",
