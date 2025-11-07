@@ -4,79 +4,12 @@ import { useTranslation } from '../contexts/I18nContext';
 import { Course, CourseStep } from '../types';
 import { generateCourseContent, refineCourseContent } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
-import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Heading1, Heading2, Bold, Italic, List, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight } from 'lucide-react';
+import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Heading1, Heading2, Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Code, Minus, Link as LinkIcon, Image as ImageIcon, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X } from 'lucide-react';
 import { exportCourseAsZip } from '../services/exportService';
 import { useToast } from '../contexts/ToastContext';
 import ReviewChangesModal from '../components/ReviewChangesModal';
 
-// A simple component to render Markdown content as HTML for the preview tab
-const SimpleMarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
-    const renderHtml = () => {
-        let html = '';
-        let inList = false;
-        const lines = content.split('\n');
-
-        for (const line of lines) {
-            const trimmedLine = line.trim();
-
-            // Handle headings, close list if active
-            if (trimmedLine.startsWith('# ') || trimmedLine.startsWith('## ')) {
-                if (inList) {
-                    html += '</ul>\n';
-                    inList = false;
-                }
-                if (trimmedLine.startsWith('## ')) {
-                    html += `<h2>${line.substring(3)}</h2>\n`;
-                } else {
-                    html += `<h1>${line.substring(2)}</h1>\n`;
-                }
-                continue;
-            }
-
-            // Handle list items
-            if (trimmedLine.startsWith('* ')) {
-                if (!inList) {
-                    html += '<ul>\n';
-                    inList = true;
-                }
-                // Use original line substring to preserve indentation spaces in content
-                html += `<li>${line.substring(line.indexOf('* ') + 2)}</li>\n`;
-                continue;
-            }
-
-            // If we encounter a non-list item line, close the list
-            if (inList) {
-                html += '</ul>\n';
-                inList = false;
-            }
-            
-            // Render non-empty lines as paragraphs
-            if (trimmedLine.length > 0) {
-                 html += `<p>${line}</p>\n`;
-            } else {
-                 html += '<br />';
-            }
-        }
-
-        // Close any open list at the end of the content
-        if (inList) {
-            html += '</ul>\n';
-        }
-
-        // Process inline elements on the whole block
-        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
-
-        return html;
-    };
-    
-    return (
-        <div 
-            className="prose dark:prose-invert max-w-none p-6" 
-            dangerouslySetInnerHTML={{ __html: renderHtml() }} 
-        />
-    );
-};
+import MarkdownPreview from '../components/MarkdownPreview';
 
 const HelpModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const { t } = useTranslation();
@@ -135,10 +68,18 @@ const CourseWorkspacePage: React.FC = () => {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [proposedContent, setProposedContent] = useState<string | null>(null);
   const [originalForProposal, setOriginalForProposal] = useState<string | null>(null);
+  const [showLinkPanel, setShowLinkPanel] = useState(false);
+  const [showImagePanel, setShowImagePanel] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageAlt, setImageAlt] = useState('');
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const selectionRef = useRef<{ start: number, end: number }>({ start: 0, end: 0 });
   const aiActionsRef = useRef<HTMLDivElement>(null);
+  const linkPanelRef = useRef<HTMLDivElement>(null);
+  const imagePanelRef = useRef<HTMLDivElement>(null);
 
   const fetchCourseData = useCallback(async () => {
     if (!id) return null;
@@ -161,8 +102,15 @@ const CourseWorkspacePage: React.FC = () => {
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-        if (aiActionsRef.current && !aiActionsRef.current.contains(event.target as Node)) {
+        const targetNode = event.target as Node;
+        if (aiActionsRef.current && !aiActionsRef.current.contains(targetNode)) {
             setIsAiActionsOpen(false);
+        }
+        if (linkPanelRef.current && !linkPanelRef.current.contains(targetNode)) {
+            setShowLinkPanel(false);
+        }
+        if (imagePanelRef.current && !imagePanelRef.current.contains(targetNode)) {
+            setShowImagePanel(false);
         }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -302,7 +250,7 @@ const CourseWorkspacePage: React.FC = () => {
     }
   };
 
-  const handleFormat = (formatType: 'bold' | 'italic' | 'h1' | 'h2' | 'ul') => {
+  const handleFormat = (formatType: 'bold' | 'italic' | 'underline' | 'strike' | 'code' | 'codeblock' | 'blockquote' | 'hr' | 'h1' | 'h2' | 'ul' | 'ol' | 'link' | 'image') => {
     if (!textareaRef.current) return;
     const textarea = textareaRef.current;
     const start = textarea.selectionStart;
@@ -310,8 +258,20 @@ const CourseWorkspacePage: React.FC = () => {
     const selected = editedContent.substring(start, end);
     let newContent = editedContent;
 
-    if (formatType === 'bold' || formatType === 'italic') {
-        const syntax = formatType === 'bold' ? '**' : '*';
+    if (formatType === 'link') {
+        setShowImagePanel(false);
+        setLinkText(selected);
+        setLinkUrl('');
+        setShowLinkPanel(true);
+        return;
+    } else if (formatType === 'image') {
+        setShowLinkPanel(false);
+        setImageAlt(selected || 'Image');
+        setImageUrl('');
+        setShowImagePanel(true);
+        return;
+    } else if (formatType === 'bold' || formatType === 'italic' || formatType === 'strike' || formatType === 'code') {
+        const syntax = formatType === 'bold' ? '**' : formatType === 'italic' ? '*' : formatType === 'strike' ? '~~' : '`';
         newContent = `${editedContent.substring(0, start)}${syntax}${selected}${syntax}${editedContent.substring(end)}`;
     } else {
         const lineStartIdx = editedContent.lastIndexOf('\n', start - 1) + 1;
@@ -327,11 +287,52 @@ const CourseWorkspacePage: React.FC = () => {
             if (lines.length > 1) formatted += '\n' + lines.slice(1).join('\n');
         } else if (formatType === 'ul') {
             formatted = lines.map(line => `* ${line}`).join('\n');
+        } else if (formatType === 'ol') {
+            formatted = lines.map((line, idx) => `${idx + 1}. ${line}`).join('\n');
+        } else if (formatType === 'blockquote') {
+            formatted = lines.map(line => `> ${line}`).join('\n');
+        } else if (formatType === 'codeblock') {
+            formatted = '```\n' + lines.join('\n') + '\n```';
+        } else if (formatType === 'hr') {
+            formatted = '---';
+        } else if (formatType === 'underline') {
+            // Markdown nu are underline nativ; folosim tag HTML
+            formatted = `<u>${lines.join('\n')}</u>`;
         }
-        
         newContent = `${editedContent.substring(0, lineStartIdx)}${formatted}${editedContent.substring(effectiveEnd)}`;
     }
     setEditedContent(newContent);
+    setTimeout(() => textarea.focus(), 0);
+  };
+
+  const handleSubmitLink = () => {
+    if (!textareaRef.current) return;
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = editedContent.substring(start, end);
+    const text = selected && selected.length > 0 ? selected : (linkText || 'Link');
+    const url = linkUrl.trim();
+    if (!url) { setShowLinkPanel(false); return; }
+    const insert = `[${text}](${url})`;
+    const newContent = `${editedContent.substring(0, start)}${insert}${editedContent.substring(end)}`;
+    setEditedContent(newContent);
+    setShowLinkPanel(false);
+    setTimeout(() => textarea.focus(), 0);
+  };
+
+  const handleSubmitImage = () => {
+    if (!textareaRef.current) return;
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const alt = imageAlt?.trim() || 'Image';
+    const url = imageUrl.trim();
+    if (!url) { setShowImagePanel(false); return; }
+    const insert = `![${alt}](${url})`;
+    const newContent = `${editedContent.substring(0, start)}${insert}${editedContent.substring(end)}`;
+    setEditedContent(newContent);
+    setShowImagePanel(false);
     setTimeout(() => textarea.focus(), 0);
   };
   
@@ -355,14 +356,71 @@ const CourseWorkspacePage: React.FC = () => {
   const canGenerateOrRefine = canEdit && !currentStep.is_completed;
 
   const EditorToolbar = () => (
-    <div className="p-2 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center gap-1 flex-wrap">
+    <div className="relative p-2 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center gap-1 flex-wrap">
         <button onClick={() => handleFormat('h1')} title={t('course.editor.toolbar.h1')} disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Heading1 size={18} /></button>
         <button onClick={() => handleFormat('h2')} title={t('course.editor.toolbar.h2')} disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Heading2 size={18} /></button>
         <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
         <button onClick={() => handleFormat('bold')} title={t('course.editor.toolbar.bold')} disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Bold size={18} /></button>
         <button onClick={() => handleFormat('italic')} title={t('course.editor.toolbar.italic')} disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Italic size={18} /></button>
+        <button onClick={() => handleFormat('underline')} title="Underline" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Underline size={18} /></button>
+        <button onClick={() => handleFormat('strike')} title="Strikethrough" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Strikethrough size={18} /></button>
         <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
         <button onClick={() => handleFormat('ul')} title={t('course.editor.toolbar.list')} disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><List size={18} /></button>
+        <button onClick={() => handleFormat('ol')} title="Ordered list" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><ListOrdered size={18} /></button>
+        <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
+        <button onClick={() => handleFormat('blockquote')} title="Quote" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Quote size={18} /></button>
+        <button onClick={() => handleFormat('code')} title="Inline code" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Code size={18} /></button>
+        <button onClick={() => handleFormat('codeblock')} title="Code block" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Code size={18} /></button>
+        <button onClick={() => handleFormat('hr')} title="Horizontal rule" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Minus size={18} /></button>
+        <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
+        <button onClick={() => handleFormat('link')} title="Insert link" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><LinkIcon size={18} /></button>
+        <button onClick={() => handleFormat('image')} title="Insert image" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><ImageIcon size={18} /></button>
+
+        {showLinkPanel && (
+          <div ref={linkPanelRef} className="absolute top-full left-2 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 p-3 z-30">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-semibold">Insert Link</span>
+              <button onClick={() => setShowLinkPanel(false)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X size={16} /></button>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Text</label>
+                <input value={linkText} onChange={(e) => setLinkText(e.target.value)} className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900" placeholder="Ex: Documentație" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">URL</label>
+                <input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900" placeholder="https://..." />
+              </div>
+              <div className="flex gap-2 justify-end pt-1">
+                <button onClick={() => setShowLinkPanel(false)} className="px-3 py-1.5 text-sm rounded border dark:border-gray-700">Cancel</button>
+                <button onClick={handleSubmitLink} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700">Insert</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showImagePanel && (
+          <div ref={imagePanelRef} className="absolute top-full left-2 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 p-3 z-30">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-semibold">Insert Image</span>
+              <button onClick={() => setShowImagePanel(false)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X size={16} /></button>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Alt text</label>
+                <input value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900" placeholder="Ex: Diagrama arhitectură" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">URL</label>
+                <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900" placeholder="https://..." />
+              </div>
+              <div className="flex gap-2 justify-end pt-1">
+                <button onClick={() => setShowImagePanel(false)} className="px-3 py-1.5 text-sm rounded border dark:border-gray-700">Cancel</button>
+                <button onClick={handleSubmitImage} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700">Insert</button>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 
@@ -445,7 +503,7 @@ const CourseWorkspacePage: React.FC = () => {
                     </div>
                 ) : (
                     <div className="flex-1 overflow-y-auto">
-                        <SimpleMarkdownRenderer content={editedContent} />
+                        <MarkdownPreview content={editedContent} />
                     </div>
                 )}
             </div>
