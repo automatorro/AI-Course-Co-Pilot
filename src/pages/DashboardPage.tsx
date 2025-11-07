@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../contexts/I18nContext';
 import { useToast } from '../contexts/ToastContext';
 import NewCourseModal from '../components/NewCourseModal';
-import { Course, CourseStep, GenerationEnvironment, Plan } from '../types';
+import { Course, GenerationEnvironment } from '../types';
 import { PRICING_PLANS, COURSE_STEPS_KEYS } from '../constants';
 import { supabase } from '../services/supabaseClient';
 import { PlusCircle, Loader2, Edit, Copy, Download, Trash2, Rocket } from 'lucide-react';

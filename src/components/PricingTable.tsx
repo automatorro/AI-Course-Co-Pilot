@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PRICING_PLANS, STRIPE_PUBLISHABLE_KEY } from '../constants';
-import { Plan, User } from '../types';
+import { User } from '../types';
 import { useTranslation } from '../contexts/I18nContext';
 import { useToast } from '../contexts/ToastContext';
 import { supabase } from '../services/supabaseClient';

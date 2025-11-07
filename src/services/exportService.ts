@@ -99,12 +99,18 @@ const createPptx = (step: CourseStep, courseTitle: string): Promise<Blob> => {
         if (body) {
             slide.addText(body, {
                 x: 0.5, y: 1.5, w: '90%', h: '75%', 
-                fontSize: 18, bullet: true, paraSpcAfter: 10
+                fontSize: 18, bullet: true, paraSpaceAfter: 10
             });
         }
     });
 
-    return pptx.write('blob');
+    // Generate binary data and wrap into a Blob compatible with ZIP
+    return pptx.write().then((bufferOrUint8) => {
+        const arrayBuffer: ArrayBuffer = bufferOrUint8 instanceof ArrayBuffer
+          ? bufferOrUint8
+          : (bufferOrUint8 as Uint8Array).buffer as ArrayBuffer;
+        return new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+    });
 };
 
 /**

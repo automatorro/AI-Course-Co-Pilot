@@ -4,7 +4,7 @@ import { useTranslation } from '../contexts/I18nContext';
 import { Course, CourseStep } from '../types';
 import { generateCourseContent, refineCourseContent } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
-import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Heading1, Heading2, Bold, Italic, List, Save, Lightbulb, Pilcrow, Combine, BookOpen, X, ChevronRight } from 'lucide-react';
+import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Heading1, Heading2, Bold, Italic, List, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight } from 'lucide-react';
 import { exportCourseAsZip } from '../services/exportService';
 import { useToast } from '../contexts/ToastContext';
 import ReviewChangesModal from '../components/ReviewChangesModal';
@@ -348,8 +348,8 @@ const CourseWorkspacePage: React.FC = () => {
     return <div className="flex items-center justify-center h-screen"><Loader2 className="animate-spin text-primary-500" size={32}/></div>;
   }
   
-  const isLastStep = activeStepIndex === course.steps.length - 1;
-  const isCourseComplete = course.steps.every(s => s.is_completed);
+  const isLastStep = activeStepIndex === ((course.steps?.length ?? 0) - 1);
+  const isCourseComplete = (course.steps ?? []).every(s => s.is_completed);
   const isBusy = isGenerating || isProposingChanges;
   const canEdit = !isBusy;
   const canGenerateOrRefine = canEdit && !currentStep.is_completed;
@@ -384,11 +384,11 @@ const CourseWorkspacePage: React.FC = () => {
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{t('course.workspace.title')}</p>
         <nav>
           <ul>
-            {course.steps.map((step, index) => (
+            {(course.steps ?? []).map((step, index) => (
               <li key={step.id}>
                 <button 
                   onClick={() => setActiveStepIndex(index)}
-                  disabled={index > 0 && !course.steps![index - 1].is_completed}
+                  disabled={index > 0 && !((course.steps ?? [])[index - 1]?.is_completed)}
                   className={`w-full text-left p-3 my-1 rounded-lg flex items-center gap-3 transition-colors ${
                     activeStepIndex === index 
                       ? 'bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300' 

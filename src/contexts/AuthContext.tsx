@@ -15,7 +15,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handleAuthStateChange = async (event: AuthChangeEvent, session: Session | null) => {
+    const handleAuthStateChange = async (_event: AuthChangeEvent, session: Session | null) => {
       setLoading(true);
       if (session?.user) {
         const { data: profile, error } = await supabase
