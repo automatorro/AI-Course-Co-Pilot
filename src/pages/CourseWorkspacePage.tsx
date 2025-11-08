@@ -4,7 +4,7 @@ import { useTranslation } from '../contexts/I18nContext';
 import { Course, CourseStep } from '../types';
 import { generateCourseContent, refineCourseContent } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
-import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Heading1, Heading2, Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Code, Minus, Link as LinkIcon, Image as ImageIcon, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X } from 'lucide-react';
+import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Heading1, Heading2, Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Code, Minus, Link as LinkIcon, Image as ImageIcon, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ListTodo, Grid2x2 } from 'lucide-react';
 import { exportCourseAsZip } from '../services/exportService';
 import { useToast } from '../contexts/ToastContext';
 import ReviewChangesModal from '../components/ReviewChangesModal';
@@ -70,16 +70,22 @@ const CourseWorkspacePage: React.FC = () => {
   const [originalForProposal, setOriginalForProposal] = useState<string | null>(null);
   const [showLinkPanel, setShowLinkPanel] = useState(false);
   const [showImagePanel, setShowImagePanel] = useState(false);
+  const [showTablePanel, setShowTablePanel] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [imageAlt, setImageAlt] = useState('');
+  const [linkUrlValid, setLinkUrlValid] = useState(true);
+  const [imageUrlValid, setImageUrlValid] = useState(true);
+  const [tableRows, setTableRows] = useState(3);
+  const [tableCols, setTableCols] = useState(3);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const selectionRef = useRef<{ start: number, end: number }>({ start: 0, end: 0 });
   const aiActionsRef = useRef<HTMLDivElement>(null);
   const linkPanelRef = useRef<HTMLDivElement>(null);
   const imagePanelRef = useRef<HTMLDivElement>(null);
+  const tablePanelRef = useRef<HTMLDivElement>(null);
 
   const fetchCourseData = useCallback(async () => {
     if (!id) return null;
@@ -111,6 +117,9 @@ const CourseWorkspacePage: React.FC = () => {
         }
         if (imagePanelRef.current && !imagePanelRef.current.contains(targetNode)) {
             setShowImagePanel(false);
+        }
+        if (tablePanelRef.current && !tablePanelRef.current.contains(targetNode)) {
+            setShowTablePanel(false);
         }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -250,7 +259,7 @@ const CourseWorkspacePage: React.FC = () => {
     }
   };
 
-  const handleFormat = (formatType: 'bold' | 'italic' | 'underline' | 'strike' | 'code' | 'codeblock' | 'blockquote' | 'hr' | 'h1' | 'h2' | 'ul' | 'ol' | 'link' | 'image') => {
+  const handleFormat = (formatType: 'bold' | 'italic' | 'underline' | 'strike' | 'code' | 'codeblock' | 'blockquote' | 'hr' | 'h1' | 'h2' | 'ul' | 'ol' | 'link' | 'image' | 'task' | 'table') => {
     if (!textareaRef.current) return;
     const textarea = textareaRef.current;
     const start = textarea.selectionStart;
@@ -260,15 +269,26 @@ const CourseWorkspacePage: React.FC = () => {
 
     if (formatType === 'link') {
         setShowImagePanel(false);
+        setShowTablePanel(false);
         setLinkText(selected);
         setLinkUrl('');
+        setLinkUrlValid(true);
         setShowLinkPanel(true);
         return;
     } else if (formatType === 'image') {
         setShowLinkPanel(false);
+        setShowTablePanel(false);
         setImageAlt(selected || 'Image');
         setImageUrl('');
+        setImageUrlValid(true);
         setShowImagePanel(true);
+        return;
+    } else if (formatType === 'table') {
+        setShowLinkPanel(false);
+        setShowImagePanel(false);
+        setTableRows(3);
+        setTableCols(3);
+        setShowTablePanel(true);
         return;
     } else if (formatType === 'bold' || formatType === 'italic' || formatType === 'strike' || formatType === 'code') {
         const syntax = formatType === 'bold' ? '**' : formatType === 'italic' ? '*' : formatType === 'strike' ? '~~' : '`';
@@ -289,6 +309,8 @@ const CourseWorkspacePage: React.FC = () => {
             formatted = lines.map(line => `* ${line}`).join('\n');
         } else if (formatType === 'ol') {
             formatted = lines.map((line, idx) => `${idx + 1}. ${line}`).join('\n');
+        } else if (formatType === 'task') {
+            formatted = lines.map(line => `- [ ] ${line}`).join('\n');
         } else if (formatType === 'blockquote') {
             formatted = lines.map(line => `> ${line}`).join('\n');
         } else if (formatType === 'codeblock') {
@@ -307,13 +329,16 @@ const CourseWorkspacePage: React.FC = () => {
 
   const handleSubmitLink = () => {
     if (!textareaRef.current) return;
+    const urlPattern = /^(https?:\/\/)[\w.-]+(?:\.[\w\.-]+)+(?:[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]*)?$/i;
     const textarea = textareaRef.current;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selected = editedContent.substring(start, end);
     const text = selected && selected.length > 0 ? selected : (linkText || 'Link');
     const url = linkUrl.trim();
-    if (!url) { setShowLinkPanel(false); return; }
+    const valid = urlPattern.test(url);
+    setLinkUrlValid(valid);
+    if (!url || !valid) { return; }
     const insert = `[${text}](${url})`;
     const newContent = `${editedContent.substring(0, start)}${insert}${editedContent.substring(end)}`;
     setEditedContent(newContent);
@@ -323,16 +348,36 @@ const CourseWorkspacePage: React.FC = () => {
 
   const handleSubmitImage = () => {
     if (!textareaRef.current) return;
+    const urlPattern = /^(https?:\/\/)[\w.-]+(?:\.[\w\.-]+)+(?:[\w\-\.~:\/?#\[\]@!$&'()*+,;=%]*)?$/i;
     const textarea = textareaRef.current;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const alt = imageAlt?.trim() || 'Image';
     const url = imageUrl.trim();
-    if (!url) { setShowImagePanel(false); return; }
+    const valid = urlPattern.test(url);
+    setImageUrlValid(valid);
+    if (!url || !valid) { return; }
     const insert = `![${alt}](${url})`;
     const newContent = `${editedContent.substring(0, start)}${insert}${editedContent.substring(end)}`;
     setEditedContent(newContent);
     setShowImagePanel(false);
+    setTimeout(() => textarea.focus(), 0);
+  };
+
+  const handleSubmitTable = () => {
+    if (!textareaRef.current) return;
+    const rows = Math.max(1, Math.min(20, Number(tableRows) || 1));
+    const cols = Math.max(1, Math.min(10, Number(tableCols) || 1));
+    const header = Array.from({ length: cols }, (_, i) => `Col ${i + 1}`).join(' | ');
+    const sep = Array.from({ length: cols }, () => '---').join(' | ');
+    const bodyRows = Array.from({ length: rows }, () => Array.from({ length: cols }, () => ' ').join(' | ')).join('\n');
+    const tableMd = `${header}\n${sep}\n${bodyRows}\n`;
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newContent = `${editedContent.substring(0, start)}${tableMd}${editedContent.substring(end)}`;
+    setEditedContent(newContent);
+    setShowTablePanel(false);
     setTimeout(() => textarea.focus(), 0);
   };
   
@@ -367,6 +412,7 @@ const CourseWorkspacePage: React.FC = () => {
         <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
         <button onClick={() => handleFormat('ul')} title={t('course.editor.toolbar.list')} disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><List size={18} /></button>
         <button onClick={() => handleFormat('ol')} title="Ordered list" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><ListOrdered size={18} /></button>
+        <button onClick={() => handleFormat('task')} title="Task list" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><ListTodo size={18} /></button>
         <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
         <button onClick={() => handleFormat('blockquote')} title="Quote" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Quote size={18} /></button>
         <button onClick={() => handleFormat('code')} title="Inline code" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Code size={18} /></button>
@@ -375,6 +421,7 @@ const CourseWorkspacePage: React.FC = () => {
         <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
         <button onClick={() => handleFormat('link')} title="Insert link" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><LinkIcon size={18} /></button>
         <button onClick={() => handleFormat('image')} title="Insert image" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><ImageIcon size={18} /></button>
+        <button onClick={() => handleFormat('table')} title="Insert table" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Grid2x2 size={18} /></button>
 
         {showLinkPanel && (
           <div ref={linkPanelRef} className="absolute top-full left-2 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 p-3 z-30">
@@ -389,11 +436,12 @@ const CourseWorkspacePage: React.FC = () => {
               </div>
               <div>
                 <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">URL</label>
-                <input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900" placeholder="https://..." />
+                <input value={linkUrl} onChange={(e) => { setLinkUrl(e.target.value); setLinkUrlValid(true); }} className={`w-full px-3 py-2 text-sm rounded border bg-white dark:bg-gray-900 ${linkUrlValid ? 'dark:border-gray-700' : 'border-red-500 dark:border-red-500'}`} placeholder="https://..." />
+                {!linkUrlValid && (<p className="mt-1 text-xs text-red-600">Introduce un URL valid care începe cu http(s)://</p>)}
               </div>
               <div className="flex gap-2 justify-end pt-1">
                 <button onClick={() => setShowLinkPanel(false)} className="px-3 py-1.5 text-sm rounded border dark:border-gray-700">Cancel</button>
-                <button onClick={handleSubmitLink} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700">Insert</button>
+                <button onClick={handleSubmitLink} disabled={!linkUrl || !/^https?:\/\//i.test(linkUrl)} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50">Insert</button>
               </div>
             </div>
           </div>
@@ -412,17 +460,41 @@ const CourseWorkspacePage: React.FC = () => {
               </div>
               <div>
                 <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">URL</label>
-                <input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900" placeholder="https://..." />
+                <input value={imageUrl} onChange={(e) => { setImageUrl(e.target.value); setImageUrlValid(true); }} className={`w-full px-3 py-2 text-sm rounded border bg-white dark:bg-gray-900 ${imageUrlValid ? 'dark:border-gray-700' : 'border-red-500 dark:border-red-500'}`} placeholder="https://..." />
+                {!imageUrlValid && (<p className="mt-1 text-xs text-red-600">Introduce un URL valid care începe cu http(s)://</p>)}
               </div>
               <div className="flex gap-2 justify-end pt-1">
                 <button onClick={() => setShowImagePanel(false)} className="px-3 py-1.5 text-sm rounded border dark:border-gray-700">Cancel</button>
-                <button onClick={handleSubmitImage} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700">Insert</button>
+                <button onClick={handleSubmitImage} disabled={!imageUrl || !/^https?:\/\//i.test(imageUrl)} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50">Insert</button>
               </div>
             </div>
           </div>
         )}
-    </div>
-  );
+
+        {showTablePanel && (
+          <div ref={tablePanelRef} className="absolute top-full left-2 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 p-3 z-30">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-semibold">Insert Table</span>
+              <button onClick={() => setShowTablePanel(false)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X size={16} /></button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Rows</label>
+                <input type="number" min={1} max={20} value={tableRows} onChange={(e) => setTableRows(Number(e.target.value))} className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Columns</label>
+                <input type="number" min={1} max={10} value={tableCols} onChange={(e) => setTableCols(Number(e.target.value))} className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900" />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <button onClick={() => setShowTablePanel(false)} className="px-3 py-1.5 text-sm rounded border dark:border-gray-700">Cancel</button>
+              <button onClick={handleSubmitTable} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700">Insert</button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
 
   return (
     <div className="flex h-[calc(100vh-4rem)]">

@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeHighlight from 'rehype-highlight';
+import 'highlight.js/styles/github.css';
 
 interface MarkdownPreviewProps {
   content: string;
@@ -11,6 +13,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content }) => {
     <div className="prose dark:prose-invert max-w-none p-6">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeHighlight]}
         components={{
           table: ({ node, ...props }) => (
             <table className="table-auto border-collapse" {...props} />
@@ -20,7 +23,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content }) => {
           ),
           td: ({ node, ...props }) => (
             <td className="border px-3 py-2" {...props} />
-          ),
+          )
         }}
       >
         {content}
