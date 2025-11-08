@@ -79,6 +79,10 @@ const CourseWorkspacePage: React.FC = () => {
   const [imageUrlValid, setImageUrlValid] = useState(true);
   const [tableRows, setTableRows] = useState(3);
   const [tableCols, setTableCols] = useState(3);
+  // Local image upload state
+  const [localImageFile, setLocalImageFile] = useState<File | null>(null);
+  const [localImageMode, setLocalImageMode] = useState<'data' | 'blob'>('data');
+  const [localImageError, setLocalImageError] = useState<string | null>(null);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const selectionRef = useRef<{ start: number, end: number }>({ start: 0, end: 0 });
@@ -86,6 +90,9 @@ const CourseWorkspacePage: React.FC = () => {
   const linkPanelRef = useRef<HTMLDivElement>(null);
   const imagePanelRef = useRef<HTMLDivElement>(null);
   const tablePanelRef = useRef<HTMLDivElement>(null);
+
+  const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/gif','image/webp'];
+  const MAX_IMAGE_SIZE_BYTES = 8 * 1024 * 1024; // 8MB
 
   const fetchCourseData = useCallback(async () => {
     if (!id) return null;
@@ -364,6 +371,56 @@ const CourseWorkspacePage: React.FC = () => {
     setTimeout(() => textarea.focus(), 0);
   };
 
+  
+
+  const handleLocalImageChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const file = e.target.files?.[0] || null;
+    setLocalImageError(null);
+    setLocalImageFile(null);
+    if (!file) return;
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      setLocalImageError('Tip de fișier neacceptat. Folosește PNG, JPEG, GIF sau WEBP.');
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      setLocalImageError('Fișier prea mare. Limita este 8MB.');
+      return;
+    }
+    setLocalImageFile(file);
+  };
+
+  const fileToDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(new Error('Eroare la citirea fișierului.'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleInsertLocalImage = async () => {
+    if (!textareaRef.current || !localImageFile) return;
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const alt = imageAlt?.trim() || localImageFile.name || 'Image';
+    try {
+      let url: string;
+      if (localImageMode === 'blob') {
+        url = URL.createObjectURL(localImageFile);
+      } else {
+        url = await fileToDataURL(localImageFile);
+      }
+      const insert = `![${alt}](${url})`;
+      const newContent = `${editedContent.substring(0, start)}${insert}${editedContent.substring(end)}`;
+      setEditedContent(newContent);
+      setShowImagePanel(false);
+      setTimeout(() => textarea.focus(), 0);
+    } catch (err) {
+      setLocalImageError('Nu am putut procesa imaginea. Încearcă din nou.');
+    }
+  };
+
   const handleSubmitTable = () => {
     if (!textareaRef.current) return;
     const rows = Math.max(1, Math.min(20, Number(tableRows) || 1));
@@ -466,6 +523,33 @@ const CourseWorkspacePage: React.FC = () => {
               <div className="flex gap-2 justify-end pt-1">
                 <button onClick={() => setShowImagePanel(false)} className="px-3 py-1.5 text-sm rounded border dark:border-gray-700">Cancel</button>
                 <button onClick={handleSubmitImage} disabled={!imageUrl || !/^https?:\/\//i.test(imageUrl)} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50">Insert</button>
+              </div>
+
+              <div className="pt-3 border-t dark:border-gray-700">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Sau încarcă imagine locală (PNG, JPEG, GIF, WEBP):</p>
+                <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={handleLocalImageChange} className="w-full text-sm" />
+                {localImageFile && (
+                  <div className="mt-2 text-xs text-gray-700 dark:text-gray-300">
+                    Selectat: {localImageFile.name} ({Math.round(localImageFile.size/1024)} KB)
+                  </div>
+                )}
+                {localImageError && (
+                  <div className="mt-2 text-xs text-red-600">{localImageError}</div>
+                )}
+                <div className="mt-2 flex items-center gap-3">
+                  <label className="flex items-center gap-1 text-xs">
+                    <input type="radio" name="localImageMode" checked={localImageMode === 'data'} onChange={() => setLocalImageMode('data')} />
+                    Embed ca Data URL (persistă în conținut)
+                  </label>
+                  <label className="flex items-center gap-1 text-xs">
+                    <input type="radio" name="localImageMode" checked={localImageMode === 'blob'} onChange={() => setLocalImageMode('blob')} />
+                    Blob URL (preview doar în sesiune)
+                  </label>
+                </div>
+                <div className="flex gap-2 justify-end pt-2">
+                  <button onClick={handleInsertLocalImage} disabled={!localImageFile} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50">Insert local image</button>
+                </div>
+                <p className="text-[11px] mt-1 text-gray-500 dark:text-gray-400">Notă: Blob URL funcționează doar în sesiunea curentă. Pentru linkuri permanente, folosește Data URL sau un URL public.</p>
               </div>
             </div>
           </div>

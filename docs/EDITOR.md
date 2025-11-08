@@ -10,6 +10,7 @@ Acest document descrie implementarea și comportamentul editorului Markdown conf
 ## Funcționalități cheie
 - Insert Link: panou cu câmpuri `Text` și `URL` (validare `http(s)://`).
 - Insert Image: panou cu câmpuri `URL` și `Alt` (validare `http(s)://`).
+- Insert Image (local): încărcare fișier (PNG/JPEG/GIF/WEBP), validare tip și dimensiune, inserare ca `Data URL` (persistă) sau `Blob URL` (doar preview în sesiune).
 - Task list: buton dedicat care inserează listă de tip task (`- [ ] item`).
 - Insert Table: panou cu `Rows` și `Columns` ce generează tabel Markdown.
 - Syntax highlighting: preview cu `rehype-highlight` și stil `highlight.js` (tema `github`).
@@ -18,6 +19,14 @@ Acest document descrie implementarea și comportamentul editorului Markdown conf
 - Link/Image verifică prefixul `http://` sau `https://`.
 - Butonul `Insert` este dezactivat pentru URL gol sau invalid.
 - Câmpurile invalide sunt marcate vizual cu bordură roșie și mesaj explicativ.
+
+## Încărcare locală (imagini)
+- Tipuri acceptate: `image/png`, `image/jpeg`, `image/gif`, `image/webp`.
+- Dimensiune maximă: 8MB.
+- Moduri de inserare:
+  - `Data URL`: inserează conținutul imaginii în Markdown ca URL `data:` (portabil și persistent, crește dimensiunea conținutului).
+  - `Blob URL`: inserează un URL `blob:` valabil doar în sesiunea curentă (util pentru preview rapid; nu persistă după refresh).
+- Notă: SVG nu este acceptat pentru a reduce riscurile de securitate.
 
 ## Compatibilitate și integritate
 - Stocarea conținutului rămâne în Markdown; nu s-au introdus conversii sau scheme noi.
