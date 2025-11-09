@@ -23,7 +23,7 @@ function App() {
       <ThemeProvider>
         <AuthProvider>
           <HashRouter>
-            <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+            <div className="min-h-screen flex flex-col premium-texture bg-ink-50 dark:bg-ink-900 text-ink-900 dark:text-ink-100 transition-colors duration-300">
               <Header />
               <main className="pt-20 flex-grow">
                 <Routes>

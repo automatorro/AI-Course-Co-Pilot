@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from '../contexts/I18nContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Course, CourseStep } from '../types';
 import { generateCourseContent, refineCourseContent } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
@@ -53,8 +54,10 @@ const HelpModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 const CourseWorkspacePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [course, setCourse] = useState<Course | null>(null);
+  const [userCourses, setUserCourses] = useState<Array<{ id: string; title: string }>>([]);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isProposingChanges, setIsProposingChanges] = useState(false);
@@ -81,8 +84,13 @@ const CourseWorkspacePage: React.FC = () => {
   const [tableCols, setTableCols] = useState(3);
   // Local image upload state
   const [localImageFile, setLocalImageFile] = useState<File | null>(null);
-  const [localImageMode, setLocalImageMode] = useState<'data' | 'blob'>('data');
+  const [localImageMode, setLocalImageMode] = useState<'data' | 'blob' | 'upload'>('data');
   const [localImageError, setLocalImageError] = useState<string | null>(null);
+
+  // Import document state (DOCX/TXT/PDF prototype)
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const selectionRef = useRef<{ start: number, end: number }>({ start: 0, end: 0 });
@@ -95,23 +103,38 @@ const CourseWorkspacePage: React.FC = () => {
   const MAX_IMAGE_SIZE_BYTES = 8 * 1024 * 1024; // 8MB
 
   const fetchCourseData = useCallback(async () => {
-    if (!id) return null;
-    
+    if (!id || !user) return null;
     const { data, error } = await supabase
         .from('courses')
         .select(`*, steps:course_steps(*)`)
         .eq('id', id)
+        .eq('user_id', user.id)
         .single();
-    
     if (error) {
-        console.error("Error fetching course data:", error);
+        console.error('Error fetching course data:', error);
         showToast('Failed to load course data.', 'error');
         return null;
     }
-    
-    const sortedSteps = (data.steps || []).sort((a: CourseStep, b: CourseStep) => a.step_order - b.step_order);
-    return { ...data, steps: sortedSteps };
-  }, [id, showToast]);
+    const sortedSteps = (data?.steps || []).sort((a: CourseStep, b: CourseStep) => a.step_order - b.step_order);
+    return { ...data, steps: sortedSteps } as Course;
+  }, [id, user, showToast]);
+
+  useEffect(() => {
+    const loadUserCourses = async () => {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from('courses')
+        .select('id, title')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error('Error fetching user courses:', error);
+        return;
+      }
+      setUserCourses((data || []).map(c => ({ id: c.id as string, title: c.title as string })));
+    };
+    loadUserCourses();
+  }, [user]);
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -152,7 +175,8 @@ const CourseWorkspacePage: React.FC = () => {
       const courseData = await fetchCourseData();
       if (isMounted && courseData) {
         setCourse(courseData);
-        const firstIncompleteStep = courseData.steps.findIndex((s: CourseStep) => !s.is_completed);
+        const stepsArr = courseData.steps ?? [];
+        const firstIncompleteStep = stepsArr.findIndex((s: CourseStep) => !s.is_completed);
         setActiveStepIndex(firstIncompleteStep >= 0 ? firstIncompleteStep : 0);
       }
       if(isMounted) setIsLoading(false);
@@ -406,7 +430,23 @@ const CourseWorkspacePage: React.FC = () => {
     const alt = imageAlt?.trim() || localImageFile.name || 'Image';
     try {
       let url: string;
-      if (localImageMode === 'blob') {
+      if (localImageMode === 'upload') {
+        // Upload to Supabase Storage and insert public URL
+        const BUCKET = 'course-assets';
+        const fileExt = localImageFile.name.split('.').pop()?.toLowerCase() || 'png';
+        const uniqueName = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        const path = `${user?.id || 'anonymous'}/${course?.id || 'course'}/${uniqueName}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from(BUCKET)
+          .upload(path, localImageFile, { contentType: localImageFile.type, upsert: false });
+        if (uploadError) {
+          console.error('Upload image error:', uploadError);
+          setLocalImageError(uploadError.message || 'Upload eșuat. Verifică configurația Storage.');
+          return;
+        }
+        const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        url = pub.publicUrl;
+      } else if (localImageMode === 'blob') {
         url = URL.createObjectURL(localImageFile);
       } else {
         url = await fileToDataURL(localImageFile);
@@ -419,6 +459,148 @@ const CourseWorkspacePage: React.FC = () => {
     } catch (err) {
       setLocalImageError('Nu am putut procesa imaginea. Încearcă din nou.');
     }
+  };
+
+  // =============================
+  // Document Import (Prototype)
+  // =============================
+  const handleImportFileChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
+    const file = e.target.files?.[0] || null;
+    setImportFile(file);
+    setImportError(null);
+  };
+
+  const processImportDocument = async () => {
+    if (!importFile || !course || !user) return;
+    setImporting(true);
+    setImportError(null);
+    try {
+      const arrayBuffer = await importFile.arrayBuffer();
+      const ext = importFile.name.toLowerCase().split('.').pop() || '';
+      let steps: { title_key: string; content: string }[] = [];
+
+      if (ext === 'docx') {
+        steps = await parseDocxToSteps(arrayBuffer);
+      } else if (ext === 'txt') {
+        const text = new TextDecoder().decode(new Uint8Array(arrayBuffer));
+        steps = parseTxtToSteps(text);
+      } else if (ext === 'pdf') {
+        steps = await parsePdfToSteps(arrayBuffer);
+      } else {
+        throw new Error('Format neacceptat. Accept: .docx, .txt, .pdf');
+      }
+
+      if (steps.length === 0) throw new Error('Nu s-au identificat pași din document.');
+
+      const newStepsPayload = steps.map((s, idx) => ({
+        course_id: course.id,
+        user_id: user.id,
+        title_key: s.title_key,
+        content: s.content,
+        is_completed: false,
+        step_order: (course.steps?.length || 0) + idx + 1,
+      }));
+
+      const { error: stepsError } = await supabase.from('course_steps').insert(newStepsPayload);
+      if (stepsError) throw stepsError;
+
+      showToast('Import reușit: pașii au fost adăugați.', 'success');
+      setImportFile(null);
+      setCourse(prev => prev ? {
+        ...prev,
+        steps: [...(prev.steps || []), ...newStepsPayload.map(s => ({ ...s, id: '', created_at: new Date().toISOString() }))],
+      } : prev);
+    } catch (err: any) {
+      console.error('Import error:', err);
+      setImportError(err.message || 'A apărut o eroare la import.');
+      showToast('Import nereușit.', 'error');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const parseDocxToSteps = async (arrayBuffer: ArrayBuffer): Promise<{ title_key: string; content: string }[]> => {
+    try {
+      const mammothLib: any = await import('mammoth');
+      const result = await mammothLib.convertToHtml({ arrayBuffer });
+      const html: string = result.value || '';
+      const md = htmlToSimpleMarkdown(html);
+      return splitMarkdownIntoSteps(md, 'course.steps.manual');
+    } catch (e) {
+      console.warn('DOCX parse fallback:', e);
+      const text = new TextDecoder().decode(new Uint8Array(arrayBuffer));
+      return [{ title_key: 'course.steps.manual', content: text }];
+    }
+  };
+
+  const parsePdfToSteps = async (arrayBuffer: ArrayBuffer): Promise<{ title_key: string; content: string }[]> => {
+    try {
+      const pdfjsLib: any = await import('pdfjs-dist');
+      // Configure worker for performance
+      try {
+        const workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).toString();
+        if (pdfjsLib?.GlobalWorkerOptions) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+        }
+      } catch { /* best-effort; continue */ }
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
+      const steps: { title_key: string; content: string }[] = [];
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map((i: any) => (i.str || '')).join(' ').replace(/\s+/g, ' ').trim();
+        const chunkSize = 5000;
+        if (pageText.length <= chunkSize) {
+          const content = `# Slide ${p}\n\n${pageText}`;
+          steps.push({ title_key: 'course.steps.slides', content });
+        } else {
+          let idx = 0; let chunkIndex = 1;
+          while (idx < pageText.length) {
+            const chunk = pageText.slice(idx, idx + chunkSize);
+            const content = `# Slide ${p} • Parte ${chunkIndex}\n\n${chunk}`;
+            steps.push({ title_key: 'course.steps.slides', content });
+            idx += chunkSize; chunkIndex += 1;
+          }
+        }
+      }
+      return steps;
+    } catch (e) {
+      console.warn('PDF parse failed:', e);
+      throw new Error('Nu am potut procesa PDF-ul. Verifică fișierul sau încearcă altul.');
+    }
+  };
+
+  const parseTxtToSteps = (text: string): { title_key: string; content: string }[] => {
+    const sections = text.split(/\n(?=##\s)/g).filter(s => s.trim().length > 0);
+    if (sections.length === 0) {
+      return [{ title_key: 'course.steps.manual', content: text }];
+    }
+    return sections.map(s => ({ title_key: 'course.steps.manual', content: s }));
+  };
+
+  const htmlToSimpleMarkdown = (html: string): string => {
+    return html
+      .replace(/<h1[^>]*>/gi, '# ').replace(/<\/h1>/gi, '\n\n')
+      .replace(/<h2[^>]*>/gi, '## ').replace(/<\/h2>/gi, '\n\n')
+      .replace(/<h3[^>]*>/gi, '### ').replace(/<\/h3>/gi, '\n\n')
+      .replace(/<p[^>]*>/gi, '').replace(/<\/p>/gi, '\n\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<ul[^>]*>/gi, '').replace(/<\/ul>/gi, '')
+      .replace(/<ol[^>]*>/gi, '').replace(/<\/ol>/gi, '')
+      .replace(/<li[^>]*>/gi, '- ').replace(/<\/li>/gi, '\n')
+      .replace(/<strong[^>]*>/gi, '**').replace(/<\/strong>/gi, '**')
+      .replace(/<b[^>]*>/gi, '**').replace(/<\/b>/gi, '**')
+      .replace(/<em[^>]*>/gi, '*').replace(/<\/em>/gi, '*')
+      .replace(/<i[^>]*>/gi, '*').replace(/<\/i>/gi, '*')
+      .replace(/<[^>]+>/g, '')
+      .trim();
+  };
+
+  const splitMarkdownIntoSteps = (md: string, titleKey: string): { title_key: string; content: string }[] => {
+    const parts = md.split(/\n(?=##\s)/g).filter(p => p.trim().length > 0);
+    if (parts.length === 0) return [{ title_key: titleKey, content: md }];
+    return parts.map(p => ({ title_key: titleKey, content: p }));
   };
 
   const handleSubmitTable = () => {
@@ -536,7 +718,7 @@ const CourseWorkspacePage: React.FC = () => {
                 {localImageError && (
                   <div className="mt-2 text-xs text-red-600">{localImageError}</div>
                 )}
-                <div className="mt-2 flex items-center gap-3">
+                <div className="mt-2 flex flex-col gap-2">
                   <label className="flex items-center gap-1 text-xs">
                     <input type="radio" name="localImageMode" checked={localImageMode === 'data'} onChange={() => setLocalImageMode('data')} />
                     Embed ca Data URL (persistă în conținut)
@@ -545,11 +727,15 @@ const CourseWorkspacePage: React.FC = () => {
                     <input type="radio" name="localImageMode" checked={localImageMode === 'blob'} onChange={() => setLocalImageMode('blob')} />
                     Blob URL (preview doar în sesiune)
                   </label>
+                  <label className="flex items-center gap-1 text-xs">
+                    <input type="radio" name="localImageMode" checked={localImageMode === 'upload'} onChange={() => setLocalImageMode('upload')} />
+                    Upload în cloud (Supabase Storage, URL public)
+                  </label>
                 </div>
                 <div className="flex gap-2 justify-end pt-2">
                   <button onClick={handleInsertLocalImage} disabled={!localImageFile} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50">Insert local image</button>
                 </div>
-                <p className="text-[11px] mt-1 text-gray-500 dark:text-gray-400">Notă: Blob URL funcționează doar în sesiunea curentă. Pentru linkuri permanente, folosește Data URL sau un URL public.</p>
+                <p className="text-[11px] mt-1 text-gray-500 dark:text-gray-400">Notă: Blob URL funcționează doar în sesiunea curentă. Pentru linkuri permanente, folosește Data URL, URL public sau Upload în cloud.</p>
               </div>
             </div>
           </div>
@@ -594,8 +780,49 @@ const CourseWorkspacePage: React.FC = () => {
 
       {/* Sidebar */}
       <aside className="w-1/4 max-w-sm p-6 bg-white dark:bg-gray-800/50 border-r dark:border-gray-700 overflow-y-auto">
-        <h2 className="text-xl font-bold mb-2">{course.title}</h2>
+        <div className="flex items-center justify-between mb-2 gap-3">
+          <h2 className="text-xl font-bold truncate">{course.title}</h2>
+        </div>
+        {userCourses.length > 0 && (
+          <div className="mb-4">
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Schimbă cursul</label>
+            <select
+              value={course.id}
+              onChange={(e) => {
+                const nextId = e.target.value;
+                window.location.hash = `#/course/${nextId}`;
+              }}
+              className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900"
+            >
+              {userCourses.map(c => (
+                <option key={c.id} value={c.id}>{c.title}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">{t('course.workspace.title')}</p>
+        <div className="mb-6 p-3 card-premium">
+          <div className="flex items-center justify-between">
+            <span className="font-medium text-sm">Importă document</span>
+          </div>
+          <div className="mt-2 space-y-2">
+            <input type="file" accept=".docx,.txt,.pdf" onChange={handleImportFileChange} className="w-full text-sm input-premium" />
+            {importFile && (
+              <div className="text-xs text-gray-600 dark:text-gray-400">Fișier selectat: {importFile.name}</div>
+            )}
+            {importError && (
+              <div className="text-xs text-red-600">{importError}</div>
+            )}
+            <button
+              className="btn-premium text-sm disabled:opacity-50"
+              onClick={processImportDocument}
+              disabled={!importFile || importing}
+            >
+              {importing ? 'Import în curs...' : 'Importă în pași'}
+            </button>
+            <div className="text-[11px] text-gray-500 dark:text-gray-400">Acceptă .docx, .txt (secțiuni "## "), .pdf (prototip).</div>
+          </div>
+        </div>
         <nav>
           <ul>
             {(course.steps ?? []).map((step, index) => (

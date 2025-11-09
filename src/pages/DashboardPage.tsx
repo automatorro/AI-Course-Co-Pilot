@@ -231,7 +231,7 @@ const DashboardPage: React.FC = () => {
         <button
           onClick={() => setIsModalOpen(true)}
           disabled={!canCreateCourse}
-          className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          className="btn-premium disabled:opacity-50"
           title={!canCreateCourse ? t('dashboard.limitReached') : ''}
         >
           <PlusCircle size={20} />
@@ -244,7 +244,7 @@ const DashboardPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {courses.map(course => (
-            <div key={course.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg flex flex-col justify-between transform transition-transform hover:-translate-y-1">
+            <div key={course.id} className="card-premium flex flex-col justify-between transform transition-transform hover:-translate-y-1">
               <div onClick={() => navigate(`/course/${course.id}`)} className="p-6 cursor-pointer flex-grow">
                 <div className="flex justify-between items-start">
                   <h2 className="text-xl font-bold mb-2 pr-2">{course.title}</h2>
