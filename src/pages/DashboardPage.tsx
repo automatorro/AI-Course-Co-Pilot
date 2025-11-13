@@ -7,6 +7,7 @@ import NewCourseModal from '../components/NewCourseModal';
 import { Course, GenerationEnvironment } from '../types';
 import { PRICING_PLANS, COURSE_STEPS_KEYS } from '../constants';
 import { supabase } from '../services/supabaseClient';
+import { deleteCourseById } from '../services/courseService';
 import { PlusCircle, Loader2, Edit, Copy, Download, Trash2, Rocket } from 'lucide-react';
 import { exportCourseAsZip } from '../services/exportService';
 
@@ -69,6 +70,20 @@ const DashboardPage: React.FC = () => {
     };
   }, [user, showToast]);
 
+  const refetchCourses = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('courses')
+      .select('*, steps:course_steps(*)')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Error refetching courses:', error);
+    } else {
+      setCourses(data || []);
+    }
+  };
+
 
   const handleCreateCourse = async (details: {
     title: string;
@@ -127,22 +142,25 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleAction = async (courseId: string, action: 'duplicate' | 'delete' | 'download', e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     const key = `${action}-${courseId}`;
-    setLoadingStates(prev => ({ ...prev, [key]: true }));
-
-    switch (action) {
-        case 'duplicate':
-            await handleDuplicate(courseId);
-            break;
-        case 'delete':
-            await handleDelete(courseId);
-            break;
-        case 'download':
-            await handleDownload(courseId);
-            break;
+    // Pentru delete, gestionăm loader-ul în handleDelete după confirmare
+    if (action === 'delete') {
+      await handleDelete(courseId);
+      return;
     }
 
+    // Pentru celelalte acțiuni, menținem comportamentul existent
+    setLoadingStates(prev => ({ ...prev, [key]: true }));
+    switch (action) {
+      case 'duplicate':
+        await handleDuplicate(courseId);
+        break;
+      case 'download':
+        await handleDownload(courseId);
+        break;
+    }
     setLoadingStates(prev => ({ ...prev, [key]: false }));
   };
 
@@ -195,16 +213,47 @@ const DashboardPage: React.FC = () => {
   };
 
   const handleDelete = async (courseId: string) => {
-    const confirmed = window.confirm("Are you sure you want to delete this course? This action cannot be undone.");
-    if (confirmed) {
-        const { error } = await supabase.from('courses').delete().eq('id', courseId);
-        if (error) {
-            console.error("Error deleting course:", error);
-            showToast('Failed to delete course.', 'error');
-        } else {
-            setCourses(prev => prev.filter(c => c.id !== courseId));
-            showToast('Course deleted.', 'success');
-        }
+    // Doar dialogul nativ de confirmare, fără toast suplimentar
+    console.debug('[Dashboard] Delete clicked for', courseId);
+    const confirmed = window.confirm('Sunteți sigur că doriți să ștergeți acest curs?');
+    if (!confirmed || !user) return;
+
+    const key = `delete-${courseId}`;
+    setLoadingStates(prev => ({ ...prev, [key]: true }));
+    try {
+      // 2) Trimite cererea către backend și așteaptă răspunsul
+      console.debug('[Dashboard] Sending delete request for', courseId);
+      const result = await deleteCourseById(courseId, user.id);
+      if (!result.ok) {
+        console.error('Error deleting course:', result.message);
+        // Păstrăm cardul și nu afișăm toast (evităm mesaje duplicat)
+        // Re-sincronizează lista pentru a evita discrepanțe cu backend-ul
+        await refetchCourses();
+        return;
+      }
+
+      // 2.d) Nu mai eliminăm cardul local; ne bazăm pe refetch pentru consistență
+      // 4) Refetch pentru persistență și sincronizare completă UI-DB
+      try {
+        await refetchCourses();
+      } catch (e) {
+        console.warn('Refetch eșuat după ștergere');
+      }
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const mapDeleteErrorToRo = (code?: 'FORBIDDEN' | 'NOT_FOUND' | 'NETWORK' | 'UNKNOWN') => {
+    switch (code) {
+      case 'FORBIDDEN':
+        return 'Nu aveți drepturi pentru a șterge acest curs.';
+      case 'NOT_FOUND':
+        return 'Cursul nu mai există sau a fost deja șters.';
+      case 'NETWORK':
+        return 'Eroare de rețea la ștergerea cursului.';
+      default:
+        return 'Ștergerea cursului a eșuat.';
     }
   };
   
@@ -267,15 +316,15 @@ const DashboardPage: React.FC = () => {
                     <button onClick={(e) => { e.stopPropagation(); navigate(`/course/${course.id}`)}} title="Edit" className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300">
                         <Edit size={18} />
                     </button>
-                    <button onClick={(e) => handleAction(course.id, 'duplicate', e)} title="Duplicate" className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300" disabled={loadingStates[`duplicate-${course.id}`] || !canCreateCourse}>
+                    <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => handleAction(course.id, 'duplicate', e)} title="Duplicate" className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300" disabled={loadingStates[`duplicate-${course.id}`] || !canCreateCourse}>
                         {loadingStates[`duplicate-${course.id}`] ? <Loader2 size={18} className="animate-spin" /> : <Copy size={18} />}
                     </button>
                     {course.progress === 100 && (
-                        <button onClick={(e) => handleAction(course.id, 'download', e)} title="Download" className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300" disabled={loadingStates[`download-${course.id}`]}>
+                        <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => handleAction(course.id, 'download', e)} title="Download" className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300" disabled={loadingStates[`download-${course.id}`]}>
                             {loadingStates[`download-${course.id}`] ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
                         </button>
                     )}
-                    <button onClick={(e) => handleAction(course.id, 'delete', e)} title="Delete" className="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400" disabled={loadingStates[`delete-${course.id}`]}>
+                    <button type="button" onMouseDown={(e) => e.stopPropagation()} onClick={(e) => handleAction(course.id, 'delete', e)} title="Delete" className="p-2 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50 text-red-500 dark:text-red-400" disabled={loadingStates[`delete-${course.id}`]}>
                         {loadingStates[`delete-${course.id}`] ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
                     </button>
                </div>

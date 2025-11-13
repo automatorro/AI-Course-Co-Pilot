@@ -11,6 +11,7 @@ import DashboardPage from './pages/DashboardPage';
 import CourseWorkspacePage from './pages/CourseWorkspacePage';
 import BillingPage from './pages/BillingPage';
 import ProfilePage from './pages/ProfilePage';
+import RlsTestPage from './pages/RlsTestPage';
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
@@ -33,6 +34,7 @@ function App() {
                   <Route path="/course/:id" element={<PrivateRoute><CourseWorkspacePage /></PrivateRoute>} />
                   <Route path="/billing" element={<PrivateRoute><BillingPage /></PrivateRoute>} />
                   <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+                  <Route path="/tests" element={<PrivateRoute><RlsTestPage /></PrivateRoute>} />
                   <Route path="*" element={<Navigate to="/" />} />
                 </Routes>
               </main>

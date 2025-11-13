@@ -126,3 +126,19 @@
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in-up, .animate-soft-float, .shimmer-soft { animation: none !important; }
 }
+
+/* Hide less essential toolbar icons on very small screens (<360px) */
+@media (max-width: 360px) {
+  .hide-tiny {
+    display: none !important;
+  }
+}
+
+/* Show-only on very small screens (<360px) */
+.show-tiny { display: none !important; }
+@media (max-width: 360px) {
+  .show-tiny { display: inline !important; }
+}
+
+/* Safe area bottom padding for iOS devices */
+.safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
