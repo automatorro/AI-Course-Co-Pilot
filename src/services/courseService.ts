@@ -10,7 +10,7 @@ export type DeleteCourseResult = {
  * Deletes a course, relying on FK ON DELETE CASCADE when configured.
  * Falls back to deleting steps first if a foreign key constraint blocks deletion.
  */
-export async function deleteCourseById(courseId: string, userId: string): Promise<DeleteCourseResult> {
+export async function deleteCourseById(courseId: string, _userId: string): Promise<DeleteCourseResult> {
   try {
     // Try deleting the course directly (preferred when FK ON DELETE CASCADE is set)
     const { error: courseError } = await supabase

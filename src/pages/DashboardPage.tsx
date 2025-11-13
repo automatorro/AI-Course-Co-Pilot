@@ -244,18 +244,7 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  const mapDeleteErrorToRo = (code?: 'FORBIDDEN' | 'NOT_FOUND' | 'NETWORK' | 'UNKNOWN') => {
-    switch (code) {
-      case 'FORBIDDEN':
-        return 'Nu aveți drepturi pentru a șterge acest curs.';
-      case 'NOT_FOUND':
-        return 'Cursul nu mai există sau a fost deja șters.';
-      case 'NETWORK':
-        return 'Eroare de rețea la ștergerea cursului.';
-      default:
-        return 'Ștergerea cursului a eșuat.';
-    }
-  };
+  // Removed unused helper to satisfy typecheck (TS6133).
   
   const handleDownload = async (courseId: string) => {
     const courseToDownload = courses.find(c => c.id === courseId);

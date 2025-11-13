@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabaseClient';
 import { useAuth } from '../contexts/AuthContext';
-import { Course, CourseStep, GenerationEnvironment } from '../types';
+import { CourseStep, GenerationEnvironment } from '../types';
 import { deleteCourseById } from '../services/courseService';
 
 type LogEntry = { level: 'info' | 'warn' | 'error'; message: string };
