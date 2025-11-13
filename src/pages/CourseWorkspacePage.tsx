@@ -7,8 +7,10 @@ import { generateCourseContent, refineCourseContent } from '../services/geminiSe
 import { supabase } from '../services/supabaseClient';
 import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Heading1, Heading2, Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Code, Minus, Link as LinkIcon, Image as ImageIcon, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ListTodo, Grid2x2 } from 'lucide-react';
 import { exportCourseAsZip } from '../services/exportService';
+import { replaceBlobUrlsWithPublic } from '../services/imageService';
 import { useToast } from '../contexts/ToastContext';
 import ReviewChangesModal from '../components/ReviewChangesModal';
+import ImageStudioModal from '../components/ImageStudioModal';
 
 import MarkdownPreview from '../components/MarkdownPreview';
 
@@ -83,9 +85,10 @@ const CourseWorkspacePage: React.FC = () => {
   const [tableRows, setTableRows] = useState(3);
   const [tableCols, setTableCols] = useState(3);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showImageStudio, setShowImageStudio] = useState(false);
   // Local image upload state
   const [localImageFile, setLocalImageFile] = useState<File | null>(null);
-  const [localImageMode, setLocalImageMode] = useState<'data' | 'blob' | 'upload'>('data');
+const [localImageMode, setLocalImageMode] = useState<'data' | 'blob' | 'upload'>('upload');
   const [localImageError, setLocalImageError] = useState<string | null>(null);
 
   // Import document state (DOCX/TXT/PDF prototype)
@@ -100,7 +103,7 @@ const CourseWorkspacePage: React.FC = () => {
   const imagePanelRef = useRef<HTMLDivElement>(null);
   const tablePanelRef = useRef<HTMLDivElement>(null);
 
-  const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/gif','image/webp'];
+const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','image/webp'];
   const MAX_IMAGE_SIZE_BYTES = 8 * 1024 * 1024; // 8MB
 
   const fetchCourseData = useCallback(async () => {
@@ -253,8 +256,11 @@ const CourseWorkspacePage: React.FC = () => {
     const currentStep = course.steps[activeStepIndex];
     const isCompletingStep = andContinue && !currentStep.is_completed;
 
+    // Convert any blob: URLs to public Storage URLs before saving
+    const processedContent = await replaceBlobUrlsWithPublic(editedContent, user?.id || null, course?.id || null);
+
     const stepUpdatePayload: { content: string, is_completed?: boolean } = { 
-        content: editedContent 
+        content: processedContent 
     };
     if (isCompletingStep) {
         stepUpdatePayload.is_completed = true;
@@ -272,6 +278,8 @@ const CourseWorkspacePage: React.FC = () => {
       return;
     }
 
+    // Reflect processed content back into editor
+    setEditedContent(processedContent);
     showToast('Changes saved successfully!', 'success');
     
     const updatedCourseData = await fetchCourseData();
@@ -416,6 +424,18 @@ const CourseWorkspacePage: React.FC = () => {
     setTimeout(() => textarea.focus(), 0);
   };
 
+  const insertImageAtCursor = (url: string, alt: string = 'Image') => {
+    if (!textareaRef.current) return;
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const safeAlt = alt?.trim() || 'Image';
+    const insert = `![${safeAlt}](${url})`;
+    const newContent = `${editedContent.substring(0, start)}${insert}${editedContent.substring(end)}`;
+    setEditedContent(newContent);
+    setTimeout(() => textarea.focus(), 0);
+  };
+
   
 
   const handleLocalImageChange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
@@ -462,13 +482,17 @@ const CourseWorkspacePage: React.FC = () => {
           .upload(path, localImageFile, { contentType: localImageFile.type, upsert: false });
         if (uploadError) {
           console.error('Upload image error:', uploadError);
-          setLocalImageError(uploadError.message || 'Upload eșuat. Verifică configurația Storage.');
-          return;
+          setLocalImageError((uploadError.message || 'Upload eșuat. Verifică configurația Storage.') + ' — Inserăm ca Data URL.');
+          // Fallback: insert as Data URL to keep user flow alive
+          url = await fileToDataURL(localImageFile);
+        } else {
+          const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
+          url = pub.publicUrl;
         }
-        const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
-        url = pub.publicUrl;
       } else if (localImageMode === 'blob') {
-        url = URL.createObjectURL(localImageFile);
+        // For reliable preview, convert blob to Data URL at insert time
+        // This keeps the UX consistent: immediate render in Preview tab
+        url = await fileToDataURL(localImageFile);
       } else {
         url = await fileToDataURL(localImageFile);
       }
@@ -681,10 +705,14 @@ const CourseWorkspacePage: React.FC = () => {
         <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
         <button onClick={() => handleFormat('link')} title="Insert link" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><LinkIcon size={18} /></button>
         <button onClick={() => handleFormat('image')} title="Insert image" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 hide-tiny"><ImageIcon size={18} /></button>
+        <button onClick={() => setShowImageStudio(true)} title="Image Studio (AI)" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 hide-tiny"><Sparkles size={18} /></button>
         <button onClick={() => handleFormat('table')} title="Insert table" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 hide-tiny"><Grid2x2 size={18} /></button>
 
         {showLinkPanel && (
-          <div ref={linkPanelRef} className="absolute top-full left-2 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 p-3 z-30">
+          <div
+            ref={linkPanelRef}
+            className="fixed left-3 right-3 top-20 bottom-[env(safe-area-inset-bottom)] sm:absolute sm:top-full sm:left-2 sm:right-auto sm:bottom-auto sm:mt-2 sm:w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 p-3 z-50 panel-scroll"
+          >
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-semibold">Insert Link</span>
               <button onClick={() => setShowLinkPanel(false)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X size={16} /></button>
@@ -708,7 +736,10 @@ const CourseWorkspacePage: React.FC = () => {
         )}
 
         {showImagePanel && (
-          <div ref={imagePanelRef} className="absolute top-full left-2 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 p-3 z-30">
+          <div
+            ref={imagePanelRef}
+            className="fixed left-3 right-3 top-20 bottom-[env(safe-area-inset-bottom)] sm:absolute sm:top-full sm:left-2 sm:right-auto sm:bottom-auto sm:mt-2 sm:w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 p-3 z-50 panel-scroll"
+          >
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-semibold">Insert Image</span>
               <button onClick={() => setShowImagePanel(false)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X size={16} /></button>
@@ -746,7 +777,7 @@ const CourseWorkspacePage: React.FC = () => {
                   </label>
                   <label className="flex items-center gap-1 text-xs">
                     <input type="radio" name="localImageMode" checked={localImageMode === 'blob'} onChange={() => setLocalImageMode('blob')} />
-                    Blob URL (preview doar în sesiune)
+                    Blob (convertit automat la Preview)
                   </label>
                   <label className="flex items-center gap-1 text-xs">
                     <input type="radio" name="localImageMode" checked={localImageMode === 'upload'} onChange={() => setLocalImageMode('upload')} />
@@ -797,6 +828,12 @@ const CourseWorkspacePage: React.FC = () => {
               onAccept={handleAcceptChanges}
               onReject={handleRejectChanges}
           />
+      )}
+      {showImageStudio && (
+        <ImageStudioModal
+          onClose={() => setShowImageStudio(false)}
+          onInsert={(url, alt) => insertImageAtCursor(url, alt)}
+        />
       )}
 
       {/* Sidebar */}

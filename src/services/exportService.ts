@@ -1,15 +1,58 @@
 import PptxGenJS from 'pptxgenjs';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Header } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Header, ImageRun } from 'docx';
 import JSZip from 'jszip';
 import saveAs from 'file-saver';
 import { Course, CourseStep } from '../types';
+import { normalizeMarkdownImages, replaceBlobUrlsWithData } from './imageService';
 
-// Helper to parse simple Markdown-like text into docx-js Paragraphs
-const parseMarkdownToDocx = (content: string): Paragraph[] => {
+// Collapse common broken image markdown (URL on next line)
+const normalizeMarkdownImages = (md: string): string => md.replace(/!\[([^\]]*)\]\s*\n\s*\(([^)]+)\)/g, '![$1]($2)');
+
+// Decode base64 payload to bytes
+const base64ToUint8Array = (base64: string): Uint8Array => {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+};
+
+// Fetch image as bytes (supports data:, http(s), blob:)
+const fetchImageBytes = async (url: string): Promise<Uint8Array | null> => {
+    try {
+        if (url.startsWith('data:')) {
+            const payload = url.split('base64,')[1] || '';
+            if (!payload) return null;
+            return base64ToUint8Array(payload);
+        }
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const buf = await res.arrayBuffer();
+        return new Uint8Array(buf);
+    } catch {
+        return null;
+    }
+};
+
+// Build DOCX paragraphs from markdown, embedding images
+const buildDocxParagraphs = async (content: string): Promise<Paragraph[]> => {
     const paragraphs: Paragraph[] = [];
-    const lines = content.split('\n');
+    const lines = normalizeMarkdownImages(content).split('\n');
+    const imageRegex = /!\[([^\]]*)\]\(([^)]+)\)/;
 
-    lines.forEach(line => {
+    for (const line of lines) {
+        const match = line.match(imageRegex);
+        if (match) {
+            const alt = match[1] || '';
+            const url = match[2];
+            const bytes = await fetchImageBytes(url);
+            if (bytes) {
+                paragraphs.push(new Paragraph({ children: [new ImageRun({ data: bytes, transformation: { width: 480, height: 360 } })] }));
+            } else {
+                paragraphs.push(new Paragraph({ children: [new TextRun(`Image: ${alt}`)] }));
+            }
+            continue;
+        }
+
         if (line.startsWith('# ')) {
             paragraphs.push(new Paragraph({ text: line.substring(2), heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }));
         } else if (line.startsWith('## ')) {
@@ -19,27 +62,26 @@ const parseMarkdownToDocx = (content: string): Paragraph[] => {
         } else if (line.startsWith('* ') || line.startsWith('- ')) {
             paragraphs.push(new Paragraph({ text: line.substring(2), bullet: { level: 0 } }));
         } else if (line.trim() === '') {
-            paragraphs.push(new Paragraph({ text: '' })); // For empty lines/spacing
+            paragraphs.push(new Paragraph({ text: '' }));
         } else {
-            // Handle inline formatting like **bold**
             const runs: TextRun[] = [];
-            const parts = line.split(/(\*\*.*?\*\*)/g); // Split by bold tags
+            const parts = line.split(/(\*\*.*?\*\*)/g);
             parts.forEach(part => {
                 if (part.startsWith('**') && part.endsWith('**')) {
                     runs.push(new TextRun({ text: part.slice(2, -2), bold: true }));
-                } else if(part) {
+                } else if (part) {
                     runs.push(new TextRun(part));
                 }
             });
             paragraphs.push(new Paragraph({ children: runs }));
         }
-    });
-
+    }
     return paragraphs;
 };
 
 // Generates a DOCX file from a course step's content
-const createDocx = (step: CourseStep, courseTitle: string, stepTitle: string): Promise<Blob> => {
+const createDocx = async (step: CourseStep, courseTitle: string, stepTitle: string): Promise<Blob> => {
+    const children = await buildDocxParagraphs(step.content);
     const doc = new Document({
         sections: [{
             headers: {
@@ -54,7 +96,7 @@ const createDocx = (step: CourseStep, courseTitle: string, stepTitle: string): P
                     ]
                 }),
             },
-            children: parseMarkdownToDocx(step.content),
+            children,
         }],
     });
     return Packer.toBlob(doc);
@@ -62,7 +104,7 @@ const createDocx = (step: CourseStep, courseTitle: string, stepTitle: string): P
 
 
 // Generates a PPTX file from a course step's content
-const createPptx = (step: CourseStep, courseTitle: string): Promise<Blob> => {
+const createPptx = async (step: CourseStep, courseTitle: string): Promise<Blob> => {
     const pptx = new PptxGenJS();
     pptx.layout = 'LAYOUT_WIDE';
     
@@ -78,12 +120,15 @@ const createPptx = (step: CourseStep, courseTitle: string): Promise<Blob> => {
     });
 
     // Split content into slides based on '##' headers
-    const slideContents = step.content.split(/\n(?=## )/);
+    const prepared = await replaceBlobUrlsWithData(normalizeMarkdownImages(step.content));
+    const slideContents = prepared.split(/\n(?=## )/);
     
     slideContents.forEach(slideContent => {
         const lines = slideContent.trim().split('\n');
         const title = lines.shift()?.replace('## ', '').trim() || '';
-        const body = lines.join('\n').trim();
+        const fullBody = lines.join('\n').trim();
+        const images = [...fullBody.matchAll(/!\[([^\]]*)\]\(([^)]+)\)/g)];
+        const body = fullBody.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '').trim();
 
         if (!title && !body) return;
 
@@ -102,6 +147,18 @@ const createPptx = (step: CourseStep, courseTitle: string): Promise<Blob> => {
                 fontSize: 18, bullet: true, paraSpaceAfter: 10
             });
         }
+
+        // Add images stacked below text
+        let yPos = body ? 3.0 : 1.8;
+        images.forEach((m) => {
+            const url = m[2];
+            if (url.startsWith('data:')) {
+                slide.addImage({ data: url, x: 0.5, y: yPos, w: 8, h: 4.5 });
+            } else if (url.startsWith('http://') || url.startsWith('https://')) {
+                slide.addImage({ path: url, x: 0.5, y: yPos, w: 8, h: 4.5 });
+            }
+            yPos += 4.8;
+        });
     });
 
     // Generate binary data and wrap into a Blob compatible with ZIP

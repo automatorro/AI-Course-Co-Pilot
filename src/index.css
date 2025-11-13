@@ -142,3 +142,11 @@
 
 /* Safe area bottom padding for iOS devices */
 .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Scrollable panel utility for mobile dialogs (iOS friendly) */
+.panel-scroll {
+  max-height: 65vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
