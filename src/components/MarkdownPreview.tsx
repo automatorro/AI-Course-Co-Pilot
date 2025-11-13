@@ -81,7 +81,8 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content }) => {
       let updated = normalized;
       results.forEach(({ url, dataUrl }) => {
         if (dataUrl) {
-          updated = updated.replaceAll(`(${url})`, `(${dataUrl})`);
+          // Replace all occurrences in a TS-target-safe way
+          updated = updated.split(`(${url})`).join(`(${dataUrl})`);
         }
       });
       setResolved(updated);

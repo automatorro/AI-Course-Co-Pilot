@@ -3,7 +3,7 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Head
 import JSZip from 'jszip';
 import saveAs from 'file-saver';
 import { Course, CourseStep } from '../types';
-import { normalizeMarkdownImages, replaceBlobUrlsWithData } from './imageService';
+import { replaceBlobUrlsWithData } from './imageService';
 
 // Collapse common broken image markdown (URL on next line)
 const normalizeMarkdownImages = (md: string): string => md.replace(/!\[([^\]]*)\]\s*\n\s*\(([^)]+)\)/g, '![$1]($2)');

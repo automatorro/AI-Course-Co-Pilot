@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { useTranslation } from '../contexts/I18nContext';
 import { uploadBlobToStorage } from '../services/imageService';
 import { generateImage } from '../services/imageAiService';
 
@@ -12,7 +11,6 @@ interface ImageStudioModalProps {
 
 const ImageStudioModal: React.FC<ImageStudioModalProps> = ({ onClose, onInsert }) => {
   const { user } = useAuth();
-  const { t } = useTranslation();
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState('');
   const [size, setSize] = useState<number>(768);

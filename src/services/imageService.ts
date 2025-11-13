@@ -14,7 +14,8 @@ export const uploadBlobToStorage = async (
   const BUCKET = 'course-assets';
   const mime = blob.type || 'image/png';
   const ext = mime.split('/')[1] || 'png';
-  const uniqueName = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const hint = (fileNameHint || 'img').toString().toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 24) || 'img';
+  const uniqueName = `${hint}_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   const path = `${userId || 'anonymous'}/${courseId || 'course'}/${uniqueName}.${ext}`;
   const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: mime, upsert: false });
   if (error) throw new Error(error.message || 'Upload image failed');
@@ -39,7 +40,7 @@ export const replaceBlobUrlsWithPublic = async (
       if (!res.ok) continue;
       const blob = await res.blob();
       const publicUrl = await uploadBlobToStorage(blob, userId, courseId);
-      updated = updated.replaceAll(`(${blobUrl})`, `(${publicUrl})`);
+      updated = updated.split(`(${blobUrl})`).join(`(${publicUrl})`);
     } catch {
       // leave as-is on failure
     }
@@ -65,7 +66,7 @@ export const replaceBlobUrlsWithData = async (md: string): Promise<string> => {
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
-      updated = updated.replaceAll(`(${blobUrl})`, `(${dataUrl})`);
+      updated = updated.split(`(${blobUrl})`).join(`(${dataUrl})`);
     } catch {
       // leave as-is on failure
     }
