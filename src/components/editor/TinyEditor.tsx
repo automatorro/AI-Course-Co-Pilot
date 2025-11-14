@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import type { BlobInfo } from 'tinymce';
 import { Editor } from '@tinymce/tinymce-react';
 import { uploadEditorImageToSupabase } from '../../lib/editorImageUpload';
 import { useAuth } from '../../contexts/AuthContext';
@@ -52,7 +53,7 @@ const TinyEditor: React.FC<TinyEditorProps> = ({ value, onChange, disabled }) =>
         toolbar_sticky_offset: 64,
         content_style: 'body{padding-bottom:240px;}',
         paste_data_images: true,
-        images_upload_handler: async (blobInfo) => {
+        images_upload_handler: async (blobInfo: BlobInfo) => {
           try {
             const file = new File([blobInfo.blob()], blobInfo.filename(), { type: blobInfo.blob().type });
             const url = await uploadEditorImageToSupabase(file, user?.id);
