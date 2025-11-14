@@ -37,31 +37,9 @@ const ImageStudioModal: React.FC<ImageStudioModalProps> = ({ onClose, onInsert }
 
   const handleInsert = async () => {
     if (!previewUrl) return;
-    setIsGenerating(true);
-    setError(null);
-    try {
-      const blob = await fetch(previewUrl).then(r => r.blob());
-      try {
-        const publicUrl = await uploadBlobToStorage(blob, user?.id || null, null, 'ai-image');
-        onInsert(publicUrl, alt || 'Image');
-        onClose();
-      } catch (uploadErr: any) {
-        // Fallback: insert as Data URL when bucket missing or upload blocked
-        const reader = new FileReader();
-        const dataUrl: string = await new Promise((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-        setError((uploadErr?.message || 'Upload eșuat.') + ' — Imagine inserată ca Data URL.');
-        onInsert(dataUrl, alt || 'Image');
-        onClose();
-      }
-    } catch (err: any) {
-      setError(err?.message || 'Nu am putut procesa imaginea.');
-    } finally {
-      setIsGenerating(false);
-    }
+    // Trimite direct blob URL către insertImageAtCursor pentru a fi procesat ca token
+    onInsert(previewUrl, alt || 'Image');
+    onClose();
   };
 
   return (

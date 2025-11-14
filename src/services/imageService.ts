@@ -23,27 +23,46 @@ export const uploadBlobToStorage = async (
   return data.publicUrl;
 };
 
-// Replace blob: URLs in markdown with public URLs (uploads blobs)
+// Replace blob: URLs and @img tokens in markdown with public URLs (uploads blobs)
 export const replaceBlobUrlsWithPublic = async (
   md: string,
   userId: string | null,
   courseId: string | null
 ): Promise<string> => {
   const normalized = normalizeMarkdownImages(md);
-  const matches = [...normalized.matchAll(/!\[[^\]]*\]\((blob:[^)]+)\)/g)];
-  if (matches.length === 0) return normalized;
   let updated = normalized;
-  const uniqueBlobUrls = Array.from(new Set(matches.map(m => m[1])));
-  for (const blobUrl of uniqueBlobUrls) {
+  
+  // Handle @img{uuid} tokens - these need to be processed at component level
+  // since we don't have access to imageMap here. The component should handle
+  // uploading the images referenced by tokens and replacing tokens with public URLs.
+  
+  // Handle direct blob: URLs
+  const blobMatches = [...normalized.matchAll(/!\[[^\]]*\]\((blob:[^)]+)\)/g)];
+  const dataMatches = [...normalized.matchAll(/!\[[^\]]*\]\((data:[^)]+)\)/g)];
+  const blobUrls = Array.from(new Set(blobMatches.map(m => m[1])));
+  const dataUrls = Array.from(new Set(dataMatches.map(m => m[1])));
+  
+  for (const blobUrl of blobUrls) {
     try {
       const res = await fetch(blobUrl);
       if (!res.ok) continue;
       const blob = await res.blob();
       const publicUrl = await uploadBlobToStorage(blob, userId, courseId);
       updated = updated.split(`(${blobUrl})`).join(`(${publicUrl})`);
-    } catch {
-      // leave as-is on failure
-    }
+    } catch {}
+  }
+  
+  for (const dataUrl of dataUrls) {
+    try {
+      const parts = dataUrl.split(',');
+      const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/png';
+      const bstr = atob(parts[1]);
+      let n = bstr.length; const u8arr = new Uint8Array(n);
+      while (n--) u8arr[n] = bstr.charCodeAt(n);
+      const blob = new Blob([u8arr], { type: mime });
+      const publicUrl = await uploadBlobToStorage(blob, userId, courseId);
+      updated = updated.split(`(${dataUrl})`).join(`(${publicUrl})`);
+    } catch {}
   }
   return updated;
 };

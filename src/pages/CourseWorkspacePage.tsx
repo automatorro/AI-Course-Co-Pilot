@@ -5,9 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { Course, CourseStep } from '../types';
 import { generateCourseContent, refineCourseContent } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
-import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Heading1, Heading2, Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Code, Minus, Link as LinkIcon, Image as ImageIcon, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ListTodo, Grid2x2 } from 'lucide-react';
+import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Heading1, Heading2, Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Code, Minus, Link as LinkIcon, Image as ImageIcon, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ListTodo, Grid2x2, ArrowLeft } from 'lucide-react';
 import { exportCourseAsZip } from '../services/exportService';
-import { replaceBlobUrlsWithPublic } from '../services/imageService';
+import { replaceBlobUrlsWithPublic, uploadBlobToStorage } from '../services/imageService';
 import { useToast } from '../contexts/ToastContext';
 import ReviewChangesModal from '../components/ReviewChangesModal';
 import ImageStudioModal from '../components/ImageStudioModal';
@@ -86,6 +86,7 @@ const CourseWorkspacePage: React.FC = () => {
   const [tableCols, setTableCols] = useState(3);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showImageStudio, setShowImageStudio] = useState(false);
+  const [imageMap, setImageMap] = useState<Record<string, { previewUrl?: string; publicUrl?: string; alt?: string }>>({});
   // Local image upload state
   const [localImageFile, setLocalImageFile] = useState<File | null>(null);
 const [localImageMode, setLocalImageMode] = useState<'data' | 'blob' | 'upload'>('upload');
@@ -102,6 +103,74 @@ const [localImageMode, setLocalImageMode] = useState<'data' | 'blob' | 'upload'>
   const linkPanelRef = useRef<HTMLDivElement>(null);
   const imagePanelRef = useRef<HTMLDivElement>(null);
   const tablePanelRef = useRef<HTMLDivElement>(null);
+
+  // Helper functions for image token system
+  const genImageId = useCallback(() => `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`, []);
+
+  const resolveTokensForPreview = useCallback((md: string) => {
+    return md.replace(/!\[([^\]]*)\]\(@img\{([^}]+)\}\)/g, (m, alt, id) => {
+      const entry = imageMap[id];
+      const url = entry?.publicUrl || entry?.previewUrl || '';
+      const safeAlt = (alt || entry?.alt || 'Image').trim();
+      if (!url) return `![${safeAlt}](data:image/gif;base64,R0lGODlhAQABAAAAACw=)`;
+      return `![${safeAlt}](${url})`;
+    });
+  }, [imageMap]);
+
+  // Process @img tokens and upload images to storage, replacing tokens with public URLs
+  const processImageTokensForSave = useCallback(async (md: string) => {
+    let processed = md;
+    const tokenMatches = [...md.matchAll(/!\[([^\]]*)\]\(@img\{([^}]+)\}\)/g)];
+    
+    for (const match of tokenMatches) {
+      const [fullMatch, altText, tokenId] = match;
+      const entry = imageMap[tokenId];
+      
+      if (entry?.previewUrl && !entry.publicUrl) {
+        try {
+          let blob: Blob;
+          
+          if (entry.previewUrl.startsWith('data:')) {
+            // Convert data URL to blob
+            const parts = entry.previewUrl.split(',');
+            const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/png';
+            const bstr = atob(parts[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) u8arr[n] = bstr.charCodeAt(n);
+            blob = new Blob([u8arr], { type: mime });
+          } else if (entry.previewUrl.startsWith('blob:')) {
+            // Fetch blob URL
+            const res = await fetch(entry.previewUrl);
+            if (!res.ok) continue;
+            blob = await res.blob();
+          } else {
+            continue;
+          }
+          
+          // Upload to storage
+          const publicUrl = await uploadBlobToStorage(blob, user?.id || null, course?.id || null, altText);
+          
+          // Update imageMap with public URL
+          setImageMap(prev => ({
+            ...prev,
+            [tokenId]: { ...prev[tokenId], publicUrl }
+          }));
+          
+          // Replace token with public URL in content
+          processed = processed.replace(fullMatch, `![${altText || entry.alt || 'Image'}](${publicUrl})`);
+        } catch (error) {
+          console.error('Failed to upload image token:', error);
+          // Leave token as-is if upload fails
+        }
+      } else if (entry?.publicUrl) {
+        // Already has public URL, just replace token
+        processed = processed.replace(fullMatch, `![${altText || entry.alt || 'Image'}](${entry.publicUrl})`);
+      }
+    }
+    
+    return processed;
+  }, [imageMap, user?.id, course?.id]);
 
 const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','image/webp'];
   const MAX_IMAGE_SIZE_BYTES = 8 * 1024 * 1024; // 8MB
@@ -257,7 +326,9 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
     const isCompletingStep = andContinue && !currentStep.is_completed;
 
     // Convert any blob: URLs to public Storage URLs before saving
-    const processedContent = await replaceBlobUrlsWithPublic(editedContent, user?.id || null, course?.id || null);
+    // Process image tokens first, then convert any remaining blob: URLs to public Storage URLs before saving
+    const contentWithProcessedTokens = await processImageTokensForSave(editedContent);
+    const processedContent = await replaceBlobUrlsWithPublic(contentWithProcessedTokens, user?.id || null, course?.id || null);
 
     const stepUpdatePayload: { content: string, is_completed?: boolean } = { 
         content: processedContent 
@@ -430,7 +501,15 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const safeAlt = alt?.trim() || 'Image';
-    const insert = `![${safeAlt}](${url})`;
+    let insert = '';
+    
+    if (url.startsWith('data:') || url.startsWith('blob:')) {
+      const id = genImageId();
+      setImageMap(prev => ({ ...prev, [id]: { previewUrl: url, alt: safeAlt } }));
+      insert = `![${safeAlt}](@img{${id}})`;
+    } else {
+      insert = `![${safeAlt}](${url})`;
+    }
     const newContent = `${editedContent.substring(0, start)}${insert}${editedContent.substring(end)}`;
     setEditedContent(newContent);
     setTimeout(() => textarea.focus(), 0);
@@ -452,6 +531,25 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
       return;
     }
     setLocalImageFile(file);
+    const doInsert = async () => {
+      if (!textareaRef.current) return;
+      const textarea = textareaRef.current;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const alt = imageAlt?.trim() || file.name || 'Image';
+      try {
+        const dataUrl = await fileToDataURL(file);
+        const insert = `![${alt}](${dataUrl})`;
+        const newContent = `${editedContent.substring(0, start)}${insert}${editedContent.substring(end)}`;
+        setEditedContent(newContent);
+        setShowImagePanel(false);
+        setTimeout(() => textarea.focus(), 0);
+        uploadAndReplaceDataUrl(dataUrl);
+      } catch {
+        setLocalImageError('Nu am putut procesa imaginea. Încearcă din nou.');
+      }
+    };
+    doInsert();
   };
 
   const fileToDataURL = (file: File): Promise<string> => {
@@ -483,8 +581,8 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
         if (uploadError) {
           console.error('Upload image error:', uploadError);
           setLocalImageError((uploadError.message || 'Upload eșuat. Verifică configurația Storage.') + ' — Inserăm ca Data URL.');
-          // Fallback: insert as Data URL to keep user flow alive
-          url = await fileToDataURL(localImageFile);
+          // Fallback: create blob URL for token system
+          url = URL.createObjectURL(localImageFile);
         } else {
           const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
           url = pub.publicUrl;
@@ -492,12 +590,14 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
       } else if (localImageMode === 'blob') {
         // For reliable preview, convert blob to Data URL at insert time
         // This keeps the UX consistent: immediate render in Preview tab
-        url = await fileToDataURL(localImageFile);
+        url = URL.createObjectURL(localImageFile);
       } else {
-        url = await fileToDataURL(localImageFile);
+        url = URL.createObjectURL(localImageFile);
       }
-      const insert = `![${alt}](${url})`;
-      const newContent = `${editedContent.substring(0, start)}${insert}${editedContent.substring(end)}`;
+      // Use insertImageAtCursor which will handle token creation
+      insertImageAtCursor(url, alt);
+      return; // Exit early since insertImageAtCursor handles everything
+      // Restul este gestionat de insertImageAtCursor
       setEditedContent(newContent);
       setShowImagePanel(false);
       setTimeout(() => textarea.focus(), 0);
@@ -770,24 +870,7 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
                 {localImageError && (
                   <div className="mt-2 text-xs text-red-600">{localImageError}</div>
                 )}
-                <div className="mt-2 flex flex-col gap-2">
-                  <label className="flex items-center gap-1 text-xs">
-                    <input type="radio" name="localImageMode" checked={localImageMode === 'data'} onChange={() => setLocalImageMode('data')} />
-                    Embed ca Data URL (persistă în conținut)
-                  </label>
-                  <label className="flex items-center gap-1 text-xs">
-                    <input type="radio" name="localImageMode" checked={localImageMode === 'blob'} onChange={() => setLocalImageMode('blob')} />
-                    Blob (convertit automat la Preview)
-                  </label>
-                  <label className="flex items-center gap-1 text-xs">
-                    <input type="radio" name="localImageMode" checked={localImageMode === 'upload'} onChange={() => setLocalImageMode('upload')} />
-                    Upload în cloud (Supabase Storage, URL public)
-                  </label>
-                </div>
-                <div className="flex gap-2 justify-end pt-2">
-                  <button onClick={handleInsertLocalImage} disabled={!localImageFile} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50">Insert local image</button>
-                </div>
-                <p className="text-[11px] mt-1 text-gray-500 dark:text-gray-400">Notă: Blob URL funcționează doar în sesiunea curentă. Pentru linkuri permanente, folosește Data URL, URL public sau Upload în cloud.</p>
+                <p className="text-[11px] mt-1 text-gray-500 dark:text-gray-400">Selectează un fișier și imaginea apare imediat. Se salvează automat în cloud în fundal, iar conținutul se actualizează cu link public.</p>
               </div>
             </div>
           </div>
@@ -907,6 +990,14 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
       <main className="flex-1 flex flex-col p-6 lg:p-10 pb-24 sm:pb-10">
         <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
             <div className="p-4 sm:p-6 border-b dark:border-gray-700 flex justify-between items-center">
+                <button 
+                    onClick={() => window.location.href = '/#/dashboard'} 
+                    className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mr-2" 
+                    title="Înapoi la cursurile mele"
+                    aria-label="Înapoi la dashboard"
+                >
+                    <ArrowLeft size={18} />
+                </button>
                 <button className="lg:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700" onClick={() => setIsSidebarOpen(true)} aria-label="Deschide pașii">
                     <ListTodo size={18} />
                 </button>
@@ -947,7 +1038,7 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
                     </div>
                 ) : (
                     <div className="flex-1 overflow-y-auto">
-                        <MarkdownPreview content={editedContent} />
+                        <MarkdownPreview content={resolveTokensForPreview(editedContent)} />
                     </div>
                 )}
             </div>
@@ -1100,7 +1191,17 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
           <div className="absolute inset-0 bg-black/40" onClick={() => setIsSidebarOpen(false)} />
           <div className="absolute left-0 top-0 h-full w-5/6 max-w-xs bg-white dark:bg-gray-800 shadow-xl">
             <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
-              <h2 className="text-lg font-semibold truncate">{course?.title}</h2>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => { window.location.href = '/#/dashboard'; }} 
+                  className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" 
+                  title="Înapoi la cursurile mele"
+                  aria-label="Înapoi la dashboard"
+                >
+                  <ArrowLeft size={18} />
+                </button>
+                <h2 className="text-lg font-semibold truncate">{course?.title}</h2>
+              </div>
               <button className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Închide" onClick={() => setIsSidebarOpen(false)}>
                 <X size={18} />
               </button>
