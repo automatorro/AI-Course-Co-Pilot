@@ -13,6 +13,7 @@ import ReviewChangesModal from '../components/ReviewChangesModal';
 import ImageStudioModal from '../components/ImageStudioModal';
 
 import MarkdownPreview from '../components/MarkdownPreview';
+import TinyEditor from '../components/editor/TinyEditor';
 
 const HelpModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const { t } = useTranslation();
@@ -89,7 +90,6 @@ const CourseWorkspacePage: React.FC = () => {
   const [imageMap, setImageMap] = useState<Record<string, { previewUrl?: string; publicUrl?: string; alt?: string }>>({});
   // Local image upload state
   const [localImageFile, setLocalImageFile] = useState<File | null>(null);
-const [localImageMode, setLocalImageMode] = useState<'data' | 'blob' | 'upload'>('upload');
   const [localImageError, setLocalImageError] = useState<string | null>(null);
 
   // Import document state (DOCX/TXT/PDF prototype)
@@ -108,7 +108,7 @@ const [localImageMode, setLocalImageMode] = useState<'data' | 'blob' | 'upload'>
   const genImageId = useCallback(() => `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`, []);
 
   const resolveTokensForPreview = useCallback((md: string) => {
-    return md.replace(/!\[([^\]]*)\]\(@img\{([^}]+)\}\)/g, (m, alt, id) => {
+    return md.replace(/!\[([^\]]*)\]\(@img\{([^}]+)\}\)/g, (_m, alt, id) => {
       const entry = imageMap[id];
       const url = entry?.publicUrl || entry?.previewUrl || '';
       const safeAlt = (alt || entry?.alt || 'Image').trim();
@@ -116,6 +116,8 @@ const [localImageMode, setLocalImageMode] = useState<'data' | 'blob' | 'upload'>
       return `![${safeAlt}](${url})`;
     });
   }, [imageMap]);
+
+  const looksLikeHtml = useCallback((s: string) => /<[a-z][\s\S]*>/i.test(s), []);
 
   // Process @img tokens and upload images to storage, replacing tokens with public URLs
   const processImageTokensForSave = useCallback(async (md: string) => {
@@ -544,7 +546,6 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
         setEditedContent(newContent);
         setShowImagePanel(false);
         setTimeout(() => textarea.focus(), 0);
-        uploadAndReplaceDataUrl(dataUrl);
       } catch {
         setLocalImageError('Nu am putut procesa imaginea. Încearcă din nou.');
       }
@@ -561,50 +562,7 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
     });
   };
 
-  const handleInsertLocalImage = async () => {
-    if (!textareaRef.current || !localImageFile) return;
-    const textarea = textareaRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const alt = imageAlt?.trim() || localImageFile.name || 'Image';
-    try {
-      let url: string;
-      if (localImageMode === 'upload') {
-        // Upload to Supabase Storage and insert public URL
-        const BUCKET = 'course-assets';
-        const fileExt = localImageFile.name.split('.').pop()?.toLowerCase() || 'png';
-        const uniqueName = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-        const path = `${user?.id || 'anonymous'}/${course?.id || 'course'}/${uniqueName}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from(BUCKET)
-          .upload(path, localImageFile, { contentType: localImageFile.type, upsert: false });
-        if (uploadError) {
-          console.error('Upload image error:', uploadError);
-          setLocalImageError((uploadError.message || 'Upload eșuat. Verifică configurația Storage.') + ' — Inserăm ca Data URL.');
-          // Fallback: create blob URL for token system
-          url = URL.createObjectURL(localImageFile);
-        } else {
-          const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
-          url = pub.publicUrl;
-        }
-      } else if (localImageMode === 'blob') {
-        // For reliable preview, convert blob to Data URL at insert time
-        // This keeps the UX consistent: immediate render in Preview tab
-        url = URL.createObjectURL(localImageFile);
-      } else {
-        url = URL.createObjectURL(localImageFile);
-      }
-      // Use insertImageAtCursor which will handle token creation
-      insertImageAtCursor(url, alt);
-      return; // Exit early since insertImageAtCursor handles everything
-      // Restul este gestionat de insertImageAtCursor
-      setEditedContent(newContent);
-      setShowImagePanel(false);
-      setTimeout(() => textarea.focus(), 0);
-    } catch (err) {
-      setLocalImageError('Nu am putut procesa imaginea. Încearcă din nou.');
-    }
-  };
+  // Removed unused local image insertion helper; insertion is handled in handleLocalImageChange
 
   // =============================
   // Document Import (Prototype)
@@ -989,7 +947,7 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
       {/* Main Content */}
       <main className="flex-1 flex flex-col p-6 lg:p-10 pb-24 sm:pb-10">
         <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
-            <div className="p-4 sm:p-6 border-b dark:border-gray-700 flex justify-between items-center">
+            <div className="p-4 sm:p-3 border-b dark:border-gray-700 flex justify-between items-center">
                 <button 
                     onClick={() => window.location.href = '/#/dashboard'} 
                     className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mr-2" 
@@ -1021,29 +979,26 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
                         </div>
                     </div>
                 )}
-                {activeTab === 'editor' ? (
-                    <div className="flex-1 flex flex-col">
-                        <EditorToolbar />
-                        <div className="flex-1 relative">
-                            <textarea
-                                ref={textareaRef}
-                                value={editedContent}
-                                onSelect={handleSelect}
-                                onChange={(e) => setEditedContent(e.target.value)}
-                                placeholder={t('course.editor.placeholder')}
-                                disabled={!canEdit}
-                                className="w-full h-full p-4 sm:p-5 text-sm sm:text-base leading-relaxed bg-transparent border-none focus:ring-0 resize-none dark:placeholder-gray-500 disabled:opacity-50 break-words"
-                            />
+            {activeTab === 'editor' ? (
+                <div className="flex-1 flex flex-col">
+                        <div className="flex-1 relative min-h-0 pb-40 sm:pb-28">
+                            <TinyEditor value={editedContent} onChange={setEditedContent} disabled={!canEdit} />
                         </div>
-                    </div>
-                ) : (
-                    <div className="flex-1 overflow-y-auto">
-                        <MarkdownPreview content={resolveTokensForPreview(editedContent)} />
-                    </div>
-                )}
+                </div>
+            ) : (
+                    <div className="flex-1 overflow-y-auto min-h-0 pb-40 sm:pb-28">
+                        {looksLikeHtml(editedContent) ? (
+                          <div className="p-4 sm:p-5 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: editedContent }} />
+                        ) : (
+                          <div className="p-4 sm:p-5">
+                            <MarkdownPreview content={resolveTokensForPreview(editedContent)} />
+                          </div>
+                        )}
+                </div>
+            )}
             </div>
 
-            <div className="hidden sm:flex p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 justify-between items-center">
+            <div id="workspace-actions" className="hidden sm:flex p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 justify-between items-center relative z-10 sticky bottom-0">
                 <div className="flex gap-2 flex-wrap">
                     <button
                         onClick={handleGenerate}
@@ -1116,7 +1071,7 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
         </div>
       </main>
       {/* Sticky mobile actions bar */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 border-t dark:border-gray-700 bg-white/90 dark:bg-gray-800/80 backdrop-blur-sm shadow-lg safe-area-bottom">
+      <div id="mobile-actions-bar" className="sm:hidden fixed bottom-0 left-0 right-0 z-40 border-t dark:border-gray-700 bg-white/90 dark:bg-gray-800/80 backdrop-blur-sm shadow-lg safe-area-bottom">
         <div className="px-3 py-2 flex items-center justify-between gap-2">
           <div className="flex gap-2 flex-1">
             <button

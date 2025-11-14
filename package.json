@@ -12,6 +12,7 @@
     "prepare": "husky install"
   },
   "dependencies": {
+    "@tinymce/tinymce-react": "^6.3.0",
     "@supabase/supabase-js": "^2.43.4",
     "docx": "^8.5.0",
     "file-saver": "^2.0.5",

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { uploadBlobToStorage } from '../services/imageService';
+// Uses existing image generation service; uploads happen elsewhere in the app when needed.
 import { generateImage } from '../services/imageAiService';
 
 interface ImageStudioModalProps {
@@ -10,7 +9,6 @@ interface ImageStudioModalProps {
 }
 
 const ImageStudioModal: React.FC<ImageStudioModalProps> = ({ onClose, onInsert }) => {
-  const { user } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [style, setStyle] = useState('');
   const [size, setSize] = useState<number>(768);
