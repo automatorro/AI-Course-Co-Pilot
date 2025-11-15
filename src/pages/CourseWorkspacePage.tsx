@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Course, CourseStep } from '../types';
 import { generateCourseContent, refineCourseContent } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
-import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Heading1, Heading2, Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Code, Minus, Link as LinkIcon, Image as ImageIcon, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ListTodo, Grid2x2, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ArrowLeft, ListTodo } from 'lucide-react';
 import { exportCourseAsZip } from '../services/exportService';
 import { replaceBlobUrlsWithPublic, uploadBlobToStorage } from '../services/imageService';
 import { useToast } from '../contexts/ToastContext';
@@ -77,6 +77,10 @@ const CourseWorkspacePage: React.FC = () => {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [proposedContent, setProposedContent] = useState<string | null>(null);
   const [originalForProposal, setOriginalForProposal] = useState<string | null>(null);
+  
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showImageStudio, setShowImageStudio] = useState(false);
+  const [imageMap, setImageMap] = useState<Record<string, { previewUrl?: string; publicUrl?: string; alt?: string }>>({});
   const [showLinkPanel, setShowLinkPanel] = useState(false);
   const [showImagePanel, setShowImagePanel] = useState(false);
   const [showTablePanel, setShowTablePanel] = useState(false);
@@ -88,12 +92,15 @@ const CourseWorkspacePage: React.FC = () => {
   const [imageUrlValid, setImageUrlValid] = useState(true);
   const [tableRows, setTableRows] = useState(3);
   const [tableCols, setTableCols] = useState(3);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [showImageStudio, setShowImageStudio] = useState(false);
-  const [imageMap, setImageMap] = useState<Record<string, { previewUrl?: string; publicUrl?: string; alt?: string }>>({});
-  // Local image upload state
   const [localImageFile, setLocalImageFile] = useState<File | null>(null);
   const [localImageError, setLocalImageError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void showLinkPanel; void showImagePanel; void showTablePanel;
+    void linkUrl; void linkText; void imageUrl; void imageAlt; void linkUrlValid; void imageUrlValid; void tableRows; void tableCols; void localImageFile; void localImageError;
+    void setLinkUrl; void setLinkText; void setImageUrl; void setImageAlt; void setTableRows; void setTableCols;
+  }, []);
+  
 
   // Import document state (DOCX/TXT/PDF prototype)
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -103,9 +110,7 @@ const CourseWorkspacePage: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const selectionRef = useRef<{ start: number, end: number }>({ start: 0, end: 0 });
   const aiActionsRef = useRef<HTMLDivElement>(null);
-  const linkPanelRef = useRef<HTMLDivElement>(null);
-  const imagePanelRef = useRef<HTMLDivElement>(null);
-  const tablePanelRef = useRef<HTMLDivElement>(null);
+  
 
   // Helper functions for image token system
   const genImageId = useCallback(() => `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`, []);
@@ -220,18 +225,17 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
         if (aiActionsRef.current && !aiActionsRef.current.contains(targetNode)) {
             setIsAiActionsOpen(false);
         }
-        if (linkPanelRef.current && !linkPanelRef.current.contains(targetNode)) {
-            setShowLinkPanel(false);
-        }
-        if (imagePanelRef.current && !imagePanelRef.current.contains(targetNode)) {
-            setShowImagePanel(false);
-        }
-        if (tablePanelRef.current && !tablePanelRef.current.contains(targetNode)) {
-            setShowTablePanel(false);
-        }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    void handleFormat;
+    void handleSubmitLink;
+    void handleSubmitImage;
+    void handleLocalImageChange;
+    void handleSubmitTable;
   }, []);
   
   useEffect(() => {
@@ -466,30 +470,7 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
     const selected = editedContent.substring(start, end);
     let newContent = editedContent;
 
-    if (formatType === 'link') {
-        setShowImagePanel(false);
-        setShowTablePanel(false);
-        setLinkText(selected);
-        setLinkUrl('');
-        setLinkUrlValid(true);
-        setShowLinkPanel(true);
-        return;
-    } else if (formatType === 'image') {
-        setShowLinkPanel(false);
-        setShowTablePanel(false);
-        setImageAlt(selected || 'Image');
-        setImageUrl('');
-        setImageUrlValid(true);
-        setShowImagePanel(true);
-        return;
-    } else if (formatType === 'table') {
-        setShowLinkPanel(false);
-        setShowImagePanel(false);
-        setTableRows(3);
-        setTableCols(3);
-        setShowTablePanel(true);
-        return;
-    } else if (formatType === 'bold' || formatType === 'italic' || formatType === 'strike' || formatType === 'code') {
+    if (formatType === 'bold' || formatType === 'italic' || formatType === 'strike' || formatType === 'code') {
         const syntax = formatType === 'bold' ? '**' : formatType === 'italic' ? '*' : formatType === 'strike' ? '~~' : '`';
         newContent = `${editedContent.substring(0, start)}${syntax}${selected}${syntax}${editedContent.substring(end)}`;
     } else {
