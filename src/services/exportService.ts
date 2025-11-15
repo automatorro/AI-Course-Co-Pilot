@@ -4,6 +4,7 @@ import JSZip from 'jszip';
 import saveAs from 'file-saver';
 import { Course, CourseStep } from '../types';
 import { replaceBlobUrlsWithData } from './imageService';
+// HTML→DOCX approach temporarily removed due to browser bundling issues.
 
 // Collapse common broken image markdown (URL on next line)
 const normalizeMarkdownImages = (md: string): string => md.replace(/!\[([^\]]*)\]\s*\n\s*\(([^)]+)\)/g, '![$1]($2)');
@@ -79,7 +80,7 @@ const buildDocxParagraphs = async (content: string): Promise<Paragraph[]> => {
     return paragraphs;
 };
 
-// Generates a DOCX file from a course step's content
+// Generates a DOCX file from a course step's content (Markdown → DOCX)
 const createDocx = async (step: CourseStep, courseTitle: string, stepTitle: string): Promise<Blob> => {
     const children = await buildDocxParagraphs(step.content);
     const doc = new Document({

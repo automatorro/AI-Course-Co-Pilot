@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { marked } from 'marked';
+import TurndownService from 'turndown';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from '../contexts/I18nContext';
 import { useAuth } from '../contexts/AuthContext';
 import { Course, CourseStep } from '../types';
 import { generateCourseContent, refineCourseContent } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
-import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Heading1, Heading2, Bold, Italic, Underline, Strikethrough, List, ListOrdered, Quote, Code, Minus, Link as LinkIcon, Image as ImageIcon, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ListTodo, Grid2x2, ArrowLeft } from 'lucide-react';
+import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ArrowLeft, ListTodo } from 'lucide-react';
 import { exportCourseAsZip } from '../services/exportService';
 import { replaceBlobUrlsWithPublic, uploadBlobToStorage } from '../services/imageService';
 import { useToast } from '../contexts/ToastContext';
@@ -69,11 +71,16 @@ const CourseWorkspacePage: React.FC = () => {
   const [editedContent, setEditedContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
+  const [editorRefreshTick, setEditorRefreshTick] = useState(0);
   const [isAiActionsOpen, setIsAiActionsOpen] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [proposedContent, setProposedContent] = useState<string | null>(null);
   const [originalForProposal, setOriginalForProposal] = useState<string | null>(null);
+  
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showImageStudio, setShowImageStudio] = useState(false);
+  const [imageMap, setImageMap] = useState<Record<string, { previewUrl?: string; publicUrl?: string; alt?: string }>>({});
   const [showLinkPanel, setShowLinkPanel] = useState(false);
   const [showImagePanel, setShowImagePanel] = useState(false);
   const [showTablePanel, setShowTablePanel] = useState(false);
@@ -85,12 +92,15 @@ const CourseWorkspacePage: React.FC = () => {
   const [imageUrlValid, setImageUrlValid] = useState(true);
   const [tableRows, setTableRows] = useState(3);
   const [tableCols, setTableCols] = useState(3);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [showImageStudio, setShowImageStudio] = useState(false);
-  const [imageMap, setImageMap] = useState<Record<string, { previewUrl?: string; publicUrl?: string; alt?: string }>>({});
-  // Local image upload state
   const [localImageFile, setLocalImageFile] = useState<File | null>(null);
   const [localImageError, setLocalImageError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void showLinkPanel; void showImagePanel; void showTablePanel;
+    void linkUrl; void linkText; void imageUrl; void imageAlt; void linkUrlValid; void imageUrlValid; void tableRows; void tableCols; void localImageFile; void localImageError;
+    void setLinkUrl; void setLinkText; void setImageUrl; void setImageAlt; void setTableRows; void setTableCols;
+  }, []);
+  
 
   // Import document state (DOCX/TXT/PDF prototype)
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -100,9 +110,7 @@ const CourseWorkspacePage: React.FC = () => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const selectionRef = useRef<{ start: number, end: number }>({ start: 0, end: 0 });
   const aiActionsRef = useRef<HTMLDivElement>(null);
-  const linkPanelRef = useRef<HTMLDivElement>(null);
-  const imagePanelRef = useRef<HTMLDivElement>(null);
-  const tablePanelRef = useRef<HTMLDivElement>(null);
+  
 
   // Helper functions for image token system
   const genImageId = useCallback(() => `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`, []);
@@ -217,18 +225,17 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
         if (aiActionsRef.current && !aiActionsRef.current.contains(targetNode)) {
             setIsAiActionsOpen(false);
         }
-        if (linkPanelRef.current && !linkPanelRef.current.contains(targetNode)) {
-            setShowLinkPanel(false);
-        }
-        if (imagePanelRef.current && !imagePanelRef.current.contains(targetNode)) {
-            setShowImagePanel(false);
-        }
-        if (tablePanelRef.current && !tablePanelRef.current.contains(targetNode)) {
-            setShowTablePanel(false);
-        }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    void handleFormat;
+    void handleSubmitLink;
+    void handleSubmitImage;
+    void handleLocalImageChange;
+    void handleSubmitTable;
   }, []);
   
   useEffect(() => {
@@ -237,6 +244,12 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
           setIsHelpModalOpen(true);
       }
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'editor') {
+      setEditorRefreshTick((n) => n + 1);
+    }
+  }, [activeTab]);
   
   const handleCloseHelpModal = () => {
       setIsHelpModalOpen(false);
@@ -263,39 +276,93 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
   const originalContentForStep = course?.steps?.[activeStepIndex]?.content ?? '';
 
   useEffect(() => {
-    setEditedContent(originalContentForStep);
+    const isHtml = /<[a-z][\s\S]*>/i.test(originalContentForStep || '');
+    const next = isHtml ? originalContentForStep : marked.parse(originalContentForStep || '', { breaks: true }) as string;
+    setEditedContent(next);
   }, [originalContentForStep]);
 
   // Asigură resetarea editorului imediat ce se schimbă pasul activ
   useEffect(() => {
     const nextContent = course?.steps?.[activeStepIndex]?.content ?? '';
-    setEditedContent(nextContent);
+    const isHtml = /<[a-z][\s\S]*>/i.test(nextContent || '');
+    const next = isHtml ? nextContent : marked.parse(nextContent || '', { breaks: true }) as string;
+    setEditedContent(next);
   }, [activeStepIndex]);
 
-  const hasUnsavedChanges = editedContent !== originalContentForStep;
+  const originalHtml = /<[a-z][\s\S]*>/i.test(originalContentForStep || '')
+    ? (originalContentForStep || '')
+    : (marked.parse(originalContentForStep || '', { breaks: true }) as string);
+  const hasUnsavedChanges = editedContent !== originalHtml;
 
   const handleGenerate = useCallback(async () => {
     if (!course || !course.steps) return;
     setIsGenerating(true);
     const currentStep = course.steps[activeStepIndex];
     const generatedContent = await generateCourseContent(course, currentStep);
-    setEditedContent(generatedContent);
+    const html = marked.parse(generatedContent || '', { breaks: true }) as string;
+    setEditedContent(html);
     setIsGenerating(false);
   }, [course, activeStepIndex]);
 
+  useEffect(() => {
+    if (!course) return;
+    const currentStep = course.steps?.[activeStepIndex];
+    if (!currentStep) return;
+    const key = `autosave:${course.id}:${currentStep.id}`;
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved && saved.length > 0) {
+        setEditedContent(saved);
+      }
+    } catch {}
+  }, [course, activeStepIndex]);
+
+  useEffect(() => {
+    if (!course) return;
+    const currentStep = course.steps?.[activeStepIndex];
+    if (!currentStep) return;
+    const key = `autosave:${course.id}:${currentStep.id}`;
+    const interval = setInterval(() => {
+      try {
+        localStorage.setItem(key, editedContent || '');
+      } catch {}
+    }, 7000);
+    return () => clearInterval(interval);
+  }, [course, activeStepIndex, editedContent]);
+
   const handleAiAction = async (actionType: 'simplify' | 'expand' | 'example') => {
-    if (!course || !course.steps || !editedContent) return;
+    if (!course || !course.steps) return;
     setIsAiActionsOpen(false);
     setIsProposingChanges(true);
 
-    const currentStep = course.steps[activeStepIndex];
-    const contentToRefine = selectedText ? selectedText : editedContent;
-    setOriginalForProposal(contentToRefine);
+    try {
+      const currentStep = course.steps[activeStepIndex];
+      const isHtml = /<[a-z][\s\S]*>/i.test(editedContent || '');
+      let payloadMd: string;
+      try {
+        if (isHtml) {
+          const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+          payloadMd = turndown.turndown(editedContent);
+        } else {
+          payloadMd = editedContent;
+        }
+      } catch {
+        payloadMd = isHtml ? htmlToSimpleMarkdown(editedContent || '') : (editedContent || '');
+      }
 
-    const refinedText = await refineCourseContent(course, currentStep, editedContent, selectedText, actionType);
-    
-    setProposedContent(refinedText);
-    setIsProposingChanges(false);
+      if (!payloadMd || payloadMd.trim().length === 0) {
+        throw new Error('Selectează text sau adaugă conținut pentru rafinare.');
+      }
+
+      const refinedText = await refineCourseContent(course, currentStep, payloadMd, selectedText, actionType);
+      const refinedHtml = marked.parse(refinedText || '', { breaks: true }) as string;
+      setOriginalForProposal(editedContent);
+      setProposedContent(refinedHtml);
+    } catch (e: any) {
+      showToast(e?.message || 'Rafinarea a eșuat.', 'error');
+    } finally {
+      setIsProposingChanges(false);
+    }
   };
 
   const handleAcceptChanges = () => {
@@ -329,7 +396,9 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
 
     // Convert any blob: URLs to public Storage URLs before saving
     // Process image tokens first, then convert any remaining blob: URLs to public Storage URLs before saving
-    const contentWithProcessedTokens = await processImageTokensForSave(editedContent);
+    const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+    const mdContent = turndown.turndown(editedContent);
+    const contentWithProcessedTokens = await processImageTokensForSave(mdContent);
     const processedContent = await replaceBlobUrlsWithPublic(contentWithProcessedTokens, user?.id || null, course?.id || null);
 
     const stepUpdatePayload: { content: string, is_completed?: boolean } = { 
@@ -351,8 +420,9 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
       return;
     }
 
-    // Reflect processed content back into editor
-    setEditedContent(processedContent);
+    // Reflect processed content back into editor as HTML
+    const html = marked.parse(processedContent || '', { breaks: true }) as string;
+    setEditedContent(html);
     showToast('Changes saved successfully!', 'success');
     
     const updatedCourseData = await fetchCourseData();
@@ -400,30 +470,7 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
     const selected = editedContent.substring(start, end);
     let newContent = editedContent;
 
-    if (formatType === 'link') {
-        setShowImagePanel(false);
-        setShowTablePanel(false);
-        setLinkText(selected);
-        setLinkUrl('');
-        setLinkUrlValid(true);
-        setShowLinkPanel(true);
-        return;
-    } else if (formatType === 'image') {
-        setShowLinkPanel(false);
-        setShowTablePanel(false);
-        setImageAlt(selected || 'Image');
-        setImageUrl('');
-        setImageUrlValid(true);
-        setShowImagePanel(true);
-        return;
-    } else if (formatType === 'table') {
-        setShowLinkPanel(false);
-        setShowImagePanel(false);
-        setTableRows(3);
-        setTableCols(3);
-        setShowTablePanel(true);
-        return;
-    } else if (formatType === 'bold' || formatType === 'italic' || formatType === 'strike' || formatType === 'code') {
+    if (formatType === 'bold' || formatType === 'italic' || formatType === 'strike' || formatType === 'code') {
         const syntax = formatType === 'bold' ? '**' : formatType === 'italic' ? '*' : formatType === 'strike' ? '~~' : '`';
         newContent = `${editedContent.substring(0, start)}${syntax}${selected}${syntax}${editedContent.substring(end)}`;
     } else {
@@ -723,12 +770,7 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
     setTimeout(() => textarea.focus(), 0);
   };
   
-  const handleSelect = () => {
-      if (!textareaRef.current) return;
-      const { selectionStart, selectionEnd } = textareaRef.current;
-      selectionRef.current = { start: selectionStart, end: selectionEnd };
-      setSelectedText(editedContent.substring(selectionStart, selectionEnd));
-  };
+  
   
   const currentStep = course?.steps?.[activeStepIndex];
 
@@ -742,122 +784,8 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
   const canEdit = !isBusy;
   const canGenerateOrRefine = canEdit && !currentStep.is_completed;
 
-  const EditorToolbar = () => (
-    <div className="relative p-2 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center gap-1 flex-wrap">
-        <button onClick={() => handleFormat('h1')} title={t('course.editor.toolbar.h1')} disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Heading1 size={18} /></button>
-        <button onClick={() => handleFormat('h2')} title={t('course.editor.toolbar.h2')} disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Heading2 size={18} /></button>
-        <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
-        <button onClick={() => handleFormat('bold')} title={t('course.editor.toolbar.bold')} disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Bold size={18} /></button>
-        <button onClick={() => handleFormat('italic')} title={t('course.editor.toolbar.italic')} disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Italic size={18} /></button>
-        <button onClick={() => handleFormat('underline')} title="Underline" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 hide-tiny"><Underline size={18} /></button>
-        <button onClick={() => handleFormat('strike')} title="Strikethrough" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 hide-tiny"><Strikethrough size={18} /></button>
-        <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
-        <button onClick={() => handleFormat('ul')} title={t('course.editor.toolbar.list')} disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><List size={18} /></button>
-        <button onClick={() => handleFormat('ol')} title="Ordered list" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 hide-tiny"><ListOrdered size={18} /></button>
-        <button onClick={() => handleFormat('task')} title="Task list" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 hide-tiny"><ListTodo size={18} /></button>
-        <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
-        <button onClick={() => handleFormat('blockquote')} title="Quote" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Quote size={18} /></button>
-        <button onClick={() => handleFormat('code')} title="Inline code" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><Code size={18} /></button>
-        <button onClick={() => handleFormat('codeblock')} title="Code block" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 hide-tiny"><Code size={18} /></button>
-        <button onClick={() => handleFormat('hr')} title="Horizontal rule" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 hide-tiny"><Minus size={18} /></button>
-        <div className="h-5 w-px bg-gray-300 dark:bg-gray-600 mx-1"></div>
-        <button onClick={() => handleFormat('link')} title="Insert link" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50"><LinkIcon size={18} /></button>
-        <button onClick={() => handleFormat('image')} title="Insert image" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 hide-tiny"><ImageIcon size={18} /></button>
-        <button onClick={() => setShowImageStudio(true)} title="Image Studio (AI)" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 hide-tiny"><Sparkles size={18} /></button>
-        <button onClick={() => handleFormat('table')} title="Insert table" disabled={!canEdit} className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-50 hide-tiny"><Grid2x2 size={18} /></button>
 
-        {showLinkPanel && (
-          <div
-            ref={linkPanelRef}
-            className="fixed left-3 right-3 top-20 bottom-[env(safe-area-inset-bottom)] sm:absolute sm:top-full sm:left-2 sm:right-auto sm:bottom-auto sm:mt-2 sm:w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 p-3 z-50 panel-scroll"
-          >
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-semibold">Insert Link</span>
-              <button onClick={() => setShowLinkPanel(false)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X size={16} /></button>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Text</label>
-                <input value={linkText} onChange={(e) => setLinkText(e.target.value)} className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900" placeholder="Ex: Documentație" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">URL</label>
-                <input value={linkUrl} onChange={(e) => { setLinkUrl(e.target.value); setLinkUrlValid(true); }} className={`w-full px-3 py-2 text-sm rounded border bg-white dark:bg-gray-900 ${linkUrlValid ? 'dark:border-gray-700' : 'border-red-500 dark:border-red-500'}`} placeholder="https://..." />
-                {!linkUrlValid && (<p className="mt-1 text-xs text-red-600">Introduce un URL valid care începe cu http(s)://</p>)}
-              </div>
-              <div className="flex gap-2 justify-end pt-1">
-                <button onClick={() => setShowLinkPanel(false)} className="px-3 py-1.5 text-sm rounded border dark:border-gray-700">Cancel</button>
-                <button onClick={handleSubmitLink} disabled={!linkUrl || !/^https?:\/\//i.test(linkUrl)} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50">Insert</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showImagePanel && (
-          <div
-            ref={imagePanelRef}
-            className="fixed left-3 right-3 top-20 bottom-[env(safe-area-inset-bottom)] sm:absolute sm:top-full sm:left-2 sm:right-auto sm:bottom-auto sm:mt-2 sm:w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 p-3 z-50 panel-scroll"
-          >
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-semibold">Insert Image</span>
-              <button onClick={() => setShowImagePanel(false)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X size={16} /></button>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Alt text</label>
-                <input value={imageAlt} onChange={(e) => setImageAlt(e.target.value)} className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900" placeholder="Ex: Diagrama arhitectură" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">URL</label>
-                <input value={imageUrl} onChange={(e) => { setImageUrl(e.target.value); setImageUrlValid(true); }} className={`w-full px-3 py-2 text-sm rounded border bg-white dark:bg-gray-900 ${imageUrlValid ? 'dark:border-gray-700' : 'border-red-500 dark:border-red-500'}`} placeholder="https://..." />
-                {!imageUrlValid && (<p className="mt-1 text-xs text-red-600">Introduce un URL valid care începe cu http(s)://</p>)}
-              </div>
-              <div className="flex gap-2 justify-end pt-1">
-                <button onClick={() => setShowImagePanel(false)} className="px-3 py-1.5 text-sm rounded border dark:border-gray-700">Cancel</button>
-                <button onClick={handleSubmitImage} disabled={!imageUrl || !/^https?:\/\//i.test(imageUrl)} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50">Insert</button>
-              </div>
-
-              <div className="pt-3 border-t dark:border-gray-700">
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Sau încarcă imagine locală (PNG, JPEG, GIF, WEBP):</p>
-                <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={handleLocalImageChange} className="w-full text-sm" />
-                {localImageFile && (
-                  <div className="mt-2 text-xs text-gray-700 dark:text-gray-300">
-                    Selectat: {localImageFile.name} ({Math.round(localImageFile.size/1024)} KB)
-                  </div>
-                )}
-                {localImageError && (
-                  <div className="mt-2 text-xs text-red-600">{localImageError}</div>
-                )}
-                <p className="text-[11px] mt-1 text-gray-500 dark:text-gray-400">Selectează un fișier și imaginea apare imediat. Se salvează automat în cloud în fundal, iar conținutul se actualizează cu link public.</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {showTablePanel && (
-          <div ref={tablePanelRef} className="absolute top-full left-2 mt-2 w-80 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 p-3 z-30">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-semibold">Insert Table</span>
-              <button onClick={() => setShowTablePanel(false)} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"><X size={16} /></button>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Rows</label>
-                <input type="number" min={1} max={20} value={tableRows} onChange={(e) => setTableRows(Number(e.target.value))} className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Columns</label>
-                <input type="number" min={1} max={10} value={tableCols} onChange={(e) => setTableCols(Number(e.target.value))} className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900" />
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end pt-2">
-              <button onClick={() => setShowTablePanel(false)} className="px-3 py-1.5 text-sm rounded border dark:border-gray-700">Cancel</button>
-              <button onClick={handleSubmitTable} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700">Insert</button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
+  
 
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] overflow-x-hidden">
@@ -982,7 +910,7 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
             {activeTab === 'editor' ? (
                 <div className="flex-1 flex flex-col">
                         <div className="flex-1 relative min-h-0 pb-40 sm:pb-28">
-                            <TinyEditor value={editedContent} onChange={setEditedContent} disabled={!canEdit} />
+                            <TinyEditor key={`${currentStep.id}-${activeTab}`} value={editedContent} refreshSignal={editorRefreshTick} onChange={setEditedContent} onSelectionChange={(text) => setSelectedText(text)} />
                         </div>
                 </div>
             ) : (
@@ -998,7 +926,7 @@ const ACCEPTED_IMAGE_TYPES = ['image/png','image/jpeg','image/jpg','image/gif','
             )}
             </div>
 
-            <div id="workspace-actions" className="hidden sm:flex p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 justify-between items-center relative z-10 sticky bottom-0">
+            <div id="workspace-actions" className="hidden sm:flex p-6 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 justify-between items-center relative z-20 sticky bottom-0">
                 <div className="flex gap-2 flex-wrap">
                     <button
                         onClick={handleGenerate}

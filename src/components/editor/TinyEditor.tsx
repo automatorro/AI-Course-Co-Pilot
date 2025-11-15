@@ -1,5 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
-import type { BlobInfo } from 'tinymce';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Editor } from '@tinymce/tinymce-react';
 import { uploadEditorImageToSupabase } from '../../lib/editorImageUpload';
 import { useAuth } from '../../contexts/AuthContext';
@@ -7,14 +6,17 @@ import { useAuth } from '../../contexts/AuthContext';
 export type TinyEditorProps = {
   value: string;
   onChange: (html: string) => void;
-  disabled?: boolean;
+  refreshSignal?: number;
+  onSelectionChange?: (text: string) => void;
 };
 
 const TINY_API_KEY: string = (import.meta as any).env?.VITE_TINYMCE_API_KEY || '';
 
-const TinyEditor: React.FC<TinyEditorProps> = ({ value, onChange, disabled }) => {
+const TinyEditor: React.FC<TinyEditorProps> = ({ value, onChange, refreshSignal, onSelectionChange }) => {
   const { user } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
+  const editorRef = useRef<any>(null);
+  const isLocalChangeRef = useRef<boolean>(false);
   const [editorHeight, setEditorHeight] = useState<number>(520);
   useEffect(() => {
     const calc = () => {
@@ -28,43 +30,77 @@ const TinyEditor: React.FC<TinyEditorProps> = ({ value, onChange, disabled }) =>
     window.addEventListener('resize', calc);
     return () => window.removeEventListener('resize', calc);
   }, []);
+  const initConfig = useMemo(() => ({
+    menubar: false,
+    plugins: [
+      'lists',
+      'link',
+      'image',
+    ],
+    toolbar:
+      'undo redo | bold italic underline | blocks | bullist numlist | link image',
+    block_formats: 'Paragraph=p; Heading 1=h1; Heading 2=h2',
+    branding: false,
+    statusbar: true,
+    resize: true,
+    toolbar_sticky: false,
+    content_style: 'body{padding-bottom:240px;}',
+    paste_data_images: true,
+    images_upload_handler: async (blobInfo: any) => {
+      try {
+        const file = new File([blobInfo.blob()], blobInfo.filename(), { type: blobInfo.blob().type });
+        const url = await uploadEditorImageToSupabase(file, user?.id);
+        return url;
+      } catch (err: any) {
+        throw new Error(err?.message || 'Image upload failed');
+      }
+    },
+    setup: (editor: any) => {
+      editor.on('SelectionChange', () => {
+        const text = editor.selection?.getContent({ format: 'text' }) || '';
+        onSelectionChange?.(text);
+      });
+      editor.on('MouseUp', () => {
+        const text = editor.selection?.getContent({ format: 'text' }) || '';
+        onSelectionChange?.(text);
+      });
+      editor.on('KeyUp', () => {
+        const text = editor.selection?.getContent({ format: 'text' }) || '';
+        onSelectionChange?.(text);
+      });
+    },
+  }), [user?.id]);
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const nextHtml = value || '';
+    const current = editor.getContent({ format: 'html' }) || '';
+    if (nextHtml !== current) {
+      editor.setContent(nextHtml || '');
+    }
+    isLocalChangeRef.current = false;
+  }, [value]);
+
+  useEffect(() => {
+    if (!editorRef.current) return;
+    const isHtml = /<[a-z][\s\S]*>/i.test(value || '');
+    const nextHtml = isHtml ? (value || '') : (value || '');
+    editorRef.current.setContent(nextHtml || '');
+    isLocalChangeRef.current = false;
+  }, [refreshSignal]);
   return (
-    <div ref={containerRef}>
+    <div ref={containerRef} style={{ minHeight: editorHeight }}>
     <Editor
+      tinymceScriptSrc="/node_modules/tinymce/tinymce.min.js"
       apiKey={TINY_API_KEY}
       value={value}
-      onEditorChange={(content) => onChange(content)}
-      init={{
-        menubar: false,
-        plugins: [
-          'lists',
-          'link',
-          'image',
-          'paste',
-        ],
-        toolbar:
-          'undo redo | bold italic underline | blocks | bullist numlist | link image',
-        block_formats: 'Paragraph=p; Heading 1=h1; Heading 2=h2',
-        branding: false,
-        statusbar: true,
-        height: editorHeight,
-        resize: true,
-        toolbar_sticky: true,
-        toolbar_sticky_offset: 64,
-        content_style: 'body{padding-bottom:240px;}',
-        paste_data_images: true,
-        images_upload_handler: async (blobInfo: BlobInfo) => {
-          try {
-            const file = new File([blobInfo.blob()], blobInfo.filename(), { type: blobInfo.blob().type });
-            const url = await uploadEditorImageToSupabase(file, user?.id);
-            return url;
-          } catch (err: any) {
-            // TinyMCE will show a notification when the promise rejects
-            throw new Error(err?.message || 'Image upload failed');
-          }
-        },
-        readonly: !!disabled,
+      onInit={(_evt, editor) => { editorRef.current = editor; editor.setContent(value || ''); }}
+      onEditorChange={(content) => {
+        isLocalChangeRef.current = true;
+        onChange(content || '');
       }}
+      init={initConfig}
     />
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import rehypeRaw from 'rehype-raw';
 import 'highlight.js/styles/github.css';
 
 interface MarkdownPreviewProps {
@@ -93,7 +94,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content }) => {
     <div className="prose-sm sm:prose dark:prose-invert max-w-none p-4 sm:p-6 break-words">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeHighlight]}
+        rehypePlugins={[rehypeRaw as any, rehypeHighlight]}
         components={{
           table: ({ node, ...props }) => (
             <div className="w-full overflow-x-auto">
