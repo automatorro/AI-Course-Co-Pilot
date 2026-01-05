@@ -547,11 +547,12 @@ const processSlideBlock = (title: string, contentBlock: string, sections: Conten
     let bodyTextParts: string[] = [];
 
     // Helper regex for strict mode detection
-    const visualRegex = /^\s*[-*•_]*\s*(Visual|Imagine\s*Sugerată|Image|Visual\s*cue|Prompt|Vizual|视觉|图像|图片|图示|视觉提示|Visual|Imagem)\s*[:：\-]?\s*/i;
-    const textRegex = /^\s*[-*•_]*\s*(Text|Content|Conținut|Texto|文本|内容)\s*[:：\-]?\s*/i;
-    const notesRegex = /^\s*[-*•_]*\s*(Speaker\s*Notes|Note\s*Vorbit|Note\s*Trainer|讲者备注|讲者注释|演讲备注|旁白|Notas\s*do\s*Apresentador|Notas\s*do\s*Orador|Notas\s*do\s*Palestrante)\s*[:：\-]?\s*/i;
-    const titleLabelRegex = /^\s*[-*•_]*\s*(Titlu|Subtitlu)\s*[:\-]?\s*/i;
-    const imageLabelRegex = /^\s*[-*•_]*\s*(Imagine\s*Sugerată|Imagine|Visual)\s*[:\-]?\s*/i;
+    // Updated to handle optional markdown formatting around labels (e.g. **Visual**: or __Notes__:)
+    const visualRegex = /^\s*[-*•_#]*\s*(\*\*|__)?\s*(Visual|Imagine\s*Sugerată|Image|Visual\s*cue|Prompt|Vizual|视觉|图像|图片|图示|视觉提示|Visual|Imagem)\s*(\*\*|__)?\s*[:：\-]?\s*/i;
+    const textRegex = /^\s*[-*•_#]*\s*(\*\*|__)?\s*(Text|Content|Conținut|Texto|文本|内容)\s*(\*\*|__)?\s*[:：\-]?\s*/i;
+    const notesRegex = /^\s*[-*•_#]*\s*(\*\*|__)?\s*(Speaker\s*Notes|Note\s*Vorbit|Note\s*Trainer|讲者备注|讲者注释|演讲备注|旁白|Notas\s*do\s*Apresentador|Notas\s*do\s*Orador|Notas\s*do\s*Palestrante)\s*(\*\*|__)?\s*[:：\-]?\s*/i;
+    const titleLabelRegex = /^\s*[-*•_#]*\s*(\*\*|__)?\s*(Titlu|Subtitlu)\s*(\*\*|__)?\s*[:\-]?\s*/i;
+    const imageLabelRegex = /^\s*[-*•_#]*\s*(\*\*|__)?\s*(Imagine\s*Sugerată|Imagine|Visual)\s*(\*\*|__)?\s*[:\-]?\s*/i;
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -673,7 +674,7 @@ const processSlideBlock = (title: string, contentBlock: string, sections: Conten
     bulletPoints = bulletPoints.filter(b => 
         !/^(Slide|Modul[e]?)\s*#?\s*\d+:/i.test(b) &&
         !/^---$/.test(b) &&
-        !/^\s*(Titlu|Subtitlu|Imagine\s*Sugerată|Speaker\s*Notes)\s*[:\-]?/i.test(b)
+        !/^\s*[-*•_#]*\s*(Titlu|Subtitlu|Imagine\s*Sugerată|Speaker\s*Notes|Visual|Image|Visual\s*cue|Prompt|Vizual|Imagem|Note\s*Vorbit|Note\s*Trainer|Text|Content|Conținut|Texto)\s*(\*\*|__)?\s*[:：\-]/i.test(b)
     );
 
     // SANITIZE TEXT to prevent XML corruption
@@ -873,19 +874,78 @@ const exportCourseAsPptxV2 = async (course: Course): Promise<void> => {
                     // We still use getSmartFallbackDesign to rotate through templates
                     let aiDesign: SlideDesignJSON = getSmartFallbackDesign(section.rawContent);
                     
-                    // Force the parsed title and content (Source of Truth)
-                    aiDesign.title = section.title;
-                    if (section.bulletPoints.length > 0) {
-                        aiDesign.content = section.bulletPoints;
-                    } else if (section.bodyText) {
-                        aiDesign.content = section.bodyText
+                    // 1. Apply explicit layout from metadata (<!-- slide-layout: ... -->)
+                    if (section.slideLayout) {
+                        const mapLayout = (a: SlideArchetype): SlideDesignJSON['layout'] => {
+                            switch (a) {
+                                case SlideArchetype.Title: return 'HERO';
+                                case SlideArchetype.ImageLeft: return 'SPLIT_LEFT';
+                                case SlideArchetype.ImageRight: return 'SPLIT_RIGHT';
+                                case SlideArchetype.BigNumber: return 'BIG_STAT';
+                                case SlideArchetype.Comparison: return 'COMPARISON';
+                                case SlideArchetype.Quote: return 'QUOTATION';
+                                case SlideArchetype.Timeline: return 'TIMELINE';
+                                case SlideArchetype.FullImage: return 'FULL_IMAGE';
+                                case SlideArchetype.GridCards: return 'GRID_CARDS';
+                                case SlideArchetype.ImageCenter: return 'IMAGE_CENTER';
+                                case SlideArchetype.ThreeCol: return 'THREE_COLUMNS';
+                                case SlideArchetype.SectionHeader: return 'SECTION_HEADER';
+                                case SlideArchetype.Checklist: return 'CHECKLIST';
+                                case SlideArchetype.DoDont: return 'DO_DONT';
+                                case SlideArchetype.Table: return 'TABLE_SIMPLE';
+                                case SlideArchetype.Exercise: return 'PROCESS_STEPS';
+                                case SlideArchetype.Agenda: return 'AGENDA_COMPACT';
+                                case SlideArchetype.CaseStudy: return 'DEFAULT';
+                                case SlideArchetype.Summary: return 'DEFAULT';
+                                case SlideArchetype.Explainer: return 'DEFAULT';
+                                default: return 'DEFAULT';
+                            }
+                        };
+                        aiDesign.layout = mapLayout(section.slideLayout);
+                    }
+
+                    // 2. Apply explicit content from metadata (<!-- slide-adapted: ... -->)
+                    // We prioritize content matching the selected layout
+                    let explicitContent = '';
+                    if (aiDesign.layout && section.adaptedContent && section.adaptedContent[aiDesign.layout]) {
+                        explicitContent = section.adaptedContent[aiDesign.layout];
+                    } else if (section.adaptedContent && Object.keys(section.adaptedContent).length > 0) {
+                        // Fallback to the first available adapted content
+                        explicitContent = Object.values(section.adaptedContent)[0];
+                    }
+
+                    if (explicitContent) {
+                        // Explicit content overrides parsed bullets/body
+                        // It might be HTML or Markdown. We need to split it into lines/bullets.
+                        // Remove HTML tags for PPTX text body
+                        const plainText = explicitContent
+                            .replace(/<br\s*\/?>/gi, '\n')
+                            .replace(/<\/(p|div|li)>/gi, '\n')
+                            .replace(/<[^>]+>/g, '')
+                            .replace(/&nbsp;/g, ' ');
+                        
+                        aiDesign.content = plainText
                             .split('\n')
                             .map(s => s.trim())
                             .filter(Boolean);
                     } else {
-                        // Safety: If parser found no content, do not fallback to raw dump
-                        aiDesign.content = [];
+                        // Force the parsed title and content (Source of Truth)
+                        if (section.bulletPoints.length > 0) {
+                            aiDesign.content = section.bulletPoints;
+                        } else if (section.bodyText) {
+                            aiDesign.content = section.bodyText
+                                .split('\n')
+                                .map(s => s.trim())
+                                .filter(Boolean);
+                        } else {
+                            // Safety: If parser found no content, do not fallback to raw dump
+                            aiDesign.content = [];
+                        }
                     }
+
+                    aiDesign.title = section.title;
+
+                    // Visualul aparține slide-ului: folosim doar termenul explicit furnizat
 
                     // Visualul aparține slide-ului: folosim doar termenul explicit furnizat
                     aiDesign.imagePrompt = section.visualSearchTerm || '';
@@ -931,7 +991,8 @@ const exportCourseAsPptxV2 = async (course: Course): Promise<void> => {
                         }
                     }
 
-                    aiDesign.layout = 'DEFAULT';
+                    // aiDesign.layout = 'DEFAULT'; // REMOVED: Overwrites user selection
+                    if (!aiDesign.layout) aiDesign.layout = 'DEFAULT';
                     const enumerativeLayouts = ['AGENDA_COMPACT','CHECKLIST','PROCESS_STEPS','TIMELINE','KEY_TAKEAWAYS'];
                     const allowSplit = false;
                     const splitArray = <T,>(arr: T[], size: number): T[][] => {

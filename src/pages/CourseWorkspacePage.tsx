@@ -2048,6 +2048,20 @@ const CourseWorkspacePage: React.FC = () => {
                         );
                         return { ...prev, steps: updatedSteps };
                     });
+
+                    // IMMEDIATE SAVE TO SUPABASE
+                    supabase.from('course_steps')
+                        .update({ content: nextMarkdown })
+                        .eq('id', currentStep.id)
+                        .then(({ error }) => {
+                            if (error) {
+                                console.error('Failed to persist layout:', error);
+                                showToast('Eroare la salvarea layout-ului.', 'error');
+                            } else {
+                                const key = `autosave:${course.id}:${currentStep.id}`;
+                                localStorage.setItem(key, nextHtml);
+                            }
+                        });
                 }
                 
                 showToast(`Layout actualizat la ${newLayout}`, 'success');
@@ -2170,6 +2184,20 @@ const CourseWorkspacePage: React.FC = () => {
                   );
                   return { ...prev, steps: updatedSteps };
                 });
+
+                // IMMEDIATE SAVE TO SUPABASE
+                supabase.from('course_steps')
+                    .update({ content: nextMarkdown })
+                    .eq('id', currentStep.id)
+                    .then(({ error }) => {
+                        if (error) {
+                            console.error('Failed to persist adapted content:', error);
+                            showToast('Eroare la salvarea conținutului adaptat.', 'error');
+                        } else {
+                            const key = `autosave:${course.id}:${currentStep.id}`;
+                            localStorage.setItem(key, nextHtml);
+                        }
+                    });
               }
               showToast('Conținut adaptat salvat', 'success');
             } else {

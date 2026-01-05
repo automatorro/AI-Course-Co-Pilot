@@ -17,31 +17,50 @@ const SlidesPreviewModal: React.FC<Props> = ({ isOpen, onClose, course, onApplyS
   const [models, setModels] = useState<SlideModel[]>([]);
   const [loading, setLoading] = useState(false);
   const [statusMap, setStatusMap] = useState<Record<string, 'idle' | 'saving' | 'saved' | 'error'>>({});
+  const [overrides, setOverrides] = useState<Record<string, { layout?: SlideArchetype; adapted?: string }>>({});
 
   useEffect(() => {
     if (!isOpen) return;
-    setLoading(true);
+    // Only show full loading state on initial load
+    if (models.length === 0) setLoading(true);
+    
+    const applyOverrides = (ms: SlideModel[]): SlideModel[] => {
+      return ms.map(m => {
+        const ov = overrides[m.id];
+        if (!ov) return m;
+        const next = { ...m };
+        if (ov.layout) next.slide_type = ov.layout;
+        if (ov.adapted && ov.layout) {
+          const ac = { ...(next.adaptedContent || {}) };
+          ac[ov.layout] = ov.adapted;
+          next.adaptedContent = ac;
+        }
+        return next;
+      });
+    };
+
     getSlideModelsForPreview(course)
-      .then(setModels)
+      .then(ms => setModels(applyOverrides(ms)))
       .finally(() => setLoading(false));
-  }, [isOpen, course]);
+  }, [isOpen, course, overrides]);
 
   const handleLayoutUpdate = (slideTitle: string, newLayout: SlideArchetype, slideIndex?: number) => {
     // Optimistic local update
     setModels(prev => prev.map(m => (m.title === slideTitle && (slideIndex === undefined || m.originalIndex === slideIndex)) ? { ...m, slide_type: newLayout } : m));
     const targetId = (models.find(x => x.originalIndex === slideIndex && (x.title || '') === slideTitle)?.id) || `${slideTitle}-${slideIndex ?? ''}`;
     setStatusMap(prev => ({ ...prev, [targetId]: 'saving' }));
-    // Propagate to parent
+    setOverrides(prev => ({ ...prev, [targetId]: { ...(prev[targetId] || {}), layout: newLayout } }));
+    
+    // Propagate to parent - Parent will update course, triggering useEffect
     if (onUpdateSlideLayout) {
         onUpdateSlideLayout(slideTitle, newLayout, slideIndex);
     }
-    setTimeout(async () => {
-      const refreshed = await getSlideModelsForPreview(course);
-      setModels(refreshed);
-      const mm = refreshed.find(x => x.originalIndex === slideIndex && (x.title || '') === slideTitle);
-      const ok = !!mm && mm.slide_type === newLayout;
-      setStatusMap(prev => ({ ...prev, [targetId]: ok ? 'saved' : 'error' }));
-    }, 250);
+    
+    // Remove the timeout-based revert which was using stale state
+    // The useEffect above will handle synchronization when the parent updates the course prop
+    setTimeout(() => {
+       setStatusMap(prev => ({ ...prev, [targetId]: 'saved' }));
+    }, 500);
   };
 
   const summary = useMemo(() => {
@@ -125,6 +144,7 @@ const SlidesPreviewModal: React.FC<Props> = ({ isOpen, onClose, course, onApplyS
                </span>
              )}
              <button 
+               type="button"
                 onClick={() => setShowLayoutSelector(!showLayoutSelector)}
                 className={`text-xs px-2 py-1 rounded flex items-center gap-1 transition-colors ${
                     showLayoutSelector 
@@ -132,7 +152,7 @@ const SlidesPreviewModal: React.FC<Props> = ({ isOpen, onClose, course, onApplyS
                     : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
              >
-                <LayoutTemplate size={12}/> Alege Layout <ChevronDown size={12} className={`transition-transform ${showLayoutSelector ? 'rotate-180' : ''}`}/>
+               <LayoutTemplate size={12}/> {m.slide_type.replace('_', ' ')} <ChevronDown size={12} className={`transition-transform ${showLayoutSelector ? 'rotate-180' : ''}`}/>
              </button>
           </div>
 
@@ -171,13 +191,12 @@ const SlidesPreviewModal: React.FC<Props> = ({ isOpen, onClose, course, onApplyS
                     onClick={() => {
                         if (onUpdateSlideAdapted) onUpdateSlideAdapted(m.title || '', `${m.slide_type}|${adaptedInput.trim()}`, m.originalIndex);
                         setStatusMap(prev => ({ ...prev, [m.id]: 'saving' }));
-                        setTimeout(async () => {
-                          const refreshed = await getSlideModelsForPreview(course);
-                          setModels(refreshed);
-                          const mm = refreshed.find(x => x.originalIndex === m.originalIndex && (x.title || '') === (m.title || ''));
-                          const ok = !!mm && !!mm.adaptedContent && !!mm.adaptedContent[mm.slide_type] && mm.adaptedContent[mm.slide_type] === adaptedInput.trim();
-                          setStatusMap(prev => ({ ...prev, [m.id]: ok ? 'saved' : 'error' }));
-                        }, 250);
+                        setOverrides(prev => ({ ...prev, [m.id]: { ...(prev[m.id] || {}), layout: m.slide_type, adapted: adaptedInput.trim() } }));
+                        
+                        // Remove stale revert logic. Rely on parent prop update.
+                        setTimeout(() => {
+                           setStatusMap(prev => ({ ...prev, [m.id]: 'saved' }));
+                        }, 500);
                     }}
                     className="px-3 py-1 text-xs rounded bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300"
                   >

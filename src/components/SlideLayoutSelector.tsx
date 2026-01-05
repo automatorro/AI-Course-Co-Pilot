@@ -210,6 +210,7 @@ const SlideLayoutSelector: React.FC<SlideLayoutSelectorProps> = ({ currentType, 
       {options.map((opt) => (
         <button
           key={opt.type}
+          type="button"
           onClick={() => onSelect(opt.type)}
           className={`group relative flex flex-col items-center gap-1 p-2 rounded-lg border transition-all ${
             currentType === opt.type
