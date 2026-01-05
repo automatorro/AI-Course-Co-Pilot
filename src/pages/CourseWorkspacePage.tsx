@@ -9,7 +9,7 @@ import { Course, CourseStep, CourseBlueprint, SlideArchetype } from '../types';
 
 import { refineCourseContent } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
-import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ArrowLeft, ArrowRight, Upload, Replace, History, PanelLeft, LayoutTemplate } from 'lucide-react';
+import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ArrowLeft, ArrowRight, Upload, Replace, History, PanelLeft } from 'lucide-react';
 import BlueprintEditModal from '../components/BlueprintEditModal';
 import BlueprintRefineModal from '../components/BlueprintRefineModal';
 import { exportCourseAsZip, exportCourseAsPptx, exportCourseAsPdf, formatToCanonicalSlides } from '../services/exportService';
@@ -1958,7 +1958,7 @@ const CourseWorkspacePage: React.FC = () => {
             let newLines = [...lines];
 
             // ALIGNED LOGIC WITH exportService.ts
-            const hasSlideMarkers = lines.some(l => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:/i.test(l.trim()));
+            const hasSlideMarkers = lines.some((l: string) => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:/i.test(l.trim()));
 
             // Helper to check if a line is a slide start
             const isSlideStart = (line: string) => {
@@ -2066,7 +2066,7 @@ const CourseWorkspacePage: React.FC = () => {
             let newLines = [...lines];
 
             // ALIGNED LOGIC WITH exportService.ts
-            const hasSlideMarkers = lines.some(l => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:/i.test(l.trim()));
+            const hasSlideMarkers = lines.some((l: string) => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:/i.test(l.trim()));
 
             const isSlideStart = (line: string) => {
                 const trimmed = line.trim();
@@ -2095,7 +2095,6 @@ const CourseWorkspacePage: React.FC = () => {
                  // Look ahead up to 6 lines for existing adapted meta matching THIS layout
                  // The adaptedText is "LAYOUT|CONTENT". We want to find "<!-- slide-adapted: LAYOUT | ... -->"
                  const [layoutType] = safe.split('|'); 
-                 const layoutPrefix = `slide-adapted: ${layoutType}`; // loose match
 
                  let metaIdx = -1;
                  for (let k = 1; k <= 6 && idx + k < newLines.length; k++) {

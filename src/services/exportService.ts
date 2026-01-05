@@ -485,7 +485,7 @@ const parseContentSections = (markdown: string): ContentSection[] => {
     const lines = markdown.split('\n');
 
     // First pass: detect if the editor uses explicit "Slide nr:" markers
-    const hasSlideMarkers = lines.some(l => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:/i.test(l.trim()));
+    // Intenționat neutilizat aici; detecția se face în isSlideStart
 
     let currentTitle: string | null = null;
     let currentBuffer: string[] = [];
@@ -842,11 +842,11 @@ const exportCourseAsPptxV2 = async (course: Course): Promise<void> => {
                     const td = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
                     // CRITICAL: Preserve layout/adapted metadata comments
                     td.addRule('preserveComments', {
-                        filter: (node) => node.nodeType === 8 && (
+                        filter: (node: any) => node.nodeType === 8 && (
                             node.nodeValue?.trim().startsWith('slide-layout:') || 
                             node.nodeValue?.trim().startsWith('slide-adapted:')
                         ),
-                        replacement: (content, node) => {
+                        replacement: (_content: string, node: any) => {
                             return '<!--' + node.nodeValue + '-->';
                         }
                     });
