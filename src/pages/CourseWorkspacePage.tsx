@@ -5,15 +5,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { marked } from 'marked';
 import TurndownService from 'turndown';
 
-import { Course, CourseStep, CourseBlueprint } from '../types';
+import { Course, CourseStep, CourseBlueprint, SlideArchetype } from '../types';
 
 import { refineCourseContent } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
-import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ArrowLeft, ArrowRight, Upload, Replace, History, PanelLeft } from 'lucide-react';
+import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ArrowLeft, ArrowRight, Upload, Replace, History, PanelLeft, LayoutTemplate } from 'lucide-react';
 import BlueprintEditModal from '../components/BlueprintEditModal';
 import BlueprintRefineModal from '../components/BlueprintRefineModal';
-import { exportCourseAsZip, exportCourseAsPptx, exportCourseAsPdf } from '../services/exportService';
+import { exportCourseAsZip, exportCourseAsPptx, exportCourseAsPdf, formatToCanonicalSlides } from '../services/exportService';
 import ExportModal from '../components/ExportModal';
+import ExportErrorModal from '../components/ExportErrorModal';
 import SlidesPreviewModal from '../components/SlidesPreviewModal';
 import { detectNonLocalizedFragments, compareModuleTitlesText, extractModuleDurations } from '../lib/outputValidators';
 import { replaceBlobUrlsWithPublic, uploadBlobToStorage } from '../services/imageService';
@@ -124,6 +125,8 @@ const CourseWorkspacePage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isDownloading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showExportErrors, setShowExportErrors] = useState(false);
+  const [exportErrorsReport, setExportErrorsReport] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -742,8 +745,31 @@ const CourseWorkspacePage: React.FC = () => {
     setEditedContent(html);
     showToast('Changes saved successfully!', 'success');
 
+    // Optimistic update: autosave + local course state to prevent revert
+    try {
+      const key = `autosave:${course.id}:${currentStep.id}`;
+      const htmlStr = marked.parse(processedContent || '', { breaks: true }) as string;
+      localStorage.setItem(key, htmlStr);
+    } catch {}
+    setCourse(prev => {
+      if (!prev) return null;
+      const updatedSteps = (prev.steps || []).map(s =>
+        s.id === currentStep.id ? { ...s, content: processedContent, is_completed: stepUpdatePayload.is_completed ?? s.is_completed } : s
+      );
+      return { ...prev, steps: updatedSteps };
+    });
+
+    // Allow DB propagation, then refresh and patch stale content if necessary
+    await new Promise(r => setTimeout(r, 800));
     const updatedCourseData = await fetchCourseData();
     if (updatedCourseData) {
+      const freshStep = (updatedCourseData.steps || []).find((s: CourseStep) => s.id === currentStep.id);
+      if (freshStep) {
+        const serverContent = freshStep.content || '';
+        if (serverContent !== processedContent) {
+          freshStep.content = processedContent;
+        }
+      }
       setCourse(updatedCourseData);
       // Actualizează progresul cursului în funcție de pașii completați
       const total = (updatedCourseData.steps ?? []).length;
@@ -754,7 +780,6 @@ const CourseWorkspacePage: React.FC = () => {
           .from('courses')
           .update({ progress: progressPct })
           .eq('id', updatedCourseData.id);
-        // Reflectă progresul și local
         setCourse((prev: Course | null) => prev ? { ...prev, progress: progressPct } : prev);
       } catch (e) {
         console.warn('Progress update failed:', e);
@@ -788,8 +813,11 @@ const CourseWorkspacePage: React.FC = () => {
       }
       setShowExportModal(false);
     } catch (error) {
-      console.error('Failed to export course:', error);
-      showToast('Exportul a eșuat.', 'error');
+      const message = error instanceof Error ? error.message : String(error || 'Export failed');
+      console.error('Failed to export course:', message);
+      setExportErrorsReport(message);
+      setShowExportErrors(true);
+      setShowExportModal(false);
     } finally {
       setIsExporting(false);
     }
@@ -1590,7 +1618,13 @@ const CourseWorkspacePage: React.FC = () => {
                   <History size={16} />
                 </button>
               <button
-                onClick={() => setShowSlidesPreview(true)}
+                onClick={async () => {
+                  const step = currentStep;
+                  const canonical = formatToCanonicalSlides(step?.content || '');
+                  const html = marked.parse(canonical || '', { breaks: true }) as string;
+                  setEditedContent(html);
+                  setShowSlidesPreview(true);
+                }}
                 className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-ink-700 dark:text-white bg-white dark:bg-gray-700 border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
                 title="Previzualizează slide-urile"
               >
@@ -1662,6 +1696,11 @@ const CourseWorkspacePage: React.FC = () => {
         onExport={handleExport}
         isExporting={isExporting}
         course={course}
+      />
+      <ExportErrorModal
+        isOpen={showExportErrors}
+        onClose={() => setShowExportErrors(false)}
+        report={exportErrorsReport}
       />
       {showHistoryModal && (
         <VersionHistoryModal
@@ -1862,8 +1901,6 @@ const CourseWorkspacePage: React.FC = () => {
               return;
             }
             if (sLower.includes('imagine')) {
-              setShowSlidesPreview(false);
-              setActiveTab('editor');
               setShowImageStudio(true);
               return;
             }
@@ -1908,6 +1945,237 @@ const CourseWorkspacePage: React.FC = () => {
             }
             // Fallback: append suggestion text if no rule matched
             appendAtEnd(`- ${s}`);
+          }}
+          onUpdateSlideLayout={(slideTitle: string, newLayout: SlideArchetype, slideIndex?: number) => {
+            const rawStepContent = course?.steps?.[activeStepIndex]?.content ?? '';
+            const looksHtml = /<[a-z][\s\S]*>/i.test(rawStepContent || '');
+            const mdSource = looksHtml ? new TurndownService({ headingStyle: 'atx' }).turndown(rawStepContent || '') : (rawStepContent || '');
+            const lines = mdSource.split('\n');
+            const norm = (s: string) => s.toLowerCase().trim().replace(/[*#]/g, '').replace(/^slide\s*\d+[:.]?\s*/i, '');
+            const target = norm(slideTitle);
+            
+            let found = false;
+            let newLines = [...lines];
+
+            // ALIGNED LOGIC WITH exportService.ts
+            const hasSlideMarkers = lines.some(l => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:/i.test(l.trim()));
+
+            // Helper to check if a line is a slide start
+            const isSlideStart = (line: string) => {
+                const trimmed = line.trim();
+                const slideMatch = trimmed.match(/^(\*\*|#+)?\s*(Slide|幻灯片)\s*(nr\.|#)?\s*\d+(?:\s*[:：]\s*(.+?))?(\*\*|#+)?$/i);
+                if (slideMatch) return true;
+                if (hasSlideMarkers) return false;
+                const isHeading = /^#{1,6}\s+/.test(trimmed);
+                const isHr = /^(\-{3,}|\*{3,})$/.test(trimmed);
+                return isHeading || isHr;
+            };
+
+            if (typeof slideIndex === 'number') {
+                 // Strategy A: Index-based lookup (Deterministic)
+                 let currentIdx = -1;
+                 for (let i = 0; i < newLines.length; i++) {
+                     if (isSlideStart(newLines[i])) {
+                         currentIdx++;
+                         if (currentIdx === slideIndex) {
+                             found = true;
+                             // Look for existing layout metadata
+                             let metaIdx = -1;
+                             for(let k = 1; k <= 6 && i + k < newLines.length; k++) {
+                                 const nextLine = newLines[i+k].trim();
+                                 if (nextLine.match(/^<!--\s*slide-layout:/)) {
+                                     metaIdx = i + k;
+                                     break;
+                                 }
+                                 if (isSlideStart(newLines[i+k])) break;
+                             }
+
+                             const metaTag = `<!-- slide-layout: ${newLayout} -->`;
+                             if (metaIdx !== -1) {
+                                 newLines[metaIdx] = metaTag;
+                             } else {
+                                 newLines.splice(i + 1, 0, metaTag);
+                             }
+                             break;
+                         }
+                     }
+                 }
+            } 
+            
+            if (!found) {
+                // Strategy B: Title-based fallback (Legacy)
+                for (let i = 0; i < newLines.length; i++) {
+                    const line = newLines[i];
+                    if (isSlideStart(line)) {
+                        const lineContent = line.trim().replace(/^#{1,6}\s+/, '').replace(/^\*\*/, '').replace(/\*\*$/, '');
+                        const lineNorm = norm(lineContent);
+                        
+                        if (lineNorm.includes(target) || target.includes(lineNorm)) {
+                            found = true;
+                            let metaIdx = -1;
+                            for(let k = 1; k <= 6 && i + k < newLines.length; k++) {
+                                const nextLine = newLines[i+k].trim();
+                                if (nextLine.match(/^<!--\s*slide-layout:/)) {
+                                    metaIdx = i + k;
+                                    break;
+                                }
+                                if (isSlideStart(newLines[i+k])) break;
+                            }
+
+                            const metaTag = `<!-- slide-layout: ${newLayout} -->`;
+                            if (metaIdx !== -1) {
+                                newLines[metaIdx] = metaTag;
+                            } else {
+                                newLines.splice(i + 1, 0, metaTag);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (found) {
+                const nextMarkdown = newLines.join('\n');
+                const nextHtml = marked.parse(nextMarkdown || '', { breaks: true }) as string;
+                setEditedContent(nextHtml);
+                
+                const currentStep = (course?.steps || [])[activeStepIndex];
+                if (course && currentStep) {
+                    setCourse(prev => {
+                        if (!prev) return null;
+                        const updatedSteps = (prev.steps || []).map(step => 
+                            step.id === currentStep.id ? { ...step, content: nextMarkdown } : step
+                        );
+                        return { ...prev, steps: updatedSteps };
+                    });
+                }
+                
+                showToast(`Layout actualizat la ${newLayout}`, 'success');
+            } else {
+                showToast('Nu am putut localiza slide-ul pentru a salva layout-ul.', 'error');
+            }
+          }}
+          onUpdateSlideAdapted={(slideTitle: string, adaptedText: string, slideIndex?: number) => {
+            const rawStepContent = course?.steps?.[activeStepIndex]?.content ?? '';
+            const looksHtml = /<[a-z][\s\S]*>/i.test(rawStepContent || '');
+            const mdSource = looksHtml ? new TurndownService({ headingStyle: 'atx' }).turndown(rawStepContent || '') : (rawStepContent || '');
+            const lines = mdSource.split('\n');
+            const norm = (s: string) => s.toLowerCase().trim().replace(/[*#]/g, '').replace(/^slide\s*\d+[:.]?\s*/i, '');
+            const target = norm(slideTitle);
+            let found = false;
+            let newLines = [...lines];
+
+            // ALIGNED LOGIC WITH exportService.ts
+            const hasSlideMarkers = lines.some(l => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:/i.test(l.trim()));
+
+            const isSlideStart = (line: string) => {
+                const trimmed = line.trim();
+                const slideMatch = trimmed.match(/^(\*\*|#+)?\s*(Slide|幻灯片)\s*(nr\.|#)?\s*\d+(?:\s*[:：]\s*(.+?))?(\*\*|#+)?$/i);
+                if (slideMatch) return true;
+                if (hasSlideMarkers) return false;
+                const isHeading = /^#{1,6}\s+/.test(trimmed);
+                const isHr = /^(\-{3,}|\*{3,})$/.test(trimmed);
+                return isHeading || isHr;
+            };
+
+            const safe = adaptedText.replace(/\s+/g, ' ').trim();
+            // We need to know which layout this adaptation is for.
+            // Since we don't have the layout passed directly here, we have to look it up in the file or state.
+            // Ideally, the adapted content metadata should include the layout type:
+            // <!-- slide-adapted: LAYOUT_TYPE | CONTENT -->
+            // But here we are just saving the text. The consumer (SlidesPreviewModal) should probably pass the layout type too?
+            // Wait, looking at my plan: "<!-- slide-adapted: TYPE | CONȚINUT_ENCODED -->"
+            // The prop signature is (slideTitle, adaptedText, slideIndex). It doesn't include the layout type.
+            // I should assume the `adaptedText` ALREADY contains the formatted string "TYPE | CONTENT" or handle it here.
+            // Let's check SlidesPreviewModal again.
+            // In SlidesPreviewModal: onUpdateSlideAdapted(m.title, `${m.slide_type}|${text}`, m.originalIndex);
+            // So `adaptedText` comes in as "TYPE|CONTENT". Perfect.
+
+            const updateLines = (idx: number) => {
+                 // Look ahead up to 6 lines for existing adapted meta matching THIS layout
+                 // The adaptedText is "LAYOUT|CONTENT". We want to find "<!-- slide-adapted: LAYOUT | ... -->"
+                 const [layoutType] = safe.split('|'); 
+                 const layoutPrefix = `slide-adapted: ${layoutType}`; // loose match
+
+                 let metaIdx = -1;
+                 for (let k = 1; k <= 6 && idx + k < newLines.length; k++) {
+                    const nextLine = newLines[idx + k].trim();
+                    if (nextLine.match(/^<!--\s*slide-adapted:/)) {
+                        // Check if it matches the SAME layout type
+                        if (nextLine.includes(layoutType.trim())) {
+                             metaIdx = idx + k;
+                             break;
+                        }
+                    }
+                    if (isSlideStart(newLines[idx + k])) break;
+                 }
+                 
+                 const metaTag = `<!-- slide-adapted: ${safe} -->`;
+                 if (metaIdx !== -1) {
+                    newLines[metaIdx] = metaTag;
+                 } else {
+                    // Insert logic:
+                    // Try to put it after layout tag, or after other adapted tags, or after title
+                    let insertPos = idx + 1;
+                    for (let k = 1; k <= 6 && idx + k < newLines.length; k++) {
+                        const nextLine = newLines[idx + k].trim();
+                        if (nextLine.match(/^<!--\s*slide-layout:/) || nextLine.match(/^<!--\s*slide-adapted:/)) {
+                            insertPos = idx + k + 1;
+                        } else if (isSlideStart(newLines[idx + k])) {
+                            break;
+                        }
+                    }
+                    newLines.splice(insertPos, 0, metaTag);
+                 }
+            }
+
+            if (typeof slideIndex === 'number') {
+                 let currentIdx = -1;
+                 for (let i = 0; i < newLines.length; i++) {
+                     if (isSlideStart(newLines[i])) {
+                         currentIdx++;
+                         if (currentIdx === slideIndex) {
+                             found = true;
+                             updateLines(i);
+                             break;
+                         }
+                     }
+                 }
+            }
+
+            if (!found) {
+                // Fallback
+                for (let i = 0; i < newLines.length; i++) {
+                    if (isSlideStart(newLines[i])) {
+                        const lineContent = newLines[i].trim().replace(/^#{1,6}\s+/, '').replace(/^\*\*/, '').replace(/\*\*$/, '');
+                        const lineNorm = norm(lineContent);
+                        if (lineNorm.includes(target) || target.includes(lineNorm)) {
+                            found = true;
+                            updateLines(i);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (found) {
+              const nextMarkdown = newLines.join('\n');
+              const nextHtml = marked.parse(nextMarkdown || '', { breaks: true }) as string;
+              setEditedContent(nextHtml);
+              const currentStep = (course?.steps || [])[activeStepIndex];
+              if (course && currentStep) {
+                setCourse(prev => {
+                  if (!prev) return null;
+                  const updatedSteps = (prev.steps || []).map(step =>
+                    step.id === currentStep.id ? { ...step, content: nextMarkdown } : step
+                  );
+                  return { ...prev, steps: updatedSteps };
+                });
+              }
+              showToast('Conținut adaptat salvat', 'success');
+            } else {
+              showToast('Nu am putut localiza slide-ul pentru a salva conținutul adaptat.', 'error');
+            }
           }}
         />
       )}

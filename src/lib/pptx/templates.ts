@@ -1,9 +1,22 @@
 import PptxGenJS from 'pptxgenjs';
 import { SlideDesignJSON } from '../../services/presentationAiService';
+import { adaptForPptx } from './i18nAdapter';
+import { isEnabled } from '../../config/featureFlags';
 
 // ============================================================================
 // TEMPLATE RENDERERS
 // ============================================================================
+
+const addTextIntl = (slide: PptxGenJS.Slide, raw: string, props: any, isNotes = false) => {
+    if (isEnabled('pptxEnhancedPipeline')) {
+        const a = adaptForPptx({ text: raw, isNotes });
+        slide.addText(a.text, { ...props, fontFace: a.fontFace, align: a.align, rtl: a.rtl });
+    } else {
+        slide.addText(raw, props);
+    }
+};
+
+const joinContent = (data: SlideDesignJSON) => data.content.join('\n');
 
 export const renderHeroSlide = (slide: PptxGenJS.Slide, data: SlideDesignJSON, imageUrl?: string) => {
     // Background Image
@@ -23,7 +36,7 @@ export const renderHeroSlide = (slide: PptxGenJS.Slide, data: SlideDesignJSON, i
     }
 
     // Title Centered
-    slide.addText(data.title, {
+    addTextIntl(slide, data.title, {
         x: 0.5, y: 2.5, w: '90%', h: 1.5,
         fontSize: 44, bold: true, color: 'FFFFFF',
         align: 'center'
@@ -31,7 +44,7 @@ export const renderHeroSlide = (slide: PptxGenJS.Slide, data: SlideDesignJSON, i
 
     // Content (Subtitle)
     if (data.content && data.content.length > 0) {
-        slide.addText(data.content[0], {
+        addTextIntl(slide, data.content[0], {
             x: 1, y: 4, w: '80%', h: 1,
             fontSize: 24, color: 'E5E7EB',
             align: 'center'
@@ -59,13 +72,13 @@ export const renderSplitLeft = (slide: PptxGenJS.Slide, data: SlideDesignJSON, i
     }
 
     // Text on Right
-    slide.addText(data.title, {
+    addTextIntl(slide, data.title, {
         x: 5.2, y: 0.5, w: '45%', h: 1,
         fontSize: 32, bold: true, color: '1F2937'
     });
 
-    const bullets = data.content.join('\n');
-    slide.addText(bullets, {
+    const bullets = joinContent(data);
+    addTextIntl(slide, bullets, {
         x: 5.2, y: 1.8, w: '45%', h: 5,
         fontSize: 18, color: '374151', bullet: true,
         lineSpacing: 28
@@ -74,13 +87,13 @@ export const renderSplitLeft = (slide: PptxGenJS.Slide, data: SlideDesignJSON, i
 
 export const renderSplitRight = (slide: PptxGenJS.Slide, data: SlideDesignJSON, imageUrl?: string) => {
     // Text on Left
-    slide.addText(data.title, {
+    addTextIntl(slide, data.title, {
         x: 0.5, y: 0.5, w: '45%', h: 1,
         fontSize: 32, bold: true, color: '1F2937'
     });
 
-    const bullets = data.content.join('\n');
-    slide.addText(bullets, {
+    const bullets = joinContent(data);
+    addTextIntl(slide, bullets, {
         x: 0.5, y: 1.8, w: '45%', h: 5,
         fontSize: 18, color: '374151', bullet: true,
         lineSpacing: 28
@@ -98,7 +111,7 @@ export const renderSplitRight = (slide: PptxGenJS.Slide, data: SlideDesignJSON, 
             x: 5, y: 0, w: '50%', h: '100%',
             fill: { color: 'F3F4F6' }
         });
-        slide.addText('Image Placeholder', {
+        addTextIntl(slide, 'Image Placeholder', {
             x: 5, y: 2, w: '50%', h: 1,
             align: 'center', color: '9CA3AF'
         });
@@ -125,13 +138,13 @@ export const renderBigStat = (slide: PptxGenJS.Slide, data: SlideDesignJSON, ima
     const bigStat = data.content[0] || "100%";
     const description = data.content.slice(1).join('\n') || data.title;
 
-    slide.addText(bigStat, {
+    addTextIntl(slide, bigStat, {
         x: 0, y: 1.5, w: '100%', h: 2.5,
         fontSize: 120, bold: true, color: 'FFFFFF',
         align: 'center'
     });
 
-    slide.addText(description, {
+    addTextIntl(slide, description, {
         x: 1, y: 4.5, w: '80%', h: 1.5,
         fontSize: 24, color: 'E5E7EB',
         align: 'center'
@@ -139,7 +152,7 @@ export const renderBigStat = (slide: PptxGenJS.Slide, data: SlideDesignJSON, ima
 };
 
 export const renderComparison = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
-    slide.addText(data.title, {
+    addTextIntl(slide, data.title, {
         x: 0.5, y: 0.3, w: '90%', h: 0.8,
         fontSize: 28, bold: true, color: '1F2937', align: 'center'
     });
@@ -153,12 +166,12 @@ export const renderComparison = (slide: PptxGenJS.Slide, data: SlideDesignJSON, 
     const leftContent = data.content.slice(0, half).join('\n');
     const rightContent = data.content.slice(half).join('\n');
 
-    slide.addText(leftContent, {
+    addTextIntl(slide, leftContent, {
         x: 0.5, y: 1.5, w: '40%', h: 5,
         fontSize: 18, color: '374151', bullet: true
     });
 
-    slide.addText(rightContent, {
+    addTextIntl(slide, rightContent, {
         x: 5.5, y: 1.5, w: '40%', h: 5,
         fontSize: 18, color: '374151', bullet: true
     });
@@ -180,25 +193,25 @@ export const renderQuotation = (slide: PptxGenJS.Slide, data: SlideDesignJSON, i
     }
 
     // Big Quote Mark
-    slide.addText('“', {
+    addTextIntl(slide, '“', {
         x: 0.5, y: 0.5, w: 2, h: 2,
         fontSize: 160, color: 'FCD34D'
     });
 
-    slide.addText(data.content[0] || data.title, {
+    addTextIntl(slide, data.content[0] || data.title, {
         x: 1.5, y: 2, w: '70%', h: 3,
         fontSize: 32, italic: true, color: 'FFFFFF',
         align: 'center'
     });
 
-    slide.addText(`— ${data.title}`, { // Assuming title is author for quote layout, or generic
+    addTextIntl(slide, `— ${data.title}`, {
         x: 5, y: 5.5, w: '40%', h: 0.5,
         fontSize: 20, color: 'D1D5DB', align: 'right'
     });
 };
 
 export const renderTriad = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
-    slide.addText(data.title, {
+    addTextIntl(slide, data.title, {
         x: 0.5, y: 0.5, w: '90%', h: 0.8,
         fontSize: 28, bold: true, color: '1F2937', align: 'center'
     });
@@ -218,7 +231,7 @@ export const renderTriad = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imag
         });
 
         // Content
-        slide.addText(item, {
+        addTextIntl(slide, item, {
             x: xPos + 0.2, y: 2, w: colW - 0.4, h: 3.5,
             fontSize: 16, color: '374151', align: 'center'
         });
@@ -226,7 +239,7 @@ export const renderTriad = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imag
 };
 
 export const renderTimeline = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
-    slide.addText(data.title, {
+    addTextIntl(slide, data.title, {
         x: 0.5, y: 0.5, w: '90%', h: 0.8,
         fontSize: 28, bold: true, color: '1F2937'
     });
@@ -252,7 +265,7 @@ export const renderTimeline = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _i
 
         // Text (alternate up/down)
         const yText = idx % 2 === 0 ? 2 : 4;
-        slide.addText(item, {
+        addTextIntl(slide, item, {
             x: xPos - 1, y: yText, w: 2, h: 1.2,
             fontSize: 14, color: '374151', align: 'center'
         });
@@ -265,51 +278,51 @@ export const renderTimeline = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _i
 
 export const renderSectionHeader = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
     slide.addShape('rect', { x: 0, y: 0, w: '100%', h: 1.2, fill: { color: data.accentColor || '1E3A8A' } });
-    slide.addText(data.title, { x: 0.6, y: 0.2, w: '90%', h: 1, fontSize: 36, bold: true, color: 'FFFFFF' });
-    if (data.content[0]) slide.addText(data.content[0], { x: 0.6, y: 1.6, w: '90%', h: 0.8, fontSize: 22, color: '374151' });
+    addTextIntl(slide, data.title, { x: 0.6, y: 0.2, w: '90%', h: 1, fontSize: 36, bold: true, color: 'FFFFFF' });
+    if (data.content[0]) addTextIntl(slide, data.content[0], { x: 0.6, y: 1.6, w: '90%', h: 0.8, fontSize: 22, color: '374151' });
 };
 
 export const renderChecklist = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
-    slide.addText(data.title, { x: 0.5, y: 0.5, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937' });
+    addTextIntl(slide, data.title, { x: 0.5, y: 0.5, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937' });
     const items = data.content.slice(0, 7).map(i => `✔ ${i}`).join('\n');
-    slide.addText(items, { x: 1, y: 1.5, w: '80%', h: 4.5, fontSize: 20, bullet: true, lineSpacing: 30, color: '374151' });
+    addTextIntl(slide, items, { x: 1, y: 1.5, w: '80%', h: 4.5, fontSize: 20, bullet: true, lineSpacing: 30, color: '374151' });
 };
 
 export const renderDoDont = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
-    slide.addText(data.title, { x: 0.5, y: 0.3, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937', align: 'center' });
+    addTextIntl(slide, data.title, { x: 0.5, y: 0.3, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937', align: 'center' });
     slide.addShape('rect', { x: 0.5, y: 1.3, w: 4.5, h: 4.8, fill: { color: 'ECFDF5' } });
     slide.addShape('rect', { x: 5, y: 1.3, w: 4.5, h: 4.8, fill: { color: 'FEF2F2' } });
     const half = Math.ceil(data.content.length / 2);
-    slide.addText(data.content.slice(0, half).map(i => `✅ ${i}`).join('\n'), { x: 0.7, y: 1.6, w: 4.1, h: 4.2, fontSize: 18, bullet: true });
-    slide.addText(data.content.slice(half).map(i => `🚫 ${i}`).join('\n'), { x: 5.2, y: 1.6, w: 4.1, h: 4.2, fontSize: 18, bullet: true });
+    addTextIntl(slide, data.content.slice(0, half).map(i => `✅ ${i}`).join('\n'), { x: 0.7, y: 1.6, w: 4.1, h: 4.2, fontSize: 18, bullet: true });
+    addTextIntl(slide, data.content.slice(half).map(i => `🚫 ${i}`).join('\n'), { x: 5.2, y: 1.6, w: 4.1, h: 4.2, fontSize: 18, bullet: true });
 };
 
 export const renderProcessSteps = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
-    slide.addText(data.title, { x: 0.5, y: 0.5, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937' });
+    addTextIntl(slide, data.title, { x: 0.5, y: 0.5, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937' });
     slide.addShape('line', { x: 1, y: 4, w: 8, h: 0, line: { color: data.accentColor || '1E3A8A', width: 3 } });
     const steps = data.content.slice(0, 6);
     const stepW = 8 / (steps.length || 1);
     steps.forEach((t, idx) => {
         const x = 1 + idx * stepW;
         slide.addShape('ellipse' as any, { x: x - 0.15, y: 3.85, w: 0.3, h: 0.3, fill: { color: data.accentColor || '1E3A8A' } });
-        slide.addText(`${idx + 1}. ${t}`, { x, y: 2.8, w: 2.2, h: 1.2, fontSize: 14, color: '374151', align: 'center' });
+        addTextIntl(slide, `${idx + 1}. ${t}`, { x, y: 2.8, w: 2.2, h: 1.2, fontSize: 14, color: '374151', align: 'center' });
     });
 };
 
 export const renderKeyTakeaways = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
-    slide.addText(data.title, { x: 0.5, y: 0.5, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937' });
+    addTextIntl(slide, data.title, { x: 0.5, y: 0.5, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937' });
     const colW = 3;
     const gap = 0.3;
     const startX = (10 - (3 * colW) - (2 * gap)) / 2;
     data.content.slice(0, 3).forEach((item, idx) => {
         const xPos = startX + (idx * (colW + gap));
         slide.addShape('rect', { x: xPos, y: 1.5, w: colW, h: 4.2, fill: { color: 'F9FAFB' }, line: { color: 'E5E7EB', width: 1 } });
-        slide.addText(item, { x: xPos + 0.2, y: 1.9, w: colW - 0.4, h: 3.4, fontSize: 16, color: '374151', align: 'center' });
+        addTextIntl(slide, item, { x: xPos + 0.2, y: 1.9, w: colW - 0.4, h: 3.4, fontSize: 16, color: '374151', align: 'center' });
     });
 };
 
 export const renderDataPoints = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
-    slide.addText(data.title, { x: 0.5, y: 0.5, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937', align: 'center' });
+    addTextIntl(slide, data.title, { x: 0.5, y: 0.5, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937', align: 'center' });
     const points = data.content.slice(0, 3);
     const w = 3;
     const gap = 0.5;
@@ -317,18 +330,18 @@ export const renderDataPoints = (slide: PptxGenJS.Slide, data: SlideDesignJSON, 
     points.forEach((p, i) => {
         const x = startX + i * (w + gap);
         slide.addShape('rect', { x, y: 2.2, w, h: 2.2, fill: { color: '1E3A8A' } });
-        slide.addText(p, { x: x + 0.2, y: 2.6, w: w - 0.4, h: 1.4, fontSize: 28, bold: true, color: 'FFFFFF', align: 'center' });
+        addTextIntl(slide, p, { x: x + 0.2, y: 2.6, w: w - 0.4, h: 1.4, fontSize: 28, bold: true, color: 'FFFFFF', align: 'center' });
     });
 };
 
 export const renderQuoteCenter = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
     slide.background = { color: '111827' };
-    slide.addText(data.content[0] || data.title, { x: 1, y: 2.2, w: 8, h: 2, fontSize: 30, italic: true, color: 'FFFFFF', align: 'center' });
-    slide.addText(`— ${data.title}`, { x: 6.5, y: 4.5, w: 3, h: 0.6, fontSize: 18, color: '9CA3AF', align: 'right' });
+    addTextIntl(slide, data.content[0] || data.title, { x: 1, y: 2.2, w: 8, h: 2, fontSize: 30, italic: true, color: 'FFFFFF', align: 'center' });
+    addTextIntl(slide, `— ${data.title}`, { x: 6.5, y: 4.5, w: 3, h: 0.6, fontSize: 18, color: '9CA3AF', align: 'right' });
 };
 
 export const renderTableSimple = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
-    slide.addText(data.title, { x: 0.5, y: 0.5, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937' });
+    addTextIntl(slide, data.title, { x: 0.5, y: 0.5, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937' });
     const rows = Math.min(4, Math.max(2, data.content.length));
     const colW = 4.5;
     for (let r = 0; r < rows; r++) {
@@ -336,8 +349,8 @@ export const renderTableSimple = (slide: PptxGenJS.Slide, data: SlideDesignJSON,
         slide.addShape('rect', { x: 5.1, y: 1.5 + r * 1.2, w: colW, h: 1.1, fill: { color: r % 2 ? 'F3F4F6' : 'FFFFFF' }, line: { color: 'E5E7EB', width: 1 } });
         const left = data.content[r] || '';
         const right = data.content[r + rows] || '';
-        slide.addText(left, { x: 0.7, y: 1.8 + r * 1.2, w: colW - 0.4, h: 0.7, fontSize: 16, color: '374151' });
-        slide.addText(right, { x: 5.3, y: 1.8 + r * 1.2, w: colW - 0.4, h: 0.7, fontSize: 16, color: '374151' });
+        addTextIntl(slide, left, { x: 0.7, y: 1.8 + r * 1.2, w: colW - 0.4, h: 0.7, fontSize: 16, color: '374151' });
+        addTextIntl(slide, right, { x: 5.3, y: 1.8 + r * 1.2, w: colW - 0.4, h: 0.7, fontSize: 16, color: '374151' });
     }
 };
 
@@ -352,23 +365,23 @@ export const renderImageSidebar = (slide: PptxGenJS.Slide, data: SlideDesignJSON
     } else {
         slide.addShape('rect', { x: 7.2, y: 0, w: 2.8, h: '100%', fill: { color: 'F3F4F6' } });
     }
-    slide.addText(data.title, { x: 0.5, y: 0.5, w: 6.5, h: 0.8, fontSize: 30, bold: true, color: '1F2937' });
-    slide.addText(data.content.join('\n'), { x: 0.5, y: 1.6, w: 6.5, h: 4.8, fontSize: 18, bullet: true, lineSpacing: 28, color: '374151' });
+    addTextIntl(slide, data.title, { x: 0.5, y: 0.5, w: 6.5, h: 0.8, fontSize: 30, bold: true, color: '1F2937' });
+    addTextIntl(slide, joinContent(data), { x: 0.5, y: 1.6, w: 6.5, h: 4.8, fontSize: 18, bullet: true, lineSpacing: 28, color: '374151' });
 };
 
 export const renderAgendaCompact = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
-    slide.addText(data.title, { x: 0.5, y: 0.5, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937' });
-    slide.addText(data.content.join('\n'), { x: 0.8, y: 1.5, w: '85%', h: 4.8, fontSize: 18, bullet: true, lineSpacing: 24, color: '374151' });
+    addTextIntl(slide, data.title, { x: 0.5, y: 0.5, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937' });
+    addTextIntl(slide, joinContent(data), { x: 0.8, y: 1.5, w: '85%', h: 4.8, fontSize: 18, bullet: true, lineSpacing: 24, color: '374151' });
 };
 
 export const renderDefault = (slide: PptxGenJS.Slide, data: SlideDesignJSON, imageUrl?: string) => {
-    slide.addText(data.title, {
+    addTextIntl(slide, data.title, {
         x: 0.5, y: 0.5, w: '90%', h: 0.8,
         fontSize: 28, bold: true, color: '1F2937'
     });
 
     if (imageUrl) {
-        slide.addText(data.content.join('\n'), {
+        addTextIntl(slide, joinContent(data), {
             x: 0.5, y: 1.5, w: '50%', h: 5,
             fontSize: 18, color: '374151', bullet: true
         });
@@ -378,7 +391,7 @@ export const renderDefault = (slide: PptxGenJS.Slide, data: SlideDesignJSON, ima
             slide.addImage({ path: imageUrl, x: 5.8, y: 1.5, w: 4, h: 3 });
         }
     } else {
-        slide.addText(data.content.join('\n'), {
+        addTextIntl(slide, joinContent(data), {
             x: 0.5, y: 1.5, w: '90%', h: 5,
             fontSize: 18, color: '374151', bullet: true
         });
@@ -387,7 +400,7 @@ export const renderDefault = (slide: PptxGenJS.Slide, data: SlideDesignJSON, ima
 
 export const renderImageCenter = (slide: PptxGenJS.Slide, data: SlideDesignJSON, imageUrl?: string) => {
     // Title Top Center
-    slide.addText(data.title, {
+    addTextIntl(slide, data.title, {
         x: 0.5, y: 0.3, w: '90%', h: 0.8,
         fontSize: 28, bold: true, color: '1F2937', align: 'center'
     });
@@ -411,15 +424,15 @@ export const renderImageCenter = (slide: PptxGenJS.Slide, data: SlideDesignJSON,
     }
 
     // Text Below
-    const text = data.content.slice(0, 3).join('\n'); // Limit text
-    slide.addText(text, {
+    const text = data.content.slice(0, 3).join('\n');
+    addTextIntl(slide, text, {
         x: 1, y: 5.0, w: 8, h: 2,
         fontSize: 18, color: '374151', align: 'center'
     });
 };
 
 export const renderThreeColumns = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
-    slide.addText(data.title, {
+    addTextIntl(slide, data.title, {
         x: 0.5, y: 0.3, w: '90%', h: 0.8,
         fontSize: 28, bold: true, color: '1F2937'
     });
@@ -455,7 +468,7 @@ export const renderThreeColumns = (slide: PptxGenJS.Slide, data: SlideDesignJSON
             fill: { color: data.accentColor || '1E3A8A' }
         });
 
-        slide.addText(item, {
+        addTextIntl(slide, item, {
             x: xPos + 0.2, y: 1.8, w: colW - 0.4, h: 4.5,
             fontSize: 16, color: '374151', valign: 'top'
         });
@@ -487,7 +500,7 @@ export const renderFullImage = (slide: PptxGenJS.Slide, data: SlideDesignJSON, i
         line: { color: 'FFFFFF', width: 2 }
     });
 
-    slide.addText(data.title, {
+    addTextIntl(slide, data.title, {
         x: 2, y: 2, w: 6, h: 1.5,
         fontSize: 36, bold: true, color: 'FFFFFF',
         align: 'center', fontFace: 'Arial'
@@ -495,7 +508,7 @@ export const renderFullImage = (slide: PptxGenJS.Slide, data: SlideDesignJSON, i
 
     if (data.content.length > 0) {
         const text = data.content.slice(0, 3).join('\n');
-        slide.addText(text, {
+        addTextIntl(slide, text, {
             x: 2, y: 3.5, w: 6, h: 2,
             fontSize: 20, color: 'F3F4F6',
             align: 'center', fontFace: 'Arial'
@@ -504,7 +517,7 @@ export const renderFullImage = (slide: PptxGenJS.Slide, data: SlideDesignJSON, i
 };
 
 export const renderGridCards = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
-    slide.addText(data.title, {
+    addTextIntl(slide, data.title, {
         x: 0.5, y: 0.3, w: '90%', h: 0.8,
         fontSize: 28, bold: true, color: '1F2937'
     });
@@ -538,7 +551,7 @@ export const renderGridCards = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _
         });
 
         // Content
-        slide.addText(item, {
+        addTextIntl(slide, item, {
             x: p.x + 0.8, y: p.y + 0.2, w: 3.3, h: 1.8,
             fontSize: 16, color: '374151', valign: 'top'
         });

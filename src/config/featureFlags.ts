@@ -7,7 +7,9 @@ export type FeatureFlagKey =
   | 'blueprintRefineEnabled'
   | 'editorRefineButtonEnabled'
   | 'editorGenerateButtonEnabled'
-  | 'newPptxExporter';
+  | 'newPptxExporter'
+  | 'pptxEnhancedPipeline'
+  | 'pptxTextOnlySafeMode';
 
 export const FEATURE_FLAGS: Record<FeatureFlagKey, boolean> = {
   localizedChat: true,
@@ -21,6 +23,8 @@ export const FEATURE_FLAGS: Record<FeatureFlagKey, boolean> = {
   editorRefineButtonEnabled: false,
   editorGenerateButtonEnabled: false,
   newPptxExporter: true,
+  pptxEnhancedPipeline: true,
+  pptxTextOnlySafeMode: false,
 };
 
 export const FEATURE_DOCS: Record<FeatureFlagKey, string> = {
@@ -33,6 +37,8 @@ export const FEATURE_DOCS: Record<FeatureFlagKey, string> = {
   editorRefineButtonEnabled: 'Controlează afișarea butonului „Rafinează cu AI” din editorul de conținut (desktop + mobil).',
   editorGenerateButtonEnabled: 'Controlează afișarea butonului „Generează Conținut” din editor.',
   newPptxExporter: 'Activează noul pipeline determinist pentru export PPTX cu arhetipuri.',
+  pptxEnhancedPipeline: 'Activează îmbunătățirile PPTX (notes+i18n+auto-split) cu garduri.',
+  pptxTextOnlySafeMode: 'Forțează layouturi text-only și dezactivează imaginile pentru livrare robustă.',
 };
 
 export const isEnabled = (key: FeatureFlagKey): boolean => FEATURE_FLAGS[key];

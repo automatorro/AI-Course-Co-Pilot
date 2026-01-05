@@ -130,7 +130,20 @@ export enum SlideArchetype {
   Title = 'title',
   Explainer = 'explainer',
   ImageText = 'image_text',
+  ImageLeft = 'image_left', // New
+  ImageRight = 'image_right', // New
+  FullImage = 'full_image', // New
   Quote = 'quote',
+  BigNumber = 'big_number', // New
+  ThreeCol = 'three_col', // New
+  Comparison = 'comparison', // New
+  Timeline = 'timeline', // New
+  GridCards = 'grid_cards', // New
+  SectionHeader = 'section_header', // New
+  Checklist = 'checklist', // New
+  DoDont = 'do_dont', // New
+  Table = 'table', // New
+  ImageCenter = 'image_center', // New
   Agenda = 'agenda',
   Exercise = 'exercise',
   CaseStudy = 'case_study',
@@ -146,6 +159,7 @@ export interface SlideRules {
 
 export interface SlideModel {
   id: string;
+  originalIndex?: number; // Index in the source markdown, for deterministic updates
   slide_type: SlideArchetype;
   title?: string;
   subtitle?: string;
@@ -156,6 +170,7 @@ export interface SlideModel {
   trainer_notes?: string | null;
   objective_links?: string[];
   section_id?: string;
+  adaptedContent?: Record<string, string>; // Map of layout_type -> adapted_content
 }
 
 export interface CourseVersion {
