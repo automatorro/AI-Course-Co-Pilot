@@ -6,6 +6,7 @@ import { marked } from 'marked';
 import TurndownService from 'turndown';
 
 import { Course, CourseStep, CourseBlueprint, SlideArchetype } from '../types';
+import { ARCHETYPE_TO_TOKEN } from '../constants/slideLayouts';
 
 import { refineCourseContent } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
@@ -536,7 +537,7 @@ const CourseWorkspacePage: React.FC = () => {
         setEditedContent(saved);
       }
     } catch (e) { console.warn('Autosave read failed', e); }
-  }, [course, activeStepIndex]);
+  }, [course?.id, activeStepIndex]);
 
   useEffect(() => {
     if (!course) return;
@@ -805,7 +806,12 @@ const CourseWorkspacePage: React.FC = () => {
     try {
       // Removed blocking check for critical issues to allow user to proceed
       if (format === 'pptx') {
-        await exportCourseAsPptx(course);
+        const { data: freshCourse } = await supabase
+          .from('courses')
+          .select('*, steps:course_steps(*)')
+          .eq('id', course.id)
+          .single();
+        await exportCourseAsPptx((freshCourse as unknown as Course) || course);
       } else if (format === 'pdf') {
         await exportCourseAsPdf(course);
       } else if (format === 'zip') {
@@ -1625,7 +1631,7 @@ const CourseWorkspacePage: React.FC = () => {
                   setEditedContent(html);
                   setShowSlidesPreview(true);
                 }}
-                className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-ink-700 dark:text-white bg-white dark:bg-gray-700 border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
+                className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white bg-red-600 border border-red-600 hover:bg-red-700 dark:bg-red-700 dark:border-red-700 dark:hover:bg-red-600"
                 title="Previzualizează slide-urile"
               >
                 <Pilcrow size={16} /> Preview
@@ -1949,7 +1955,23 @@ const CourseWorkspacePage: React.FC = () => {
           onUpdateSlideLayout={(slideTitle: string, newLayout: SlideArchetype, slideIndex?: number) => {
             const rawStepContent = course?.steps?.[activeStepIndex]?.content ?? '';
             const looksHtml = /<[a-z][\s\S]*>/i.test(rawStepContent || '');
-            const mdSource = looksHtml ? new TurndownService({ headingStyle: 'atx' }).turndown(rawStepContent || '') : (rawStepContent || '');
+            
+            // Fix: Preserve HTML comments during HTML->Markdown conversion to avoid losing layout metadata
+            const turndownService = new TurndownService({ headingStyle: 'atx' });
+            turndownService.addRule('restoreComments', {
+                filter: (node) => node.nodeName === 'DIV' && node.hasAttribute('data-turndown-comment'),
+                replacement: (content, node) => {
+                    const comment = (node as HTMLElement).getAttribute('data-turndown-comment') || '';
+                    return '\n<!--' + comment + '-->\n';
+                }
+            });
+            
+            const preProcessed = looksHtml ? (rawStepContent || '').replace(/<!--([\s\S]*?)-->/g, (match, p1) => {
+                return `<div data-turndown-comment="${p1.replace(/"/g, '&quot;')}"></div>`;
+            }) : (rawStepContent || '');
+            
+            const mdSource = looksHtml ? turndownService.turndown(preProcessed) : (rawStepContent || '');
+            
             const lines = mdSource.split('\n');
             const norm = (s: string) => s.toLowerCase().trim().replace(/[*#]/g, '').replace(/^slide\s*\d+[:.]?\s*/i, '');
             const target = norm(slideTitle);
@@ -1958,12 +1980,12 @@ const CourseWorkspacePage: React.FC = () => {
             let newLines = [...lines];
 
             // ALIGNED LOGIC WITH exportService.ts
-            const hasSlideMarkers = lines.some((l: string) => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:/i.test(l.trim()));
+            const hasSlideMarkers = lines.some((l: string) => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:|^\s*<SLIDE_BEGIN/i.test(l.trim()));
 
             // Helper to check if a line is a slide start
             const isSlideStart = (line: string) => {
                 const trimmed = line.trim();
-                const slideMatch = trimmed.match(/^(\*\*|#+)?\s*(Slide|幻灯片)\s*(nr\.|#)?\s*\d+(?:\s*[:：]\s*(.+?))?(\*\*|#+)?$/i);
+                const slideMatch = trimmed.match(/^(\*\*|#+)?\s*(Slide|幻灯片)\s*(nr\.|#)?\s*\d+(?:\s*[:：]\s*(.+?))?(\*\*|#+)?$/i) || trimmed.match(/^<SLIDE_BEGIN\s+id="[^"]+">/i);
                 if (slideMatch) return true;
                 if (hasSlideMarkers) return false;
                 const isHeading = /^#{1,6}\s+/.test(trimmed);
@@ -1990,7 +2012,7 @@ const CourseWorkspacePage: React.FC = () => {
                                  if (isSlideStart(newLines[i+k])) break;
                              }
 
-                             const metaTag = `<!-- slide-layout: ${newLayout} -->`;
+                             const metaTag = `<!-- slide-layout: ${ARCHETYPE_TO_TOKEN[newLayout]} -->`;
                              if (metaIdx !== -1) {
                                  newLines[metaIdx] = metaTag;
                              } else {
@@ -2007,7 +2029,19 @@ const CourseWorkspacePage: React.FC = () => {
                 for (let i = 0; i < newLines.length; i++) {
                     const line = newLines[i];
                     if (isSlideStart(line)) {
-                        const lineContent = line.trim().replace(/^#{1,6}\s+/, '').replace(/^\*\*/, '').replace(/\*\*$/, '');
+                        let lineContent = line.trim().replace(/^#{1,6}\s+/, '').replace(/^\*\*/, '').replace(/\*\*$/, '');
+                        
+                        // XML Title Extraction
+                        if (line.match(/^<SLIDE_BEGIN/i)) {
+                            for (let k = 1; k <= 4 && i + k < newLines.length; k++) {
+                                const tMatch = newLines[i+k].match(/<TITLE>(.*?)<\/TITLE>/i);
+                                if (tMatch) {
+                                    lineContent = tMatch[1];
+                                    break;
+                                }
+                            }
+                        }
+
                         const lineNorm = norm(lineContent);
                         
                         if (lineNorm.includes(target) || target.includes(lineNorm)) {
@@ -2072,7 +2106,23 @@ const CourseWorkspacePage: React.FC = () => {
           onUpdateSlideAdapted={(slideTitle: string, adaptedText: string, slideIndex?: number) => {
             const rawStepContent = course?.steps?.[activeStepIndex]?.content ?? '';
             const looksHtml = /<[a-z][\s\S]*>/i.test(rawStepContent || '');
-            const mdSource = looksHtml ? new TurndownService({ headingStyle: 'atx' }).turndown(rawStepContent || '') : (rawStepContent || '');
+            
+            // Fix: Preserve HTML comments during HTML->Markdown conversion
+            const turndownService = new TurndownService({ headingStyle: 'atx' });
+            turndownService.addRule('restoreComments', {
+                filter: (node) => node.nodeName === 'DIV' && node.hasAttribute('data-turndown-comment'),
+                replacement: (content, node) => {
+                    const comment = (node as HTMLElement).getAttribute('data-turndown-comment') || '';
+                    return '\n<!--' + comment + '-->\n';
+                }
+            });
+            
+            const preProcessed = looksHtml ? (rawStepContent || '').replace(/<!--([\s\S]*?)-->/g, (match, p1) => {
+                return `<div data-turndown-comment="${p1.replace(/"/g, '&quot;')}"></div>`;
+            }) : (rawStepContent || '');
+            
+            const mdSource = looksHtml ? turndownService.turndown(preProcessed) : (rawStepContent || '');
+
             const lines = mdSource.split('\n');
             const norm = (s: string) => s.toLowerCase().trim().replace(/[*#]/g, '').replace(/^slide\s*\d+[:.]?\s*/i, '');
             const target = norm(slideTitle);
@@ -2080,11 +2130,11 @@ const CourseWorkspacePage: React.FC = () => {
             let newLines = [...lines];
 
             // ALIGNED LOGIC WITH exportService.ts
-            const hasSlideMarkers = lines.some((l: string) => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:/i.test(l.trim()));
+            const hasSlideMarkers = lines.some((l: string) => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:|^\s*<SLIDE_BEGIN/i.test(l.trim()));
 
             const isSlideStart = (line: string) => {
                 const trimmed = line.trim();
-                const slideMatch = trimmed.match(/^(\*\*|#+)?\s*(Slide|幻灯片)\s*(nr\.|#)?\s*\d+(?:\s*[:：]\s*(.+?))?(\*\*|#+)?$/i);
+                const slideMatch = trimmed.match(/^(\*\*|#+)?\s*(Slide|幻灯片)\s*(nr\.|#)?\s*\d+(?:\s*[:：]\s*(.+?))?(\*\*|#+)?$/i) || trimmed.match(/^<SLIDE_BEGIN\s+id="[^"]+">/i);
                 if (slideMatch) return true;
                 if (hasSlideMarkers) return false;
                 const isHeading = /^#{1,6}\s+/.test(trimmed);
@@ -2092,7 +2142,7 @@ const CourseWorkspacePage: React.FC = () => {
                 return isHeading || isHr;
             };
 
-            const safe = adaptedText.replace(/\s+/g, ' ').trim();
+            const safe = adaptedText.trim();
             // We need to know which layout this adaptation is for.
             // Since we don't have the layout passed directly here, we have to look it up in the file or state.
             // Ideally, the adapted content metadata should include the layout type:
@@ -2160,7 +2210,19 @@ const CourseWorkspacePage: React.FC = () => {
                 // Fallback
                 for (let i = 0; i < newLines.length; i++) {
                     if (isSlideStart(newLines[i])) {
-                        const lineContent = newLines[i].trim().replace(/^#{1,6}\s+/, '').replace(/^\*\*/, '').replace(/\*\*$/, '');
+                        let lineContent = newLines[i].trim().replace(/^#{1,6}\s+/, '').replace(/^\*\*/, '').replace(/\*\*$/, '');
+                        
+                        // XML Title Extraction
+                        if (newLines[i].match(/^<SLIDE_BEGIN/i)) {
+                            for (let k = 1; k <= 4 && i + k < newLines.length; k++) {
+                                const tMatch = newLines[i+k].match(/<TITLE>(.*?)<\/TITLE>/i);
+                                if (tMatch) {
+                                    lineContent = tMatch[1];
+                                    break;
+                                }
+                            }
+                        }
+
                         const lineNorm = norm(lineContent);
                         if (lineNorm.includes(target) || target.includes(lineNorm)) {
                             found = true;

@@ -2,6 +2,28 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+
+// Patch for non-passive event listeners violation (Chrome DevTools)
+// Defaults touch/wheel events to passive:true if not specified
+(function() {
+  if (typeof EventTarget !== "undefined") {
+    const func = EventTarget.prototype.addEventListener;
+    // @ts-ignore
+    EventTarget.prototype.addEventListener = function(type: string, fn: EventListenerOrEventListenerObject, capture?: boolean | AddEventListenerOptions) {
+      if (['touchstart', 'touchmove', 'wheel', 'mousewheel'].includes(type)) {
+        if (typeof capture !== 'object' || capture === null) {
+          capture = { capture: !!capture, passive: true };
+        } else if (capture.passive === undefined) {
+          // Only set passive if not explicitly defined
+          capture = { ...capture, passive: true };
+        }
+      }
+      // @ts-ignore
+      func.call(this, type, fn, capture);
+    };
+  }
+})();
+
 import { ToastContext } from './contexts/ToastContext';
 import ToastContainer, { InternalToastContext } from './components/ToastContainer';
 import { SpeedInsights } from '@vercel/speed-insights/react';

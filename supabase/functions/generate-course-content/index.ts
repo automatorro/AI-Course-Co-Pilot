@@ -112,10 +112,21 @@ const DEPTH_SPECS = {
   slides: `
     **DEPTH SPECIFICATIONS (Slides):**
     - **QUANTITY**: Generate 1 slide per 6-8 minutes of presentation time.
-    - **DETAIL PER SLIDE**:
-      *   **Visual**: Exact description for a designer (e.g., "Photo of a confused operator looking at a complex dashboard, flat lighting").
-      *   **Text**: Minimal on slide (max 5 bullets), but fully expanded in Speaker Notes.
-      *   **Speaker Notes**: MANDATORY. 100-150 words per slide. Write the EXACT SCRIPT the speaker should say. Conversational, engaging, including questions to the audience.
+    - **FORMAT**: You MUST use the exact XML template below for EVERY slide.
+    - **DELIMITERS**: Use <SLIDE_BEGIN id="N"> and <SLIDE_END id="N"> exactly as shown.
+    
+    **TEMPLATE (Use this exact format):**
+    <SLIDE_BEGIN id="[N]">
+    <TITLE>[Short, Catchy Title]</TITLE>
+    <!-- slide-layout: EXPLAINER -->
+    <VISUAL>[Exact visual description for a designer, English, max 20 words]</VISUAL>
+    <CONTENT>
+    - [Bullet point 1]
+    - [Bullet point 2]
+    - [Bullet point 3 (Max 5 bullets total)]
+    </CONTENT>
+     <NOTES>[MANDATORY: 100-150 words. The EXACT script the speaker says. Conversational, warm tone.]</NOTES>
+     <SLIDE_END id="[N]">
   `,
   exercises: `
     **DEPTH SPECIFICATIONS (Exercises):**
@@ -160,13 +171,16 @@ const PROMPT_TEMPLATES = {
     ---
   `,
   slide: `
-    ## [Titlu Slide]
-    [VISUAL_SEARCH_TERM]: [2-3 keywords for image search, English only]
-    [SLIDE_CONTENT]:
-    - [Bullet point 1]
-    - [Bullet point 2]
-    - [Bullet point 3]
-    [SPEAKER_NOTES]: [Full script for the speaker. Conversational tone.]
+    <SLIDE_BEGIN id="[N]">
+    <TITLE>[Title]</TITLE>
+    <!-- slide-layout: EXPLAINER -->
+    <VISUAL>[Visual description]</VISUAL>
+    <CONTENT>
+    - [Bullet 1]
+    - [Bullet 2]
+    </CONTENT>
+     <NOTES>[Script]</NOTES>
+     <SLIDE_END id="[N]">
   `
 };
 
@@ -650,7 +664,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         - **granularity**: Break down each module into specific activities (Presentation, Discussion, Break).
         - **timing**: Assign specific minutes to each activity.
         - **total_time**: Ensure the total time matches ${blueprintDuration} EXACTLY.
-        - **format**: Use a clear table or list format.
+        - **format**: STRICTLY use a Markdown table with columns: Module | Topic | Activity | Duration (min).
         **LANGUAGE**: ${course.language}.
       `;
     case 'exercises':
@@ -685,11 +699,14 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
       return `
         **TASK**: Generate Slide Content.
         **GOAL**: Create the visual support structure for the presentation.
-        ${DEPTH_SPECS.slides}
         ${TONE_INSTRUCTIONS}
         **LANGUAGE**: The content MUST be in **${course.language}**.
         **STRUCTURE**: Generate **5-8 slides** for EVERY module in the MASTER STRUCTURE.
         **VALIDATION**: If the structure has 8 modules, you should generate content for 8 modules.
+
+        **CRITICAL OUTPUT RULE**: Regardless of the conversational tone required for the content, the OUTPUT FORMAT must be STRICTLY the XML structure below. Do NOT add any introductory text, markdown headers, or conclusion outside the XML tags.
+        
+        ${DEPTH_SPECS.slides}
       `;
     case 'facilitator_manual':
       return `

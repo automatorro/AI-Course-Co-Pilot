@@ -30,12 +30,13 @@ import {
 } from '../lib/pptx/templates';
 import { validateSemantic, pickCompatibleLayout } from '../lib/pptx/contracts';
 import TurndownService from 'turndown';
+import { LAYOUT_TOKEN_MAPPING } from '../constants/slideLayouts';
 
 // ============================================================================
 // TYPES & INTERFACES
 // ============================================================================
 
-interface ContentSection {
+export interface ContentSection {
     title: string;
     bulletPoints: string[];
     images: { url: string; alt: string }[];
@@ -140,158 +141,6 @@ const addContentSlides = async (
 
     for (const section of sections) {
         const slide = pptx.addSlide();
-
-        // --- NEW: DETERMINISTIC LAYOUT ---
-         if (section.slideLayout) {
-             // Adapter: determinist + opțional content adaptat
-             const computeAdapted = (s: ContentSection): { title: string; content: string[] } => {
-                 const base = s.bulletPoints.length > 0 ? s.bulletPoints : (s.bodyText ? s.bodyText.split('\n').filter(Boolean) : []);
-                 const layout = s.slideLayout!;
-                 const adaptedRaw = (s.adaptedContent?.[layout] || '').trim();
-                 let title = s.title;
-                 let content = base;
-                 const linesFromAdapted = adaptedRaw ? adaptedRaw.split(/\n+/).map(t => t.trim()).filter(Boolean) : [];
-                 if (layout === SlideArchetype.Quote) {
-                     const quote = adaptedRaw || base[0] || (s.bodyText ? (s.bodyText.split('\n').find(Boolean) || '') : '') || s.title;
-                     content = [quote];
-                 } else if (layout === SlideArchetype.BigNumber) {
-                     const source = adaptedRaw || (base.join(' ') || s.bodyText || s.title);
-                     const m = (source || '').match(/(\d+[.,]?\d*\s*%?)/);
-                     const num = m ? m[1] : '100%';
-                     content = [num, s.title];
-                 } else if (layout === SlideArchetype.Timeline) {
-                     content = (linesFromAdapted.length > 0 ? linesFromAdapted : base).slice(0, 5);
-                 } else if (layout === SlideArchetype.Checklist || layout === SlideArchetype.DoDont) {
-                     content = linesFromAdapted.length > 0 ? linesFromAdapted : base;
-                 } else if (layout === SlideArchetype.GridCards || layout === SlideArchetype.ThreeCol) {
-                     content = (linesFromAdapted.length > 0 ? linesFromAdapted : base).slice(0, 4);
-                 } else if (layout === SlideArchetype.Table) {
-                     content = linesFromAdapted.length > 0 ? linesFromAdapted : base.slice(0, 8);
-                 } else if (layout === SlideArchetype.ImageCenter) {
-                     content = (linesFromAdapted.length > 0 ? linesFromAdapted : base).slice(0, 3);
-                 } else {
-                     content = linesFromAdapted.length > 0 ? linesFromAdapted : base;
-                 }
-                 return { title, content };
-             };
-             const adapted = computeAdapted(section);
-             const mapDesignLayout = (a: SlideArchetype): SlideDesignJSON['layout'] => {
-                 switch (a) {
-                     case SlideArchetype.Title: return 'HERO';
-                     case SlideArchetype.ImageLeft: return 'SPLIT_LEFT';
-                     case SlideArchetype.ImageRight: return 'SPLIT_RIGHT';
-                     case SlideArchetype.BigNumber: return 'BIG_STAT';
-                     case SlideArchetype.Quote: return 'QUOTATION';
-                     case SlideArchetype.ThreeCol: return 'THREE_COLUMNS';
-                     case SlideArchetype.FullImage: return 'FULL_IMAGE';
-                     case SlideArchetype.Comparison: return 'COMPARISON';
-                     case SlideArchetype.Timeline: return 'TIMELINE';
-                     case SlideArchetype.GridCards: return 'GRID_CARDS';
-                     case SlideArchetype.SectionHeader: return 'SECTION_HEADER';
-                     case SlideArchetype.Checklist: return 'CHECKLIST';
-                     case SlideArchetype.DoDont: return 'DO_DONT';
-                     case SlideArchetype.Table: return 'TABLE_SIMPLE';
-                     case SlideArchetype.ImageCenter: return 'IMAGE_CENTER';
-                     case SlideArchetype.Exercise: return 'PROCESS_STEPS';
-                     case SlideArchetype.Agenda: return 'AGENDA_COMPACT';
-                     case SlideArchetype.CaseStudy: return 'DEFAULT';
-                     case SlideArchetype.Summary: return 'DEFAULT';
-                     default: return 'DEFAULT';
-                 }
-             };
-             const slideData: SlideDesignJSON = {
-                title: adapted.title,
-                content: adapted.content,
-                layout: mapDesignLayout(section.slideLayout),
-                accentColor: '1E3A8A',
-                imagePrompt: section.visualSearchTerm || section.title || ''
-            };
-
-             // Resolve Image URL (Simplified version of legacy logic)
-             let imageUrl: string | undefined;
-             
-             // 1. Visual Search Term
-             if (section.visualSearchTerm) {
-                 const STOP = ['si','și','the','and','of','for','în','cu','la','din','pe','un','o','este','sunt','de','că','ca','的','和','是','在','de','e','para','em','uma','um','dos','das','ao','à'];
-                 const keywords = section.visualSearchTerm.toLowerCase().split(/[\s,]+/).filter(w => w.length > 3 && !STOP.includes(w)).slice(0, 4).join(' ');
-                 
-                 try {
-                     const results = await searchImages(keywords || 'business');
-                     if (results && results.length > 0) {
-                         // Try first result
-                         let dataUrl = await fetchToDataUrl(results[0].url);
-                         // If first fails, try second
-                         if (!dataUrl && results[1]) {
-                            dataUrl = await fetchToDataUrl(results[1].url);
-                         }
-                         if (dataUrl) imageUrl = dataUrl;
-                     }
-                 } catch (e) {
-                     console.warn('Visual search failed:', e);
-                 }
-             }
-             // 2. Embedded Images
-             else if (section.images.length > 0) {
-                 const img = section.images[0];
-                 if (img.url.startsWith('data:') || img.url.startsWith('blob:')) {
-                     imageUrl = img.url;
-                 } else {
-                     const dataUrl = await fetchToDataUrl(img.url);
-                     imageUrl = dataUrl || img.url;
-                 }
-             }
-             // 3. Fallback Title Search
-             else {
-                 const keywords = section.title.split(/[\s,]+/).filter(w => w.length > 3).slice(0, 3).join(' ');
-                 if (keywords) {
-                     try {
-                         const results = await searchImages(keywords);
-                         if (results && results.length > 0) {
-                             const dataUrl = await fetchToDataUrl(results[0].url);
-                             if (dataUrl) imageUrl = dataUrl;
-                         }
-                     } catch (e) {
-                         console.warn('Title search failed:', e);
-                     }
-                 }
-             }
-
-             // LAST RESORT: Generate a placeholder if image is required but missing
-             // This ensures the layout doesn't break or look empty
-             if (!imageUrl) {
-                // Create a simple colored placeholder (1x1 pixel base64) to satisfy renderers
-                // Light gray #F3F4F6
-                imageUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
-             }
-
-             // Render
-             switch (section.slideLayout) {
-                 case SlideArchetype.Title: renderHeroSlide(slide, slideData, imageUrl); break;
-                 case SlideArchetype.ImageLeft: renderSplitLeft(slide, slideData, imageUrl); break;
-                 case SlideArchetype.ImageRight: renderSplitRight(slide, slideData, imageUrl); break;
-                 case SlideArchetype.BigNumber: renderBigStat(slide, slideData, imageUrl); break;
-                 case SlideArchetype.Quote: renderQuotation(slide, slideData, imageUrl); break;
-                 case SlideArchetype.ThreeCol: renderThreeColumns(slide, slideData, imageUrl); break;
-                 case SlideArchetype.FullImage: renderFullImage(slide, slideData, imageUrl); break;
-                 
-                 // New Explicit Mappings
-                 case SlideArchetype.Comparison: renderComparison(slide, slideData, imageUrl); break;
-                 case SlideArchetype.Timeline: renderTimeline(slide, slideData, imageUrl); break;
-                 case SlideArchetype.GridCards: renderGridCards(slide, slideData, imageUrl); break;
-                 case SlideArchetype.SectionHeader: renderSectionHeader(slide, slideData, imageUrl); break;
-                 case SlideArchetype.Checklist: renderChecklist(slide, slideData, imageUrl); break;
-                 case SlideArchetype.DoDont: renderDoDont(slide, slideData, imageUrl); break;
-                 case SlideArchetype.Table: renderTableSimple(slide, slideData, imageUrl); break;
-                 case SlideArchetype.ImageCenter: renderImageCenter(slide, slideData, imageUrl); break;
-
-                 case SlideArchetype.Agenda: renderAgendaCompact(slide, slideData, imageUrl); break;
-                 case SlideArchetype.CaseStudy: renderDefault(slide, slideData, imageUrl); break;
-                 case SlideArchetype.Exercise: renderProcessSteps(slide, slideData, imageUrl); break;
-                 case SlideArchetype.Summary: renderDefault(slide, slideData, imageUrl); break;
-                 default: renderDefault(slide, slideData, imageUrl); break;
-             }
-             continue;
-        }
 
         // Slide Title
         slide.addText(section.title, {
@@ -480,13 +329,115 @@ const normalizeNotesText = (text: string): string => {
 // PARSER FUNCTIONS
 // ============================================================================
 
-const parseContentSections = (markdown: string): ContentSection[] => {
+export const normalizeLayoutToken = (token: string): string => {
+    return (token || '').trim().toUpperCase().replace(/[\s\-]+/g, '_');
+};
+
+export const mapTokenToArchetype = (token: string): SlideArchetype => {
+    const t = normalizeLayoutToken(token);
+
+    if (t in LAYOUT_TOKEN_MAPPING) {
+        return LAYOUT_TOKEN_MAPPING[t];
+    }
+
+    // Default fallback is handled by caller or defaults to Default/Explainer
+    return SlideArchetype.Default;
+};
+
+export const sanitizeText = (text: string): string => {
+    // Remove control characters that are not allowed in XML (0x00-0x08, 0x0B-0x0C, 0x0E-0x1F)
+    // Keep tabs (0x09), newlines (0x0A), carriage returns (0x0D)
+    return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]/g, '');
+};
+
+export const parseContentSections = (markdown: string): ContentSection[] => {
     const sections: ContentSection[] = [];
+    
+    // --- 1. XML-BASED PARSING (STRICT MODE) ---
+    // Căutăm blocuri <SLIDE_BEGIN ...> ... <SLIDE_END ...>
+    // Folosim regex cu [\s\S] pentru a captura multilines
+    const slideBlockRegex = /<SLIDE_BEGIN\s+id="([^"]+)">([\s\S]*?)<SLIDE_END\s+id="\1">/gi;
+    let match;
+    let hasXmlSlides = false;
+
+    while ((match = slideBlockRegex.exec(markdown)) !== null) {
+        hasXmlSlides = true;
+        const slideId = match[1];
+        const blockContent = match[2];
+
+        // Extragem componentele interne
+        const extractTag = (tag: string, content: string) => {
+            const regex = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'i');
+            const m = content.match(regex);
+            return m ? m[1].trim() : '';
+        };
+
+        const title = extractTag('TITLE', blockContent);
+        const visual = extractTag('VISUAL', blockContent);
+        const contentBody = extractTag('CONTENT', blockContent);
+        const notes = extractTag('NOTES', blockContent);
+
+        // Detectare layout metadata din comentarii HTML
+        let slideLayout: SlideArchetype | undefined;
+        const layoutMatch = blockContent.match(/<!--\s*slide-layout:\s*([A-Za-z0-9_\-\s]+)\s*-->/i);
+        if (layoutMatch) {
+            slideLayout = mapTokenToArchetype(layoutMatch[1]);
+        }
+
+        // Detectare adapted content metadata din comentarii HTML
+        let adaptedContent: Record<string, string> = {};
+        const adaptedMatch = blockContent.match(/<!--\s*slide-adapted:\s*([A-Za-z0-9_\-\s]+)\s*\|\s*(.+?)\s*-->/i);
+        if (adaptedMatch) {
+            const rawKey = adaptedMatch[1].trim();
+            const canonicalKey = normalizeLayoutToken(rawKey);
+            adaptedContent[canonicalKey] = adaptedMatch[2].trim();
+            const arche = mapTokenToArchetype(rawKey);
+            adaptedContent[String(arche)] = adaptedMatch[2].trim();
+        }
+
+        // Procesare bullets din CONTENT
+        let bulletPoints: string[] = [];
+        let bodyText = '';
+        if (contentBody) {
+             const lines = contentBody.split('\n');
+             lines.forEach(line => {
+                 const trimmed = line.trim();
+                 if (/^[-*•]\s+/.test(trimmed)) {
+                     bulletPoints.push(trimmed.replace(/^[-*•]\s+/, ''));
+                 } else if (/^\d+\.\s+/.test(trimmed)) {
+                     bulletPoints.push(trimmed.replace(/^\d+\.\s+/, ''));
+                 } else if (trimmed.length > 0) {
+                     bodyText += (bodyText ? '\n' : '') + trimmed;
+                 }
+             });
+        }
+        
+        // Dacă nu avem bullets dar avem bodyText, încercăm să-l folosim ca bullets
+        if (bulletPoints.length === 0 && bodyText.length > 0) {
+             bulletPoints = bodyText.split('\n');
+             bodyText = '';
+        }
+
+        // Adăugăm secțiunea
+        sections.push({
+            title: title || `Slide ${slideId}`,
+            bulletPoints: bulletPoints.map(sanitizeText),
+            images: [], // Imaginile inline nu sunt suportate momentan în XML strict, se bazează pe Visual Search
+            rawContent: blockContent,
+            bodyText: sanitizeText(bodyText),
+            visualSearchTerm: visual,
+            speakerNotes: sanitizeText(notes),
+            slideLayout,
+            adaptedContent // Adaptarea este acum mapată din XML
+        });
+    }
+
+    if (hasXmlSlides) {
+        return sections;
+    }
+
+    // --- 2. LEGACY PARSING (FALLBACK) ---
     const lines = markdown.split('\n');
-
-    // First pass: detect if the editor uses explicit "Slide nr:" markers
-    // Intenționat neutilizat aici; detecția se face în isSlideStart
-
     let currentTitle: string | null = null;
     let currentBuffer: string[] = [];
 
@@ -502,9 +453,9 @@ const parseContentSections = (markdown: string): ContentSection[] => {
         const raw = lines[i];
         const line = raw.trim();
 
-        // --- DETECT NEW SLIDE START (PRIORITIZE \"Slide nr:\") ---
-        // Accept "Slide 1" with or without a title part, optional colon
-        const slideMatch = line.match(/^(\*\*|#+)?\s*(Slide|幻灯片)\s*(nr\.|#)?\s*\d+(?:\s*[:：]\s*(.+?))?(\*\*|#+)?$/i);
+        // --- DETECT NEW SLIDE START (PRIORITIZE "Slide nr:") ---
+        // Accept "Slide 1", "Slide [1]", "Slide (1)" with or without a title part, optional colon
+        const slideMatch = line.match(/^(\*\*|#+)?\s*(Slide|幻灯片)\s*(nr\.|#)?\s*[\[\(]?\d+[\]\)]?(?:\s*[:：]\s*(.+?))?(\*\*|#+)?$/i);
         const headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
         // module headers intentionally ignored to avoid over-segmentation
         const hrMatch = line.match(/^(\-{3,}|\*{3,})$/);
@@ -526,12 +477,6 @@ const parseContentSections = (markdown: string): ContentSection[] => {
 
     flush();
     return sections;
-};
-
-const sanitizeText = (text: string): string => {
-    // Remove control characters that are not allowed in XML (0x00-0x08, 0x0B-0x0C, 0x0E-0x1F)
-    // Keep tabs (0x09), newlines (0x0A), carriage returns (0x0D)
-    return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]/g, '');
 };
 
 const processSlideBlock = (title: string, contentBlock: string, sections: ContentSection[]) => {
@@ -560,19 +505,24 @@ const processSlideBlock = (title: string, contentBlock: string, sections: Conten
 
         // --- FILTER OUT NOISE ---
         // If the line looks like a Slide title or Module header that slipped in (handling bold/headers)
-        if (/^(\*\*|#+)?\s*(Slide|Modul[e]?)\s*#?\s*\d+:/i.test(line)) continue;
+        if (/^(\*\*|#+)?\s*(Slide|Modul[e]?)\s*#?\s*[\[\(]?\d+[\]\)]?:/i.test(line)) continue;
         if (line.startsWith('---')) continue;
 
         // --- DETECT LAYOUT METADATA ---
-        const layoutMatch = line.match(/^<!--\s*slide-layout:\s*(\w+)\s*-->/i);
+        const layoutMatch = line.match(/^<!--\s*slide-layout:\s*([A-Za-z0-9_\-\s]+)\s*-->/i);
         if (layoutMatch) {
-            slideLayout = layoutMatch[1] as SlideArchetype;
+            const rawToken = layoutMatch[1];
+            slideLayout = mapTokenToArchetype(rawToken);
             continue;
         }
         // --- DETECT ADAPTED CONTENT METADATA ---
-        const adaptedMatch = line.match(/^<!--\s*slide-adapted:\s*(\w+)\s*\|\s*(.+?)\s*-->/i);
+        const adaptedMatch = line.match(/^<!--\s*slide-adapted:\s*([A-Za-z0-9_\-\s]+)\s*\|\s*(.+?)\s*-->/i);
         if (adaptedMatch) {
-            adaptedContent[adaptedMatch[1].trim()] = adaptedMatch[2].trim();
+            const rawKey = adaptedMatch[1].trim();
+            const canonicalKey = normalizeLayoutToken(rawKey);
+            adaptedContent[canonicalKey] = adaptedMatch[2].trim();
+            const arche = mapTokenToArchetype(rawKey);
+            adaptedContent[String(arche)] = adaptedMatch[2].trim();
             continue;
         }
 
@@ -656,9 +606,6 @@ const processSlideBlock = (title: string, contentBlock: string, sections: Conten
         }
     }
 
-    // Post-processing: If visual search term contains the description "Photo of...", keep it.
-    // Unsplash search logic in addContentSlides handles keyword extraction.
-
     if (bulletPoints.length === 0 && bodyTextParts.length > 0) {
          bulletPoints = bodyTextParts.map(l => l.replace(/^\s*[-*•]\s+/, '').trim());
          bodyTextParts = [];
@@ -672,13 +619,13 @@ const processSlideBlock = (title: string, contentBlock: string, sections: Conten
 
     // Clean up bullets that might have captured labels/headers
     bulletPoints = bulletPoints.filter(b => 
-        !/^(Slide|Modul[e]?)\s*#?\s*\d+:/i.test(b) &&
+        !/^(Slide|Modul[e]?)\s*#?\s*[\[\(]?\d+[\]\)]?:/i.test(b) &&
         !/^---$/.test(b) &&
         !/^\s*[-*•_#]*\s*(Titlu|Subtitlu|Imagine\s*Sugerată|Speaker\s*Notes|Visual|Image|Visual\s*cue|Prompt|Vizual|Imagem|Note\s*Vorbit|Note\s*Trainer|Text|Content|Conținut|Texto)\s*(\*\*|__)?\s*[:：\-]/i.test(b)
     );
 
     // SANITIZE TEXT to prevent XML corruption
-    const cleanTitle = sanitizeText(title.replace(/^(Slide|Modul[e]?)\s*#?\s*\d+:\s*/i, '').trim());
+    const cleanTitle = sanitizeText(title.replace(/^(Slide|Modul[e]?)\s*#?\s*[\[\(]?\d+[\]\)]?:\s*/i, '').trim());
     const cleanBullets = bulletPoints.map(sanitizeText);
     const cleanBody = sanitizeText(bodyTextParts.join('\n'));
     const cleanNotes = sanitizeText(speakerNotes);
@@ -694,24 +641,22 @@ const processSlideBlock = (title: string, contentBlock: string, sections: Conten
             if (firstBody) {
                 finalTitle = firstBody;
             } else {
-                // Fallback to original placeholder (e.g. "Slide 1") or a generic default
-                // This prevents "missing title" errors during export
                 finalTitle = cleanTitle || 'Slide fără titlu';
             }
         }
     }
 
-        sections.push({
-            title: finalTitle,
-            bulletPoints: cleanBullets,
-            images,
-            rawContent: contentBlock,
-            bodyText: cleanBody,
-            visualSearchTerm,
-            speakerNotes: cleanNotes,
-            slideLayout,
-            adaptedContent
-        });
+    sections.push({
+        title: finalTitle,
+        bulletPoints: cleanBullets,
+        images,
+        rawContent: contentBlock,
+        bodyText: cleanBody,
+        visualSearchTerm,
+        speakerNotes: cleanNotes,
+        slideLayout,
+        adaptedContent
+    });
 };
 
 const parseVideoScripts = (markdown: string): Record<string, string> => {
@@ -934,9 +879,9 @@ const exportCourseAsPptxV2 = async (course: Course): Promise<void> => {
                             aiDesign.content = section.bulletPoints;
                         } else if (section.bodyText) {
                             aiDesign.content = section.bodyText
-                                .split('\n')
-                                .map(s => s.trim())
-                                .filter(Boolean);
+                            .split('\n')
+                            .map(s => s.trim())
+                            .filter(Boolean);
                         } else {
                             // Safety: If parser found no content, do not fallback to raw dump
                             aiDesign.content = [];
@@ -1028,7 +973,9 @@ const exportCourseAsPptxV2 = async (course: Course): Promise<void> => {
                             const sem2 = validateSemantic(designForChunk, !!imageUrl);
                             if (!sem2.ok) {
                                 if (isEnabled('pptxEnhancedPipeline')) {
-                                    throw new Error(`Slide invalid: ${section.title} → ${sem.errors.join('; ')}`);
+                                    // Soft fallback instead of blocking
+                                    console.warn(`[Export Warning] Slide invalid: ${section.title} → ${sem.errors.join('; ')}. Falling back to DEFAULT.`);
+                                    designForChunk = { ...designForChunk, layout: 'DEFAULT' };
                                 }
                             }
                         }
@@ -1074,7 +1021,8 @@ const exportCourseAsPptxV2 = async (course: Course): Promise<void> => {
 
     // 4. Summary Slide
     if (isEnabled('pptxEnhancedPipeline') && blockingErrors.length > 0) {
-        throw new Error(`Export oprit. Probleme:\n${blockingErrors.join('\n')}`);
+        console.warn(`Export finalizat cu avertismente:\n${blockingErrors.join('\n')}`);
+        // throw new Error(`Export oprit. Probleme:\n${blockingErrors.join('\n')}`);
     }
     addSummarySlide(pptx);
     const fileName = `${course.title.replace(/[^a-z0-9]/gi, '_')}_AI.pptx`;

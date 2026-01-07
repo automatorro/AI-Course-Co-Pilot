@@ -87,10 +87,10 @@ export const validateSemantic = (d: SlideDesignJSON, hasImage: boolean): Semanti
   const hasBullets = bullets.length > 0
 
   if (spec.requiresImage && !hasImage) {
-    errors.push('[BLOCK] Layoutul curent necesită imagine, dar nu există.')
+    errors.push('[WARN] Layoutul curent necesită imagine, dar nu există (se va folosi placeholder).')
   }
   if (!spec.allowsBullets && hasBullets) {
-    errors.push('[BLOCK] Layoutul curent nu acceptă conținut textual/bullets.')
+    errors.push('[WARN] Layoutul curent nu acceptă conținut textual/bullets (se va forța afișarea).')
   }
   if (spec.allowsSteps === false && (d.layout === 'TIMELINE' || d.layout === 'PROCESS_STEPS')) {
     // handled above, but keep consistency
