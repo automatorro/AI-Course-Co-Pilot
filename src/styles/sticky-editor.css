@@ -93,7 +93,7 @@
 
 /* Fix: Ensure no gap between tabs and editor content */
 .tox .tox-tinymce {
-  border-top: none !important;
+  border: none !important;
   margin-top: 0 !important;
   padding-top: 0 !important;
   overflow: hidden !important; /* Ensure internal scroll works */

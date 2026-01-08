@@ -122,6 +122,15 @@ const CourseWorkspacePage: React.FC = () => {
       sessionStorage.setItem(`course_tab_${id}`, activeStepIndex.toString());
     }
   }, [activeStepIndex, id]);
+
+  // Reset/restore activeStepIndex when course ID changes
+  useEffect(() => {
+    if (id) {
+      const saved = sessionStorage.getItem(`course_tab_${id}`);
+      setActiveStepIndex(saved ? parseInt(saved, 10) : 0);
+    }
+  }, [id]);
+
   const [isGenerating] = useState(false);
   const [isProposingChanges, setIsProposingChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -1390,7 +1399,7 @@ const CourseWorkspacePage: React.FC = () => {
               value={course.id}
               onChange={(e) => {
                 const nextId = e.target.value;
-                window.location.hash = `#/course/${nextId}`;
+                navigate(`/course/${nextId}`);
               }}
               className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900"
             >
@@ -1449,35 +1458,35 @@ const CourseWorkspacePage: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col p-6 lg:p-10 pb-24 sm:pb-10">
-        <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+      <main className="flex-1 flex flex-col p-2 sm:p-6 lg:p-10 pb-24 sm:pb-10">
+        <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-lg sm:rounded-2xl shadow-sm sm:shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
           <div id="main-scroll-container" className="flex-1 overflow-y-auto relative scroll-container flex flex-col">
-            <div className="editor-header-sticky p-4 sm:p-3 border-b dark:border-gray-700 flex justify-between items-center bg-white dark:bg-gray-800 z-10 sticky top-0">
+            <div className="editor-header-sticky p-2 sm:p-3 border-b dark:border-gray-700 flex justify-between items-center bg-white dark:bg-gray-800 z-10 sticky top-0">
               <button
                 onClick={() => window.location.href = '/#/dashboard'}
-                className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mr-4 text-gray-500 hover:text-gray-900 dark:text-gray-400"
+                className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mr-1 sm:mr-4 text-gray-500 hover:text-gray-900 dark:text-gray-400"
                 title="Înapoi la cursurile mele"
                 aria-label="Înapoi la dashboard"
               >
-                <ArrowLeft size={20} />
+                <ArrowLeft size={18} className="sm:w-5 sm:h-5" />
               </button>
-              <button className="lg:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 mr-2" onClick={() => setIsSidebarOpen(true)} aria-label="Deschide pașii">
-                <PanelLeft size={20} className="text-primary-600 dark:text-primary-400" />
+              <button className="lg:hidden p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 mr-1 sm:mr-2" onClick={() => setIsSidebarOpen(true)} aria-label="Deschide pașii">
+                <PanelLeft size={18} className="text-primary-600 dark:text-primary-400 sm:w-5 sm:h-5" />
               </button>
-              <div className="flex-1 flex items-center justify-between gap-4">
-                <div className="flex-1 flex justify-center px-4 overflow-hidden">
-                  <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2 truncate text-center">
+              <div className="flex-1 flex items-center justify-between gap-1 sm:gap-4 min-w-0">
+                <div className="flex-1 flex justify-center px-1 sm:px-4 overflow-hidden min-w-0">
+                  <h1 className="text-sm sm:text-xl font-bold flex items-center gap-1 sm:gap-2 truncate text-center">
                     {t(currentStep.title_key)}
                     {(localRefinements[(currentStep.id || `idx-${activeStepIndex}`)]) && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">Editare locală</span>
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 shrink-0">Editare locală</span>
                     )}
                   </h1>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                   <button
                     onClick={() => setActiveStepIndex(i => Math.max(0, i - 1))}
                     disabled={activeStepIndex === 0}
-                    className="p-2 rounded-md bg-gray-50 border hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 disabled:opacity-30 transition-all text-gray-700 dark:text-gray-300"
+                    className="p-1.5 sm:p-2 rounded-md bg-gray-50 border hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 disabled:opacity-30 transition-all text-gray-700 dark:text-gray-300"
                     title="Pasul anterior"
                     aria-label="Pas anterior"
                   >
@@ -1486,7 +1495,7 @@ const CourseWorkspacePage: React.FC = () => {
                   <button
                     onClick={() => setActiveStepIndex(i => Math.min((course?.steps?.length || 1) - 1, i + 1))}
                     disabled={activeStepIndex >= ((course?.steps?.length || 1) - 1)}
-                    className="p-2 rounded-md bg-gray-50 border hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 disabled:opacity-30 transition-all text-gray-700 dark:text-gray-300"
+                    className="p-1.5 sm:p-2 rounded-md bg-gray-50 border hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 disabled:opacity-30 transition-all text-gray-700 dark:text-gray-300"
                     title="Pasul următor"
                     aria-label="Pas următor"
                   >
