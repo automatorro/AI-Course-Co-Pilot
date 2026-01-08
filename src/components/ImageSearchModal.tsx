@@ -7,11 +7,12 @@ import { searchImages, ImageSearchResult } from '../services/imageSearchService'
 type Props = {
   onClose: () => void
   onInsert: (url: string, alt?: string) => void
+  initialQuery?: string
 }
 
-const ImageSearchModal: React.FC<Props> = ({ onClose, onInsert }) => {
+const ImageSearchModal: React.FC<Props> = ({ onClose, onInsert, initialQuery }) => {
   const { user } = useAuth()
-  const [q, setQ] = useState('')
+  const [q, setQ] = useState(initialQuery || '')
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<ImageSearchResult[]>([])

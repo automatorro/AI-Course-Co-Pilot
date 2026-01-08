@@ -5,8 +5,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { marked } from 'marked';
 import TurndownService from 'turndown';
 
-import { Course, CourseStep, CourseBlueprint, SlideArchetype } from '../types';
-import { ARCHETYPE_TO_TOKEN } from '../constants/slideLayouts';
+import { Course, CourseStep, CourseBlueprint } from '../types';
+import { htmlToMarkdownWithComments, updateSlideInMarkdown, updateSlideLayoutInMarkdown } from '../services/markdownUpdater';
+import { SlideState } from '../types/slideState';
 
 import { refineCourseContent } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
@@ -16,7 +17,7 @@ import BlueprintRefineModal from '../components/BlueprintRefineModal';
 import { exportCourseAsZip, exportCourseAsPptx, exportCourseAsPdf, formatToCanonicalSlides } from '../services/exportService';
 import ExportModal from '../components/ExportModal';
 import ExportErrorModal from '../components/ExportErrorModal';
-import SlidesPreviewModal from '../components/SlidesPreviewModal';
+import VisualOrchestrator from '../components/VisualOrchestrator';
 import { detectNonLocalizedFragments, compareModuleTitlesText, extractModuleDurations } from '../lib/outputValidators';
 import { replaceBlobUrlsWithPublic, uploadBlobToStorage } from '../services/imageService';
 import { useToast } from '../contexts/ToastContext';
@@ -1795,477 +1796,78 @@ const CourseWorkspacePage: React.FC = () => {
         />
       )}
       {showSlidesPreview && course && (
-        <SlidesPreviewModal
-          isOpen={showSlidesPreview}
-          onClose={() => setShowSlidesPreview(false)}
-          course={course}
-          onApplySuggestion={(s: string, targetTitle?: string) => {
-            const applyUpdate = (next: string, msg: string) => {
-                setEditedContent(next);
-                // Update local course state immediately to reflect changes in Preview
-                if (course && currentStep) {
-                    setCourse(prev => {
-                        if (!prev) return null;
-                        const updatedSteps = (prev.steps || []).map(step => 
-                            step.id === currentStep.id ? { ...step, content: next } : step
-                        );
-                        return { ...prev, steps: updatedSteps };
-                    });
+        <VisualOrchestrator
+            isOpen={showSlidesPreview}
+            onClose={() => setShowSlidesPreview(false)}
+            course={course}
+            initialMarkdown={(() => {
+                const content = editedContent || '';
+                if (/<[a-z][\s\S]*>/i.test(content)) {
+                    return htmlToMarkdownWithComments(content);
                 }
-                // Do NOT close modal, allowing it to refresh
-                showToast(msg, 'success');
-            };
-
-            const appendAtEnd = (text: string) => {
-              const next = `${editedContent}${editedContent.endsWith('\n') ? '' : '\n\n'}${text}`;
-              applyUpdate(next, 'Sugestie aplicată.');
-            };
-            
-            // Shared logic to find section bounds
-            const findSectionBounds = (title?: string) => {
-               if (!title) return null;
-               const content = editedContent || '';
-               const lines = content.split('\n');
-               let offset = 0;
-               let startOffset: number | null = null;
-               let endOffset: number | null = null;
-               
-               // Helper to normalize strings for comparison
-               const norm = (s: string) => s.toLowerCase().trim().replace(/[*#]/g, '').replace(/^slide\s*\d+[:.]?\s*/i, '');
-               const target = norm(title);
-
-               for (let i = 0; i < lines.length; i++) {
-                 const line = lines[i];
-                 const trimmed = line.trim();
-                 // Check for headers or bold lines that look like titles
-                 const isHeading = /^#{1,6}\s+/.test(trimmed);
-                 const isBoldTitle = trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length > 4;
+                return content;
+            })()}
+            onSave={(slides: SlideState[]) => {
+                 let nextMarkdown = editedContent || '';
                  
-                 if (isHeading || isBoldTitle) {
-                     const lineContent = trimmed.replace(/^#{1,6}\s+/, '').replace(/^\*\*/, '').replace(/\*\*$/, '');
-                     const lineNorm = norm(lineContent);
-                     
-                     // Strict check: title must be contained in the line or vice versa
-                     if (lineNorm.includes(target) || target.includes(lineNorm)) {
-                         startOffset = offset;
-                         // Find end of section (next heading)
-                         for (let j = i + 1, off = offset + line.length + 1; j < lines.length; j++) {
-                             const ln = lines[j];
-                             const t2 = ln.trim();
-                             const isNextH = /^#{1,6}\s+/.test(t2) || (t2.startsWith('**') && t2.endsWith('**') && t2.length > 4);
-                             if (isNextH) { endOffset = off; break; }
-                             off += ln.length + 1;
-                         }
-                         if (endOffset === null) endOffset = content.length;
-                         break;
+                 // Ensure we work with Markdown
+                 const isHtml = /<[a-z][\s\S]*>/i.test(nextMarkdown);
+                 if (isHtml) {
+                     nextMarkdown = htmlToMarkdownWithComments(nextMarkdown);
+                 }
+
+                 // Iterate through modified slides
+                 slides.forEach((slide, index) => {
+                     // 1. If content was explicitly edited (text changed), we must do a full update
+                     // This might change the structure to "Presentation" style, but user asked for it.
+                     if (slide.metadata.isContentEdited) {
+                         nextMarkdown = updateSlideInMarkdown(nextMarkdown, index, slide);
                      }
-                 }
-                 offset += line.length + 1;
-               }
-               return { startOffset, endOffset };
-            };
+                     // 2. If ONLY layout changed, use the safe injection that preserves "Trainer Flow" structure
+                     else if (slide.metadata.isLayoutEdited) {
+                         nextMarkdown = updateSlideLayoutInMarkdown(nextMarkdown, index, slide.layoutId);
+                     }
+                     // 3. Fallback for legacy behavior (if flags missing but isManuallyEdited is true)
+                     // If we are unsure, we assume layout-only change is safer than destroying content
+                     else if (slide.metadata.isManuallyEdited) {
+                         // Check if we can detect content difference? Hard.
+                         // Defaulting to Layout Injection is safer for the "Trainer Flow" preservation request.
+                         nextMarkdown = updateSlideLayoutInMarkdown(nextMarkdown, index, slide.layoutId);
+                     }
+                 });
+                 
+                 // Update state
+                 const nextHtml = marked.parse(nextMarkdown, { breaks: true }) as string;
+                 setEditedContent(nextHtml);
+                 
+                 const currentStep = (course?.steps || [])[activeStepIndex];
+                 if (course && currentStep) {
+                     setCourse(prev => {
+                         if (!prev) return null;
+                         const updatedSteps = (prev.steps || []).map(step => 
+                             step.id === currentStep.id ? { ...step, content: nextMarkdown } : step
+                         );
+                         return { ...prev, steps: updatedSteps };
+                     });
 
-            const insertIntoSectionByTitle = (text: string, title?: string) => {
-              const bounds = findSectionBounds(title);
-              if (!bounds || bounds.startOffset === null || bounds.endOffset === null) {
-                 // Fallback: Append to end if section not found
-                 appendAtEnd(`\n\n> **Sugestie pentru slide-ul "${title || 'necunoscut'}":**\n${text}`);
-                 return;
-              }
-              const { endOffset } = bounds;
-              const content = editedContent || '';
-              // Insert before the next section starts, ensuring newlines
-              const before = content.substring(0, endOffset).trimEnd();
-              const after = content.substring(endOffset);
-              const next = `${before}\n${text}\n${after}`;
-              applyUpdate(next, 'Sugestie aplicată în slide.');
-            };
-
-            const modifySectionByTitle = (transform: (lines: string[]) => string[], title?: string) => {
-              const bounds = findSectionBounds(title);
-              if (!bounds || bounds.startOffset === null || bounds.endOffset === null) {
-                  showToast('Nu am putut localiza secțiunea pentru modificare.', 'error');
-                  return;
-              }
-              const { startOffset, endOffset } = bounds;
-              const content = editedContent || '';
-              const sectionText = content.substring(startOffset, endOffset);
-              const lines = sectionText.split('\n');
-              const nextLines = transform(lines);
-              const next = `${content.substring(0, startOffset)}${nextLines.join('\n')}${content.substring(endOffset)}`;
-              
-              applyUpdate(next, 'Secțiune actualizată.');
-            };
-
-            const sLower = s.toLowerCase();
-            if (sLower.includes('pași')) {
-              insertIntoSectionByTitle('- Pas 1: ...\n- Pas 2: ...\n- Pas 3: ...\n', targetTitle);
-              return;
-            }
-            if (sLower.includes('verbe de aplicare')) {
-              insertIntoSectionByTitle('- Verbe de aplicare: aplică, utilizează, implementează\n', targetTitle);
-              return;
-            }
-            if (sLower.includes('imagine')) {
-              setShowImageStudio(true);
-              return;
-            }
-            if (sLower.includes('context') && sLower.includes('problemă') && sLower.includes('soluție') && sLower.includes('rezultat')) {
-              insertIntoSectionByTitle('- Context: ...\n- Problemă: ...\n- Soluție: ...\n- Rezultat: ...\n', targetTitle);
-              return;
-            }
-            if (sLower.includes('concluzii') || sLower.includes('criterii de evaluare')) {
-              insertIntoSectionByTitle('- Concluzii: ...\n- Criterii de evaluare: ...\n', targetTitle);
-              return;
-            }
-            if (sLower.includes('conținut prea dens') || sLower.includes('reduce numărul de bullets') || sLower.includes('reduce bullets')) {
-              modifySectionByTitle((lines) => {
-                const header = lines[0]; // Preserve header
-                const rest = lines.slice(1);
-                const bullets = rest.filter(l => l.trim().startsWith('-') || l.trim().startsWith('*') || /^\d+\.\s/.test(l));
-                if (bullets.length === 0) return lines;
-                const kept = bullets.slice(0, 4);
-                const others = rest.filter(l => !(l.trim().startsWith('-') || l.trim().startsWith('*') || /^\d+\.\s/.test(l)));
-                return [header, ...kept, ...others];
-              }, targetTitle);
-              return;
-            }
-            if (sLower.includes('titlu prea lung') || sLower.includes('scurtează titlul')) {
-              modifySectionByTitle((lines) => lines.map(l => {
-                 const t = l.trim();
-                 if (t.startsWith('#') || (t.startsWith('**') && t.length > 4)) {
-                     return l.length > 60 ? (l.slice(0, 57) + '…') : l;
-                 }
-                 return l;
-              }), targetTitle);
-              return;
-            }
-            if (sLower.includes('bullets prea lungi') || sLower.includes('scurtează formulările')) {
-              modifySectionByTitle((lines) => lines.map(l => {
-                if (l.trim().startsWith('-') || l.trim().startsWith('*') || /^\d+\.\s/.test(l)) {
-                  return l.length > 110 ? (l.slice(0, 107) + '…') : l;
-                }
-                return l;
-              }), targetTitle);
-              return;
-            }
-            // Fallback: append suggestion text if no rule matched
-            appendAtEnd(`- ${s}`);
-          }}
-          onUpdateSlideLayout={(slideTitle: string, newLayout: SlideArchetype, slideIndex?: number) => {
-            const rawStepContent = course?.steps?.[activeStepIndex]?.content ?? '';
-            const looksHtml = /<[a-z][\s\S]*>/i.test(rawStepContent || '');
-            
-            // Fix: Preserve HTML comments during HTML->Markdown conversion to avoid losing layout metadata
-            const turndownService = new TurndownService({ headingStyle: 'atx' });
-            turndownService.addRule('restoreComments', {
-                filter: (node) => node.nodeName === 'DIV' && node.hasAttribute('data-turndown-comment'),
-                replacement: (content, node) => {
-                    const comment = (node as HTMLElement).getAttribute('data-turndown-comment') || '';
-                    return '\n<!--' + comment + '-->\n';
-                }
-            });
-            
-            const preProcessed = looksHtml ? (rawStepContent || '').replace(/<!--([\s\S]*?)-->/g, (match, p1) => {
-                return `<div data-turndown-comment="${p1.replace(/"/g, '&quot;')}"></div>`;
-            }) : (rawStepContent || '');
-            
-            const mdSource = looksHtml ? turndownService.turndown(preProcessed) : (rawStepContent || '');
-            
-            const lines = mdSource.split('\n');
-            const norm = (s: string) => s.toLowerCase().trim().replace(/[*#]/g, '').replace(/^slide\s*\d+[:.]?\s*/i, '');
-            const target = norm(slideTitle);
-            
-            let found = false;
-            let newLines = [...lines];
-
-            // ALIGNED LOGIC WITH exportService.ts
-            const hasSlideMarkers = lines.some((l: string) => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:|^\s*<SLIDE_BEGIN/i.test(l.trim()));
-
-            // Helper to check if a line is a slide start
-            const isSlideStart = (line: string) => {
-                const trimmed = line.trim();
-                const slideMatch = trimmed.match(/^(\*\*|#+)?\s*(Slide|幻灯片)\s*(nr\.|#)?\s*\d+(?:\s*[:：]\s*(.+?))?(\*\*|#+)?$/i) || trimmed.match(/^<SLIDE_BEGIN\s+id="[^"]+">/i);
-                if (slideMatch) return true;
-                if (hasSlideMarkers) return false;
-                const isHeading = /^#{1,6}\s+/.test(trimmed);
-                const isHr = /^(\-{3,}|\*{3,})$/.test(trimmed);
-                return isHeading || isHr;
-            };
-
-            if (typeof slideIndex === 'number') {
-                 // Strategy A: Index-based lookup (Deterministic)
-                 let currentIdx = -1;
-                 for (let i = 0; i < newLines.length; i++) {
-                     if (isSlideStart(newLines[i])) {
-                         currentIdx++;
-                         if (currentIdx === slideIndex) {
-                             found = true;
-                             // Look for existing layout metadata
-                             let metaIdx = -1;
-                             for(let k = 1; k <= 6 && i + k < newLines.length; k++) {
-                                 const nextLine = newLines[i+k].trim();
-                                 if (nextLine.match(/^<!--\s*slide-layout:/)) {
-                                     metaIdx = i + k;
-                                     break;
-                                 }
-                                 if (isSlideStart(newLines[i+k])) break;
-                             }
-
-                             const metaTag = `<!-- slide-layout: ${ARCHETYPE_TO_TOKEN[newLayout]} -->`;
-                             if (metaIdx !== -1) {
-                                 newLines[metaIdx] = metaTag;
+                     // IMMEDIATE SAVE TO SUPABASE
+                     supabase.from('course_steps')
+                         .update({ content: nextMarkdown })
+                         .eq('id', currentStep.id)
+                         .then(({ error }) => {
+                             if (error) {
+                                 console.error('Failed to persist slides:', error);
+                                 showToast('Eroare la salvarea slide-urilor.', 'error');
                              } else {
-                                 newLines.splice(i + 1, 0, metaTag);
+                                 const key = `autosave:${course.id}:${currentStep.id}`;
+                                 localStorage.setItem(key, nextHtml);
+                                 showToast('Slide-uri salvate cu succes', 'success');
                              }
-                             break;
-                         }
-                     }
-                 }
-            } 
-            
-            if (!found) {
-                // Strategy B: Title-based fallback (Legacy)
-                for (let i = 0; i < newLines.length; i++) {
-                    const line = newLines[i];
-                    if (isSlideStart(line)) {
-                        let lineContent = line.trim().replace(/^#{1,6}\s+/, '').replace(/^\*\*/, '').replace(/\*\*$/, '');
-                        
-                        // XML Title Extraction
-                        if (line.match(/^<SLIDE_BEGIN/i)) {
-                            for (let k = 1; k <= 4 && i + k < newLines.length; k++) {
-                                const tMatch = newLines[i+k].match(/<TITLE>(.*?)<\/TITLE>/i);
-                                if (tMatch) {
-                                    lineContent = tMatch[1];
-                                    break;
-                                }
-                            }
-                        }
-
-                        const lineNorm = norm(lineContent);
-                        
-                        if (lineNorm.includes(target) || target.includes(lineNorm)) {
-                            found = true;
-                            let metaIdx = -1;
-                            for(let k = 1; k <= 6 && i + k < newLines.length; k++) {
-                                const nextLine = newLines[i+k].trim();
-                                if (nextLine.match(/^<!--\s*slide-layout:/)) {
-                                    metaIdx = i + k;
-                                    break;
-                                }
-                                if (isSlideStart(newLines[i+k])) break;
-                            }
-
-                            const metaTag = `<!-- slide-layout: ${newLayout} -->`;
-                            if (metaIdx !== -1) {
-                                newLines[metaIdx] = metaTag;
-                            } else {
-                                newLines.splice(i + 1, 0, metaTag);
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (found) {
-                const nextMarkdown = newLines.join('\n');
-                const nextHtml = marked.parse(nextMarkdown || '', { breaks: true }) as string;
-                setEditedContent(nextHtml);
-                
-                const currentStep = (course?.steps || [])[activeStepIndex];
-                if (course && currentStep) {
-                    setCourse(prev => {
-                        if (!prev) return null;
-                        const updatedSteps = (prev.steps || []).map(step => 
-                            step.id === currentStep.id ? { ...step, content: nextMarkdown } : step
-                        );
-                        return { ...prev, steps: updatedSteps };
-                    });
-
-                    // IMMEDIATE SAVE TO SUPABASE
-                    supabase.from('course_steps')
-                        .update({ content: nextMarkdown })
-                        .eq('id', currentStep.id)
-                        .then(({ error }) => {
-                            if (error) {
-                                console.error('Failed to persist layout:', error);
-                                showToast('Eroare la salvarea layout-ului.', 'error');
-                            } else {
-                                const key = `autosave:${course.id}:${currentStep.id}`;
-                                localStorage.setItem(key, nextHtml);
-                            }
-                        });
-                }
-                
-                showToast(`Layout actualizat la ${newLayout}`, 'success');
-            } else {
-                showToast('Nu am putut localiza slide-ul pentru a salva layout-ul.', 'error');
-            }
-          }}
-          onUpdateSlideAdapted={(slideTitle: string, adaptedText: string, slideIndex?: number) => {
-            const rawStepContent = course?.steps?.[activeStepIndex]?.content ?? '';
-            const looksHtml = /<[a-z][\s\S]*>/i.test(rawStepContent || '');
-            
-            // Fix: Preserve HTML comments during HTML->Markdown conversion
-            const turndownService = new TurndownService({ headingStyle: 'atx' });
-            turndownService.addRule('restoreComments', {
-                filter: (node) => node.nodeName === 'DIV' && node.hasAttribute('data-turndown-comment'),
-                replacement: (content, node) => {
-                    const comment = (node as HTMLElement).getAttribute('data-turndown-comment') || '';
-                    return '\n<!--' + comment + '-->\n';
-                }
-            });
-            
-            const preProcessed = looksHtml ? (rawStepContent || '').replace(/<!--([\s\S]*?)-->/g, (match, p1) => {
-                return `<div data-turndown-comment="${p1.replace(/"/g, '&quot;')}"></div>`;
-            }) : (rawStepContent || '');
-            
-            const mdSource = looksHtml ? turndownService.turndown(preProcessed) : (rawStepContent || '');
-
-            const lines = mdSource.split('\n');
-            const norm = (s: string) => s.toLowerCase().trim().replace(/[*#]/g, '').replace(/^slide\s*\d+[:.]?\s*/i, '');
-            const target = norm(slideTitle);
-            let found = false;
-            let newLines = [...lines];
-
-            // ALIGNED LOGIC WITH exportService.ts
-            const hasSlideMarkers = lines.some((l: string) => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:|^\s*<SLIDE_BEGIN/i.test(l.trim()));
-
-            const isSlideStart = (line: string) => {
-                const trimmed = line.trim();
-                const slideMatch = trimmed.match(/^(\*\*|#+)?\s*(Slide|幻灯片)\s*(nr\.|#)?\s*\d+(?:\s*[:：]\s*(.+?))?(\*\*|#+)?$/i) || trimmed.match(/^<SLIDE_BEGIN\s+id="[^"]+">/i);
-                if (slideMatch) return true;
-                if (hasSlideMarkers) return false;
-                const isHeading = /^#{1,6}\s+/.test(trimmed);
-                const isHr = /^(\-{3,}|\*{3,})$/.test(trimmed);
-                return isHeading || isHr;
-            };
-
-            const safe = adaptedText.trim();
-            // We need to know which layout this adaptation is for.
-            // Since we don't have the layout passed directly here, we have to look it up in the file or state.
-            // Ideally, the adapted content metadata should include the layout type:
-            // <!-- slide-adapted: LAYOUT_TYPE | CONTENT -->
-            // But here we are just saving the text. The consumer (SlidesPreviewModal) should probably pass the layout type too?
-            // Wait, looking at my plan: "<!-- slide-adapted: TYPE | CONȚINUT_ENCODED -->"
-            // The prop signature is (slideTitle, adaptedText, slideIndex). It doesn't include the layout type.
-            // I should assume the `adaptedText` ALREADY contains the formatted string "TYPE | CONTENT" or handle it here.
-            // Let's check SlidesPreviewModal again.
-            // In SlidesPreviewModal: onUpdateSlideAdapted(m.title, `${m.slide_type}|${text}`, m.originalIndex);
-            // So `adaptedText` comes in as "TYPE|CONTENT". Perfect.
-
-            const updateLines = (idx: number) => {
-                 // Look ahead up to 6 lines for existing adapted meta matching THIS layout
-                 // The adaptedText is "LAYOUT|CONTENT". We want to find "<!-- slide-adapted: LAYOUT | ... -->"
-                 const [layoutType] = safe.split('|'); 
-
-                 let metaIdx = -1;
-                 for (let k = 1; k <= 6 && idx + k < newLines.length; k++) {
-                    const nextLine = newLines[idx + k].trim();
-                    if (nextLine.match(/^<!--\s*slide-adapted:/)) {
-                        // Check if it matches the SAME layout type
-                        if (nextLine.includes(layoutType.trim())) {
-                             metaIdx = idx + k;
-                             break;
-                        }
-                    }
-                    if (isSlideStart(newLines[idx + k])) break;
+                         });
                  }
                  
-                 const metaTag = `<!-- slide-adapted: ${safe} -->`;
-                 if (metaIdx !== -1) {
-                    newLines[metaIdx] = metaTag;
-                 } else {
-                    // Insert logic:
-                    // Try to put it after layout tag, or after other adapted tags, or after title
-                    let insertPos = idx + 1;
-                    for (let k = 1; k <= 6 && idx + k < newLines.length; k++) {
-                        const nextLine = newLines[idx + k].trim();
-                        if (nextLine.match(/^<!--\s*slide-layout:/) || nextLine.match(/^<!--\s*slide-adapted:/)) {
-                            insertPos = idx + k + 1;
-                        } else if (isSlideStart(newLines[idx + k])) {
-                            break;
-                        }
-                    }
-                    newLines.splice(insertPos, 0, metaTag);
-                 }
-            }
-
-            if (typeof slideIndex === 'number') {
-                 let currentIdx = -1;
-                 for (let i = 0; i < newLines.length; i++) {
-                     if (isSlideStart(newLines[i])) {
-                         currentIdx++;
-                         if (currentIdx === slideIndex) {
-                             found = true;
-                             updateLines(i);
-                             break;
-                         }
-                     }
-                 }
-            }
-
-            if (!found) {
-                // Fallback
-                for (let i = 0; i < newLines.length; i++) {
-                    if (isSlideStart(newLines[i])) {
-                        let lineContent = newLines[i].trim().replace(/^#{1,6}\s+/, '').replace(/^\*\*/, '').replace(/\*\*$/, '');
-                        
-                        // XML Title Extraction
-                        if (newLines[i].match(/^<SLIDE_BEGIN/i)) {
-                            for (let k = 1; k <= 4 && i + k < newLines.length; k++) {
-                                const tMatch = newLines[i+k].match(/<TITLE>(.*?)<\/TITLE>/i);
-                                if (tMatch) {
-                                    lineContent = tMatch[1];
-                                    break;
-                                }
-                            }
-                        }
-
-                        const lineNorm = norm(lineContent);
-                        if (lineNorm.includes(target) || target.includes(lineNorm)) {
-                            found = true;
-                            updateLines(i);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            if (found) {
-              const nextMarkdown = newLines.join('\n');
-              const nextHtml = marked.parse(nextMarkdown || '', { breaks: true }) as string;
-              setEditedContent(nextHtml);
-              const currentStep = (course?.steps || [])[activeStepIndex];
-              if (course && currentStep) {
-                setCourse(prev => {
-                  if (!prev) return null;
-                  const updatedSteps = (prev.steps || []).map(step =>
-                    step.id === currentStep.id ? { ...step, content: nextMarkdown } : step
-                  );
-                  return { ...prev, steps: updatedSteps };
-                });
-
-                // IMMEDIATE SAVE TO SUPABASE
-                supabase.from('course_steps')
-                    .update({ content: nextMarkdown })
-                    .eq('id', currentStep.id)
-                    .then(({ error }) => {
-                        if (error) {
-                            console.error('Failed to persist adapted content:', error);
-                            showToast('Eroare la salvarea conținutului adaptat.', 'error');
-                        } else {
-                            const key = `autosave:${course.id}:${currentStep.id}`;
-                            localStorage.setItem(key, nextHtml);
-                        }
-                    });
-              }
-              showToast('Conținut adaptat salvat', 'success');
-            } else {
-              showToast('Nu am putut localiza slide-ul pentru a salva conținutul adaptat.', 'error');
-            }
-          }}
+                 setShowSlidesPreview(false);
+            }}
         />
       )}
       {/* Sticky mobile actions bar */}

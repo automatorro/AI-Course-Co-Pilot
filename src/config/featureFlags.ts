@@ -9,7 +9,8 @@ export type FeatureFlagKey =
   | 'editorGenerateButtonEnabled'
   | 'newPptxExporter'
   | 'pptxEnhancedPipeline'
-  | 'pptxTextOnlySafeMode';
+  | 'pptxTextOnlySafeMode'
+  | 'visualOrchestrator';
 
 export const FEATURE_FLAGS: Record<FeatureFlagKey, boolean> = {
   localizedChat: true,
@@ -25,6 +26,7 @@ export const FEATURE_FLAGS: Record<FeatureFlagKey, boolean> = {
   newPptxExporter: true,
   pptxEnhancedPipeline: true,
   pptxTextOnlySafeMode: false,
+  visualOrchestrator: true, // Enable new Visual Orchestrator flow
 };
 
 export const FEATURE_DOCS: Record<FeatureFlagKey, string> = {
@@ -39,6 +41,7 @@ export const FEATURE_DOCS: Record<FeatureFlagKey, string> = {
   newPptxExporter: 'Activează noul pipeline determinist pentru export PPTX cu arhetipuri.',
   pptxEnhancedPipeline: 'Activează îmbunătățirile PPTX (notes+i18n+auto-split) cu garduri.',
   pptxTextOnlySafeMode: 'Forțează layouturi text-only și dezactivează imaginile pentru livrare robustă.',
+  visualOrchestrator: 'Activează noul flux hibrid: Editare Vizuală -> Export PPTX (fără scriere în TinyMCE).',
 };
 
 export const isEnabled = (key: FeatureFlagKey): boolean => FEATURE_FLAGS[key];

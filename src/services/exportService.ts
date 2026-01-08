@@ -3,6 +3,7 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Head
 import JSZip from 'jszip';
 
 import { Course, CourseStep, SlideModel, SlideArchetype, SlideRules } from '../types';
+import { SlideState } from '../types/slideState';
 import { replaceBlobUrlsWithPublic, ensurePublicExternalImages } from './imageService';
 import { isEnabled } from '../config/featureFlags';
 import { exportCourseAsPdf } from './pdfExporter';
@@ -341,7 +342,7 @@ export const mapTokenToArchetype = (token: string): SlideArchetype => {
     }
 
     // Default fallback is handled by caller or defaults to Default/Explainer
-    return SlideArchetype.Default;
+    return SlideArchetype.Explainer;
 };
 
 export const sanitizeText = (text: string): string => {
@@ -456,7 +457,14 @@ export const parseContentSections = (markdown: string): ContentSection[] => {
         // --- DETECT NEW SLIDE START (PRIORITIZE "Slide nr:") ---
         // Accept "Slide 1", "Slide [1]", "Slide (1)" with or without a title part, optional colon
         const slideMatch = line.match(/^(\*\*|#+)?\s*(Slide|幻灯片)\s*(nr\.|#)?\s*[\[\(]?\d+[\]\)]?(?:\s*[:：]\s*(.+?))?(\*\*|#+)?$/i);
-        const headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
+        let headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
+        
+        // Prevent H3-H6 from breaking slides unless they are explicitly named "Slide ..."
+        // This fixes issues with "Trainer Flow" where H3 is used for internal sections (Visual/Text/Notes)
+        if (headerMatch && headerMatch[1].length > 2 && !slideMatch) {
+            headerMatch = null;
+        }
+
         // module headers intentionally ignored to avoid over-segmentation
         const hrMatch = line.match(/^(\-{3,}|\*{3,})$/);
 
@@ -510,11 +518,29 @@ const processSlideBlock = (title: string, contentBlock: string, sections: Conten
 
         // --- DETECT LAYOUT METADATA ---
         const layoutMatch = line.match(/^<!--\s*slide-layout:\s*([A-Za-z0-9_\-\s]+)\s*-->/i);
+        const layoutDivMatch = line.match(/<div\s+data-slide-layout="([^"]+)"/i);
+        
         if (layoutMatch) {
             const rawToken = layoutMatch[1];
             slideLayout = mapTokenToArchetype(rawToken);
             continue;
         }
+        if (layoutDivMatch) {
+            const rawToken = layoutDivMatch[1];
+            slideLayout = mapTokenToArchetype(rawToken);
+            continue;
+        }
+
+        // --- DETECT HIDDEN IMAGE ---
+        const imageDivMatch = line.match(/<div\s+data-slide-image="([^"]+)"(?:\s+data-slide-image-alt="([^"]*)")?/i);
+        if (imageDivMatch) {
+            images.push({
+                url: imageDivMatch[1],
+                alt: imageDivMatch[2] || ''
+            });
+            continue;
+        }
+
         // --- DETECT ADAPTED CONTENT METADATA ---
         const adaptedMatch = line.match(/^<!--\s*slide-adapted:\s*([A-Za-z0-9_\-\s]+)\s*\|\s*(.+?)\s*-->/i);
         if (adaptedMatch) {
@@ -1595,6 +1621,126 @@ export const exportCourseAsZip = async (course: Course, t: (key: string) => stri
 
 // Re-export PDF export function
 export { exportCourseAsPdf };
+
+export const exportSlidesAsPptx = async (course: Course, slides: SlideState[]): Promise<void> => {
+    const pptx = new PptxGenJS();
+    pptx.layout = 'LAYOUT_16x9';
+    pptx.author = 'AI Course Co-Pilot';
+    pptx.company = 'Course Copilot';
+    pptx.title = course.title;
+
+    for (const slide of slides) {
+        const pptxSlide = pptx.addSlide();
+        
+        // Prepare image
+        let imageUrl = slide.media?.url || '';
+        if (imageUrl && !imageUrl.startsWith('data:')) {
+             try {
+                 const dataUrl = await fetchToDataUrl(imageUrl);
+                 if (dataUrl) imageUrl = dataUrl;
+             } catch (e) {
+                 console.warn('Failed to fetch image for slide', slide.id, e);
+             }
+        }
+        
+        // Construct SlideDesignJSON
+        const designData: SlideDesignJSON = {
+            layout: 'DEFAULT', 
+            title: slide.content.title,
+            content: slide.content.bullets,
+            imagePrompt: '',
+            accentColor: '1E3A8A'
+        };
+        
+        if (slide.content.subtitle) {
+            designData.content = [slide.content.subtitle, ...slide.content.bullets];
+        }
+
+        // Switch on layoutId
+        switch (slide.layoutId) {
+            case 'LAYOUT_TITLE':
+                renderHeroSlide(pptxSlide, designData, imageUrl);
+                break;
+            case 'LAYOUT_EXPLAINER':
+                renderSplitLeft(pptxSlide, designData, imageUrl);
+                break;
+            case 'LAYOUT_IMAGE_TEXT':
+                renderSplitRight(pptxSlide, designData, imageUrl);
+                break;
+            case 'LAYOUT_IMAGE_LEFT':
+                renderSplitLeft(pptxSlide, designData, imageUrl);
+                break;
+            case 'LAYOUT_IMAGE_RIGHT':
+                renderSplitRight(pptxSlide, designData, imageUrl);
+                break;
+            case 'LAYOUT_FULL_IMAGE':
+                renderFullImage(pptxSlide, designData, imageUrl);
+                break;
+            case 'LAYOUT_QUOTE':
+                if (slide.content.quote) {
+                    designData.content = [slide.content.quote.text, slide.content.quote.author];
+                }
+                renderQuotation(pptxSlide, designData, imageUrl);
+                break;
+            case 'LAYOUT_BIG_NUMBER':
+                 if (slide.content.bigValue) {
+                     designData.content = [slide.content.bigValue, slide.content.bigLabel || ''];
+                 }
+                 renderBigStat(pptxSlide, designData, imageUrl);
+                 break;
+            case 'LAYOUT_THREE_COL':
+                 if (slide.content.columns) {
+                     designData.content = slide.content.columns.flatMap(c => [c.header || '', ...(c.content || [])]);
+                 }
+                 renderThreeColumns(pptxSlide, designData, imageUrl);
+                 break;
+            case 'LAYOUT_COMPARISON':
+                 if (slide.content.columns) {
+                    designData.content = slide.content.columns.flatMap(c => [c.header || '', ...(c.content || [])]);
+                 }
+                 renderComparison(pptxSlide, designData, imageUrl);
+                 break;
+            case 'LAYOUT_TIMELINE':
+                 renderTimeline(pptxSlide, designData, imageUrl);
+                 break;
+            case 'LAYOUT_GRID_CARDS':
+                 renderGridCards(pptxSlide, designData, imageUrl);
+                 break;
+            case 'LAYOUT_SECTION_HEADER':
+                 renderSectionHeader(pptxSlide, designData, imageUrl);
+                 break;
+            case 'LAYOUT_CHECKLIST':
+                 renderChecklist(pptxSlide, designData, imageUrl);
+                 break;
+            case 'LAYOUT_DO_DONT':
+                 renderDoDont(pptxSlide, designData, imageUrl);
+                 break;
+            case 'LAYOUT_TABLE':
+                 renderTableSimple(pptxSlide, designData, imageUrl);
+                 break;
+            case 'LAYOUT_IMAGE_CENTER':
+                 renderImageCenter(pptxSlide, designData, imageUrl);
+                 break;
+            case 'LAYOUT_EXERCISE':
+                 renderProcessSteps(pptxSlide, designData, imageUrl); 
+                 break;
+            case 'LAYOUT_AGENDA':
+                 renderAgendaCompact(pptxSlide, designData, imageUrl);
+                 break;
+            case 'LAYOUT_SUMMARY':
+                 renderHeroSlide(pptxSlide, { ...designData, title: 'Summary' }, imageUrl);
+                 break;
+            case 'LAYOUT_CASE_STUDY':
+                 renderSplitRight(pptxSlide, designData, imageUrl);
+                 break;
+            default:
+                renderDefault(pptxSlide, designData, imageUrl);
+        }
+    }
+    
+    const fileName = `${course.title.replace(/[^a-z0-9]/gi, '_')}_Visual.pptx`;
+    await pptx.writeFile({ fileName });
+};
 
 // Debug/testing export for parser
 export { parseContentSections as __debugParseContentSections };
