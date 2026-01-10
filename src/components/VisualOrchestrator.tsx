@@ -500,11 +500,11 @@ const VisualOrchestrator: React.FC<VisualOrchestratorProps> = ({
   // Ingest content on open
   useEffect(() => {
     if (isOpen && initialMarkdown) {
-      const parsed = parseSlidesFromMarkdown(initialMarkdown);
+      const parsed = parseSlidesFromMarkdown(initialMarkdown, course.language);
       setSlides(parsed);
       setActiveSlideIndex(0);
     }
-  }, [isOpen, initialMarkdown]);
+  }, [isOpen, initialMarkdown, course.language]);
 
   if (!isOpen) return null;
 

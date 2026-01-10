@@ -70,6 +70,9 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [validationReport, setValidationReport] = useState<{ ok: boolean; items: { ok: boolean; message: string; key?: string; type?: string }[] } | null>(null);
+    const [regenerateAttempts, setRegenerateAttempts] = useState(0);
+    const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const accumulatedContentRef = useRef<any[]>([]); // Store content to pass as context
     const pendingStepsRef = useRef<any[]>([]); // Steps ready to insert if user chooses to save despite warnings
@@ -237,7 +240,15 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
     const handleRegenerateAffected = async () => {
         try {
             if (!validationReport || validationReport.ok) return;
+
+            // Limit check
+            if (regenerateAttempts >= 1) {
+                setError("Ați atins limita maximă de regenerări (1). Vă rugăm să salvați draft-ul.");
+                return;
+            }
+
             setIsGenerating(true);
+            setRegenerateAttempts(prev => prev + 1);
 
             const LIVRABLE_MAPPING: { key: string; sources: TrainerStepType[] }[] = [
                 { key: 'course.livrables.structure', sources: [TrainerStepType.PerformanceObjectives, TrainerStepType.CourseObjectives, TrainerStepType.Structure, TrainerStepType.TimingAndFlow] },
@@ -899,7 +910,11 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
 
             setValidationReport(null);
             setIsGenerating(false);
-            onComplete();
+            
+            setSuccessMessage("Draft salvat cu succes! Puteți continua editarea în fluxul dedicat.");
+            setTimeout(() => {
+                onComplete();
+            }, 2000);
         } catch (err: any) {
             console.error('[GenerationProgressModal] Save draft failed:', err);
             setError(err.message || 'Failed to save draft.');
@@ -953,26 +968,66 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                                 ))}
                             </ul>
                             {!validationReport.ok && (
-                                <div className="mt-3 flex flex-wrap gap-2 md:justify-start">
-                                    <button onClick={startGeneration} className="btn-premium-sm w-full sm:w-auto">
-                                        {safeT('validation.actions.retry', 'Regenerează')}
-                                    </button>
-                                    <button onClick={() => setValidationReport(null)} className="btn-premium--secondary-sm w-full sm:w-auto">
-                                        {safeT('validation.actions.dismiss', 'Ascunde raportul')}
-                                    </button>
-                                    <button onClick={handleSaveDraft} className="btn-premium-sm w-full sm:w-auto">
-                                        {safeT('validation.actions.saveDraft', 'Salvează ca draft')}
-                                    </button>
-                                    <button onClick={handleRegenerateAffected} className="btn-premium-sm w-full sm:w-auto">
-                                        {safeT('validation.actions.regenerateAffected', 'Regenerează livrabilele afectate')}
-                                    </button>
-                                    {validationReport.items.some(it => it.type === 'durationMismatch') && (
-                                        <button onClick={handleAutoFixWorkbook} className="btn-premium-sm w-full sm:w-auto">
-                                            {safeT('validation.actions.autoFixWorkbook', 'Auto‑fix durate Workbook')}
-                                        </button>
+                                <div className="mt-3">
+                                    {showRegenerateConfirm ? (
+                                        <div className="bg-yellow-100 dark:bg-yellow-900/30 p-3 rounded-lg border border-yellow-200 dark:border-yellow-800 mb-3">
+                                            <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2">
+                                                Regenerarea poate consuma tokeni suplimentari. Recomandăm salvarea draft-ului curent.
+                                                <br/>
+                                                <span className="text-xs opacity-80">(Regeneration may consume additional tokens. We recommend saving the current draft.)</span>
+                                            </p>
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    onClick={() => setShowRegenerateConfirm(false)}
+                                                    className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded text-sm font-medium hover:bg-slate-300"
+                                                >
+                                                    Anulează
+                                                </button>
+                                                <button 
+                                                    onClick={() => { setShowRegenerateConfirm(false); handleRegenerateAffected(); }}
+                                                    className="px-3 py-1.5 bg-yellow-600 text-white rounded text-sm font-medium hover:bg-yellow-700"
+                                                >
+                                                    Confirmă regenerarea
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-wrap gap-2 md:justify-start">
+                                            <button 
+                                                onClick={handleSaveDraft} 
+                                                className="btn-premium-sm w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white shadow-md transform hover:scale-105 transition-all"
+                                            >
+                                                {safeT('validation.actions.saveDraft', 'Salvează ca draft')}
+                                            </button>
+                                            
+                                            <button 
+                                                onClick={() => {
+                                                    setValidationReport(null);
+                                                    setSuccessMessage("Vă recomandăm să salvați draft-ul pentru editare ulterioară");
+                                                }} 
+                                                className="btn-premium--secondary-sm w-full sm:w-auto"
+                                            >
+                                                {safeT('validation.actions.dismiss', 'Ascunde raportul')}
+                                            </button>
+                                            
+                                            <button 
+                                                onClick={() => setShowRegenerateConfirm(true)} 
+                                                className="btn-premium-sm w-full sm:w-auto opacity-90 hover:opacity-100"
+                                                disabled={regenerateAttempts >= 1}
+                                                title={regenerateAttempts >= 1 ? "Limita de regenerare atinsă" : ""}
+                                            >
+                                                {safeT('validation.actions.regenerateAffected', 'Regenerează livrabilele afectate')}
+                                            </button>
+                                        </div>
                                     )}
                                 </div>
                             )}
+                        </div>
+                    )}
+                    {successMessage && (
+                        <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                            <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0" />
+                            <p className="text-sm font-medium text-green-800 dark:text-green-200">{successMessage}</p>
                         </div>
                     )}
                     {error && (

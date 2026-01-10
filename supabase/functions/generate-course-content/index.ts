@@ -704,7 +704,9 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         **STRUCTURE**: Generate **5-8 slides** for EVERY module in the MASTER STRUCTURE.
         **VALIDATION**: If the structure has 8 modules, you should generate content for 8 modules.
 
-        **CRITICAL OUTPUT RULE**: Regardless of the conversational tone required for the content, the OUTPUT FORMAT must be STRICTLY the XML structure below. Do NOT add any introductory text, markdown headers, or conclusion outside the XML tags.
+        **CRITICAL OUTPUT RULE**: Regardless of the conversational tone required for the content, the OUTPUT FORMAT must be STRICTLY the XML structure below. 
+        - Do NOT add any introductory text, markdown headers, or conclusion outside the XML tags.
+        - Do NOT wrap the output in markdown code blocks (like \`\`\`xml). Output ONLY the raw XML string.
         
         ${DEPTH_SPECS.slides}
       `;

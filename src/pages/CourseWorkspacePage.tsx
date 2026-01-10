@@ -1830,18 +1830,18 @@ const CourseWorkspacePage: React.FC = () => {
                      // 1. If content was explicitly edited (text changed), we must do a full update
                      // This might change the structure to "Presentation" style, but user asked for it.
                      if (slide.metadata.isContentEdited) {
-                         nextMarkdown = updateSlideInMarkdown(nextMarkdown, index, slide);
+                         nextMarkdown = updateSlideInMarkdown(nextMarkdown, index, slide, course.language);
                      }
                      // 2. If ONLY layout changed, use the safe injection that preserves "Trainer Flow" structure
                      else if (slide.metadata.isLayoutEdited) {
-                         nextMarkdown = updateSlideLayoutInMarkdown(nextMarkdown, index, slide.layoutId);
+                         nextMarkdown = updateSlideLayoutInMarkdown(nextMarkdown, index, slide.layoutId, undefined, course.language);
                      }
                      // 3. Fallback for legacy behavior (if flags missing but isManuallyEdited is true)
                      // If we are unsure, we assume layout-only change is safer than destroying content
                      else if (slide.metadata.isManuallyEdited) {
                          // Check if we can detect content difference? Hard.
                          // Defaulting to Layout Injection is safer for the "Trainer Flow" preservation request.
-                         nextMarkdown = updateSlideLayoutInMarkdown(nextMarkdown, index, slide.layoutId);
+                         nextMarkdown = updateSlideLayoutInMarkdown(nextMarkdown, index, slide.layoutId, undefined, course.language);
                      }
                  });
                  

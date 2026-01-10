@@ -32,6 +32,7 @@ import {
 import { validateSemantic, pickCompatibleLayout } from '../lib/pptx/contracts';
 import TurndownService from 'turndown';
 import { LAYOUT_TOKEN_MAPPING } from '../constants/slideLayouts';
+import { getParsingKeywords } from '../lib/slideParsingLocales';
 
 // ============================================================================
 // TYPES & INTERFACES
@@ -138,7 +139,7 @@ const addContentSlides = async (
 ): Promise<void> => {
     const pre = normalizeExternalImageLinks(step.content);
     const withPublic = await replaceBlobUrlsWithPublic(pre, course.user_id, course.id);
-    const sections = parseContentSections(withPublic);
+    const sections = parseContentSections(withPublic, course.language);
 
     for (const section of sections) {
         const slide = pptx.addSlide();
@@ -351,13 +352,19 @@ export const sanitizeText = (text: string): string => {
     return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uFFFE\uFFFF]/g, '');
 };
 
-export const parseContentSections = (markdown: string): ContentSection[] => {
+export const parseContentSections = (markdown: string, language: string = 'en'): ContentSection[] => {
     const sections: ContentSection[] = [];
+    const keywords = getParsingKeywords(language);
+    const slideIdentifierPattern = keywords.slideIdentifier.join('|');
     
+    // --- 0. PRE-CLEANING (Fix for Markdown Code Blocks) ---
+    // Remove ```xml or ``` wrappers if present
+    markdown = markdown.replace(/^```(?:xml|html)?\s*[\r\n]+/, '').replace(/[\r\n]+```\s*$/, '');
+
     // --- 1. XML-BASED PARSING (STRICT MODE) ---
-    // Căutăm blocuri <SLIDE_BEGIN ...> ... <SLIDE_END ...>
-    // Folosim regex cu [\s\S] pentru a captura multilines
-    const slideBlockRegex = /<SLIDE_BEGIN\s+id="([^"]+)">([\s\S]*?)<SLIDE_END\s+id="\1">/gi;
+    // Căutăm blocuri <SLIDE_BEGIN ...> ... <SLIDE_END ...> SAU <SLIDE_START ...>
+    // Suportă id="1", id='1', spații flexibile, și START/BEGIN
+    const slideBlockRegex = /<SLIDE_(?:BEGIN|START)\s+id=["']([^"']+)["']>([\s\S]*?)<SLIDE_(?:END|STOP)\s+id=["']\1["']>/gi;
     let match;
     let hasXmlSlides = false;
 
@@ -444,7 +451,7 @@ export const parseContentSections = (markdown: string): ContentSection[] => {
 
     const flush = () => {
         if (currentTitle && currentBuffer.length > 0) {
-            processSlideBlock(currentTitle, currentBuffer.join('\n'), sections);
+            processSlideBlock(currentTitle, currentBuffer.join('\n'), sections, language);
         }
         currentTitle = null;
         currentBuffer = [];
@@ -456,7 +463,8 @@ export const parseContentSections = (markdown: string): ContentSection[] => {
 
         // --- DETECT NEW SLIDE START (PRIORITIZE "Slide nr:") ---
         // Accept "Slide 1", "Slide [1]", "Slide (1)" with or without a title part, optional colon
-        const slideMatch = line.match(/^(\*\*|#+)?\s*(Slide|幻灯片)\s*(nr\.|#)?\s*[\[\(]?\d+[\]\)]?(?:\s*[:：]\s*(.+?))?(\*\*|#+)?$/i);
+        const slideMatchRegex = new RegExp(`^(\\*\\*|#+)?\\s*(${slideIdentifierPattern})\\s*(nr\\.|#)?\\s*[\\[\\(]?\\d+[\\]\\)]?(?:\\s*[:：]\\s*(.+?))?(\\*\\*|#+)?$`, 'i');
+        const slideMatch = line.match(slideMatchRegex);
         let headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
         
         // Prevent H3-H6 from breaking slides unless they are explicitly named "Slide ..."
@@ -487,7 +495,7 @@ export const parseContentSections = (markdown: string): ContentSection[] => {
     return sections;
 };
 
-const processSlideBlock = (title: string, contentBlock: string, sections: ContentSection[]) => {
+const processSlideBlock = (title: string, contentBlock: string, sections: ContentSection[], language: string = 'en') => {
     const lines = contentBlock.trim().split('\n');
     
     let currentMode: 'content' | 'notes' | 'visual' | null = null;
@@ -499,13 +507,20 @@ const processSlideBlock = (title: string, contentBlock: string, sections: Conten
     let images: { url: string; alt: string }[] = [];
     let bodyTextParts: string[] = [];
 
-    // Helper regex for strict mode detection
-    // Updated to handle optional markdown formatting around labels (e.g. **Visual**: or __Notes__:)
-    const visualRegex = /^\s*[-*•_#]*\s*(\*\*|__)?\s*(Visual|Imagine\s*Sugerată|Image|Visual\s*cue|Prompt|Vizual|视觉|图像|图片|图示|视觉提示|Visual|Imagem)\s*(\*\*|__)?\s*[:：\-]?\s*/i;
-    const textRegex = /^\s*[-*•_#]*\s*(\*\*|__)?\s*(Text|Content|Conținut|Texto|文本|内容)\s*(\*\*|__)?\s*[:：\-]?\s*/i;
-    const notesRegex = /^\s*[-*•_#]*\s*(\*\*|__)?\s*(Speaker\s*Notes|Note\s*Vorbit|Note\s*Trainer|讲者备注|讲者注释|演讲备注|旁白|Notas\s*do\s*Apresentador|Notas\s*do\s*Orador|Notas\s*do\s*Palestrante)\s*(\*\*|__)?\s*[:：\-]?\s*/i;
-    const titleLabelRegex = /^\s*[-*•_#]*\s*(\*\*|__)?\s*(Titlu|Subtitlu)\s*(\*\*|__)?\s*[:\-]?\s*/i;
-    const imageLabelRegex = /^\s*[-*•_#]*\s*(\*\*|__)?\s*(Imagine\s*Sugerată|Imagine|Visual)\s*(\*\*|__)?\s*[:\-]?\s*/i;
+    const keywords = getParsingKeywords(language);
+    const slideIdentifierPattern = keywords.slideIdentifier.join('|');
+    
+    // Helper regex construction
+    const buildRegex = (words: string[]) => {
+        const pattern = words.join('|'); // Assume words don't have regex special chars for now
+        return new RegExp(`^\\s*[-*•_#]*\\s*(\\*\\*|__)?\\s*(${pattern})\\s*(\\*\\*|__)?\\s*[:：\\-]?\\s*`, 'i');
+    };
+
+    const visualRegex = buildRegex(keywords.visual);
+    const textRegex = buildRegex(keywords.text);
+    const notesRegex = buildRegex(keywords.notes);
+    const titleLabelRegex = buildRegex(keywords.title);
+    const imageLabelRegex = buildRegex(keywords.visual); // Often overlaps with visual
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
@@ -513,7 +528,8 @@ const processSlideBlock = (title: string, contentBlock: string, sections: Conten
 
         // --- FILTER OUT NOISE ---
         // If the line looks like a Slide title or Module header that slipped in (handling bold/headers)
-        if (/^(\*\*|#+)?\s*(Slide|Modul[e]?)\s*#?\s*[\[\(]?\d+[\]\)]?:/i.test(line)) continue;
+        const noiseRegex = new RegExp(`^(\\*\\*|#+)?\\s*(${slideIdentifierPattern}|Modul[e]?)\\s*#?\\s*[\\[\\(]?\\d+[\\]\\)]?:`, 'i');
+        if (noiseRegex.test(line)) continue;
         if (line.startsWith('---')) continue;
 
         // --- DETECT LAYOUT METADATA ---
@@ -1262,18 +1278,23 @@ const buildSlideModelsFromCourse = (course: Course, scripts: Record<string, stri
 };
 
 
-export const formatToCanonicalSlides = (markdown: string): string => {
+export const formatToCanonicalSlides = (markdown: string, language: string = 'en'): string => {
+    const keywords = getParsingKeywords(language);
+    const slideIdentifierPattern = keywords.slideIdentifier.join('|');
+    const primarySlideId = keywords.slideIdentifier[0] || 'Slide';
+
     // If content already has explicit "Slide N:" markers, respect existing authoring and return as-is
-    const hasExplicitSlides = /\bSlide\s*\d+\s*:/i.test(markdown || '');
+    const hasExplicitSlidesRegex = new RegExp(`\\b(${slideIdentifierPattern})\\s*\\d+\\s*:`, 'i');
+    const hasExplicitSlides = hasExplicitSlidesRegex.test(markdown || '');
     if (hasExplicitSlides) {
         return markdown;
     }
-    const sections = parseContentSections(markdown);
+    const sections = parseContentSections(markdown, language);
     const lines: string[] = [];
     sections.forEach((s, idx) => {
         const n = idx + 1;
-        const title = s.title || `Slide ${n}`;
-        lines.push(`Slide ${n}: ${title}`);
+        const title = s.title || `${primarySlideId} ${n}`;
+        lines.push(`${primarySlideId} ${n}: ${title}`);
         const layoutEnum = s.slideLayout ?? (s.images[0]?.url ? SlideArchetype.ImageText : SlideArchetype.Explainer);
         lines.push(`<!-- slide-layout: ${layoutEnum} -->`);
         const adaptedForActive = s.adaptedContent?.[layoutEnum];

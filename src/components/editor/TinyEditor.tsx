@@ -43,6 +43,9 @@ const TinyEditor: React.FC<TinyEditorProps> = ({ value, onChange, refreshSignal,
     toolbar_sticky: true,
     toolbar_sticky_offset: 0,
     toolbar_mode: 'sliding',
+    // Allow custom XML tags for Slides so they aren't stripped
+    extended_valid_elements: 'SLIDE_BEGIN[id],SLIDE_START[id],SLIDE_END[id],SLIDE_STOP[id],TITLE,VISUAL,CONTENT,NOTES',
+    custom_elements: 'SLIDE_BEGIN,SLIDE_START,SLIDE_END,SLIDE_STOP,TITLE,VISUAL,CONTENT,NOTES',
     content_style: `
       body { 
         font-family: 'Inter', system-ui, -apple-system, sans-serif; 
@@ -54,6 +57,56 @@ const TinyEditor: React.FC<TinyEditorProps> = ({ value, onChange, refreshSignal,
         margin: 0 auto; 
         background-color: ${theme === 'dark' ? '#1f2937' : '#ffffff'};
       } 
+      
+      /* Slide Structure Visualization */
+      SLIDE_BEGIN, SLIDE_START { 
+        display: block; 
+        margin-top: 2rem; 
+        padding-top: 0.5rem;
+        border-top: 2px solid ${theme === 'dark' ? '#3b82f6' : '#2563eb'};
+        color: ${theme === 'dark' ? '#60a5fa' : '#2563eb'};
+        font-weight: bold;
+        font-family: monospace;
+      }
+      SLIDE_END, SLIDE_STOP { 
+        display: block; 
+        margin-bottom: 2rem; 
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid ${theme === 'dark' ? '#ef4444' : '#dc2626'};
+        color: ${theme === 'dark' ? '#f87171' : '#dc2626'};
+        font-family: monospace;
+        font-size: 0.8em;
+      }
+      TITLE { 
+        display: block; 
+        font-size: 1.25em; 
+        font-weight: bold; 
+        margin: 0.5rem 0; 
+      }
+      TITLE::before { content: 'Title: '; color: #9ca3af; font-size: 0.7em; font-weight: normal; vertical-align: middle; }
+      
+      VISUAL { 
+        display: block; 
+        font-style: italic; 
+        background: ${theme === 'dark' ? 'rgba(139, 92, 246, 0.1)' : '#f3f4f6'}; 
+        padding: 0.5rem; 
+        margin: 0.5rem 0; 
+        border-left: 3px solid #8b5cf6; 
+      }
+      VISUAL::before { content: 'Visual: '; font-weight: bold; color: #8b5cf6; margin-right: 0.5rem; }
+      
+      CONTENT { display: block; margin: 0.5rem 0; }
+      /* CONTENT::before { content: 'Content: '; display: block; font-weight: bold; color: #6b7280; font-size: 0.8em; } */
+      
+      NOTES { 
+        display: block; 
+        background: ${theme === 'dark' ? 'rgba(245, 158, 11, 0.1)' : '#fffbeb'}; 
+        padding: 0.5rem; 
+        border-left: 3px solid #f59e0b; 
+        font-size: 0.9em;
+      }
+      NOTES::before { content: 'Speaker Notes: '; font-weight: bold; color: #f59e0b; display: block; margin-bottom: 0.25rem; }
+
       @media (max-width: 640px) {
         body {
           padding: 1rem;

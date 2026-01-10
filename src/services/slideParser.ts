@@ -32,9 +32,9 @@ const DEFAULT_LAYOUT: SlideLayoutId = 'LAYOUT_EXPLAINER';
 /**
  * The Bridge: Transforms raw Markdown into Structured SlideState
  */
-export const parseSlidesFromMarkdown = (markdown: string): SlideState[] => {
+export const parseSlidesFromMarkdown = (markdown: string, language: string = 'en'): SlideState[] => {
   // Use existing robust parser to get sections
-  const sections = parseContentSections(markdown);
+  const sections = parseContentSections(markdown, language);
 
   return sections.map((section, index) => {
     // 1. Determine Layout

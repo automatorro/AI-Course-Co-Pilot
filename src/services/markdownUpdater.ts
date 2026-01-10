@@ -1,11 +1,16 @@
 import { SlideState, SlideLayoutId } from '../types/slideState';
 import TurndownService from 'turndown';
+import { getParsingKeywords } from '../lib/slideParsingLocales';
 
 // Helper to check if a line is a slide start
-const isSlideStart = (line: string, hasSlideMarkers: boolean) => {
+const isSlideStart = (line: string, hasSlideMarkers: boolean, language: string = 'en') => {
     const trimmed = line.trim();
+    const keywords = getParsingKeywords(language);
+    const slideIdentifierPattern = keywords.slideIdentifier.join('|');
+    
     // Updated regex to match exportService.ts (allow brackets/parens around number)
-    const slideMatch = trimmed.match(/^(\*\*|#+)?\s*(Slide|幻灯片)\s*(nr\.|#)?\s*[\[\(]?\d+[\]\)]?(?:\s*[:：]\s*(.+?))?(\*\*|#+)?$/i) || trimmed.match(/^<SLIDE_BEGIN\s+id="[^"]+">/i);
+    const slideMatchRegex = new RegExp(`^(\\*\\*|#+)?\\s*(${slideIdentifierPattern})\\s*(nr\\.|#)?\\s*[\\[\\(]?\\d+[\\]\\)]?(?:\\s*[:：]\\s*(.+?))?(\\*\\*|#+)?$`, 'i');
+    const slideMatch = trimmed.match(slideMatchRegex) || trimmed.match(/^<SLIDE_BEGIN\s+id="[^"]+">/i);
     if (slideMatch) return true;
     if (hasSlideMarkers) return false;
     const isHeading = /^#{1,6}\s+/.test(trimmed);
@@ -17,10 +22,15 @@ export const updateSlideLayoutInMarkdown = (
     markdown: string, 
     slideIndex: number, 
     layoutId: SlideLayoutId,
-    slideTitle?: string
+    slideTitle?: string,
+    language: string = 'en'
 ): string => {
     const lines = markdown.split('\n');
-    const hasSlideMarkers = lines.some((l: string) => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:|^\s*<SLIDE_BEGIN/i.test(l.trim()));
+    const keywords = getParsingKeywords(language);
+    const slideIdentifierPattern = keywords.slideIdentifier.join('|');
+    const slideMarkerRegex = new RegExp(`^\\s*(\\*\\*|#+)?\\s*(${slideIdentifierPattern})\\s*(nr\\.|#)?\\s*\\d+:|^\\s*<SLIDE_BEGIN`, 'i');
+
+    const hasSlideMarkers = lines.some((l: string) => slideMarkerRegex.test(l.trim()));
     
     let newLines = [...lines];
     let found = false;
@@ -28,7 +38,7 @@ export const updateSlideLayoutInMarkdown = (
     // Strategy A: Index-based lookup (Deterministic)
     let currentIdx = -1;
     for (let i = 0; i < newLines.length; i++) {
-        if (isSlideStart(newLines[i], hasSlideMarkers)) {
+        if (isSlideStart(newLines[i], hasSlideMarkers, language)) {
             currentIdx++;
             if (currentIdx === slideIndex) {
                 found = true;
@@ -40,7 +50,7 @@ export const updateSlideLayoutInMarkdown = (
                         metaIdx = i + k;
                         break;
                     }
-                    if (isSlideStart(newLines[i+k], hasSlideMarkers)) break;
+                    if (isSlideStart(newLines[i+k], hasSlideMarkers, language)) break;
                 }
 
                 const token = layoutId.replace('LAYOUT_', '');
@@ -58,12 +68,12 @@ export const updateSlideLayoutInMarkdown = (
 
     // Strategy B: Title-based fallback (Legacy)
     if (!found && slideTitle) {
-        const norm = (s: string) => s.toLowerCase().trim().replace(/[*#]/g, '').replace(/^slide\s*\d+[:.]?\s*/i, '');
+        const norm = (s: string) => s.toLowerCase().trim().replace(/[*#]/g, '').replace(new RegExp(`^(${slideIdentifierPattern})\\s*\\d+[:.]?\\s*`, 'i'), '');
         const target = norm(slideTitle);
 
         for (let i = 0; i < newLines.length; i++) {
             const line = newLines[i];
-            if (isSlideStart(line, hasSlideMarkers)) {
+            if (isSlideStart(line, hasSlideMarkers, language)) {
                 let lineContent = line.trim().replace(/^#{1,6}\s+/, '').replace(/^\*\*/, '').replace(/\*\*$/, '');
                 
                 // XML Title Extraction
@@ -88,7 +98,7 @@ export const updateSlideLayoutInMarkdown = (
                             metaIdx = i + k;
                             break;
                         }
-                        if (isSlideStart(newLines[i+k], hasSlideMarkers)) break;
+                        if (isSlideStart(newLines[i+k], hasSlideMarkers, language)) break;
                     }
 
                     const token = layoutId.replace('LAYOUT_', '');
@@ -148,13 +158,16 @@ export const htmlToMarkdownWithComments = (html: string): string => {
 
 export const serializeSlideStateToMarkdown = (
     slide: SlideState,
-    options: { useSlideMarkers?: boolean, slideIndex?: number } = {}
+    options: { useSlideMarkers?: boolean, slideIndex?: number, language?: string } = {}
 ): string => {
     let md = '';
+    const language = options.language || 'en';
+    const keywords = getParsingKeywords(language);
+    const primarySlideId = keywords.slideIdentifier[0] || 'Slide';
     
     // 1. Title
     if (options.useSlideMarkers && options.slideIndex !== undefined) {
-        md += `**Slide ${options.slideIndex + 1}: ${slide.content.title}**\n\n`;
+        md += `**${primarySlideId} ${options.slideIndex + 1}: ${slide.content.title}**\n\n`;
     } else {
         md += `## ${slide.content.title}\n\n`;
     }
@@ -217,10 +230,15 @@ export const serializeSlideStateToMarkdown = (
 export const updateSlideInMarkdown = (
     originalMarkdown: string,
     slideIndex: number,
-    newSlideState: SlideState
+    newSlideState: SlideState,
+    language: string = 'en'
 ): string => {
     const lines = originalMarkdown.split('\n');
-    const hasSlideMarkers = lines.some((l: string) => /^\s*(\*\*|#+)?\s*Slide\s*(nr\.|#)?\s*\d+:|^\s*<SLIDE_BEGIN/i.test(l.trim()));
+    const keywords = getParsingKeywords(language);
+    const slideIdentifierPattern = keywords.slideIdentifier.join('|');
+    const slideMarkerRegex = new RegExp(`^\\s*(\\*\\*|#+)?\\s*(${slideIdentifierPattern})\\s*(nr\\.|#)?\\s*\\d+:|^\\s*<SLIDE_BEGIN`, 'i');
+
+    const hasSlideMarkers = lines.some((l: string) => slideMarkerRegex.test(l.trim()));
     
     let currentIdx = -1;
     let startLine = -1;
@@ -228,7 +246,7 @@ export const updateSlideInMarkdown = (
 
     // Find slide bounds
     for (let i = 0; i < lines.length; i++) {
-        if (isSlideStart(lines[i], hasSlideMarkers)) {
+        if (isSlideStart(lines[i], hasSlideMarkers, language)) {
             currentIdx++;
             if (currentIdx === slideIndex) {
                 startLine = i;
@@ -245,7 +263,8 @@ export const updateSlideInMarkdown = (
     // Generate new slide markdown
     const newSlideMd = serializeSlideStateToMarkdown(newSlideState, { 
         useSlideMarkers: hasSlideMarkers, 
-        slideIndex: slideIndex 
+        slideIndex: slideIndex,
+        language: language
     });
     
     // Replace content
