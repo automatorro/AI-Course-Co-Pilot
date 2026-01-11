@@ -11,7 +11,7 @@ import { SlideState } from '../types/slideState';
 
 import { refineCourseContent } from '../services/geminiService';
 import { supabase } from '../services/supabaseClient';
-import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ArrowLeft, ArrowRight, Upload, Replace, History, PanelLeft } from 'lucide-react';
+import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ArrowLeft, ArrowRight, Upload, Replace, History, PanelLeft, Eye, Layout } from 'lucide-react';
 import BlueprintEditModal from '../components/BlueprintEditModal';
 import BlueprintRefineModal from '../components/BlueprintRefineModal';
 import { exportCourseAsZip, exportCourseAsPptx, exportCourseAsPdf, formatToCanonicalSlides } from '../services/exportService';
@@ -110,12 +110,15 @@ const CourseWorkspacePage: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [course, setCourse] = useState<Course | null>(null);
+
   const [userCourses, setUserCourses] = useState<Array<{ id: string; title: string }>>([]);
   const [activeStepIndex, setActiveStepIndex] = useState(() => {
     if (!id) return 0;
     const saved = sessionStorage.getItem(`course_tab_${id}`);
     return saved ? parseInt(saved, 10) : 0;
   });
+
+  const currentStep = course?.steps?.[activeStepIndex]; // Define currentStep early
 
   useEffect(() => {
     if (id) {
@@ -183,6 +186,9 @@ const CourseWorkspacePage: React.FC = () => {
   
   // New state for staging remote files
   const [stagingFile, setStagingFile] = useState<{ url: string; type: string; name: string } | null>(null);
+  
+  // Direct content override for Design Studio (bypasses editor state race conditions)
+  const [directPreviewContent, setDirectPreviewContent] = useState<string | null>(null);
 
   const resolveTokensForPreview = useCallback((md: string) => {
     return md.replace(/!\[([^\]]*)\]\(@img\{([^}]+)\}\)/g, (_m, alt, id) => {
@@ -816,12 +822,30 @@ const CourseWorkspacePage: React.FC = () => {
     try {
       // Removed blocking check for critical issues to allow user to proceed
       if (format === 'pptx') {
-        const { data: freshCourse } = await supabase
-          .from('courses')
-          .select('*, steps:course_steps(*)')
-          .eq('id', course.id)
-          .single();
-        await exportCourseAsPptx((freshCourse as unknown as Course) || course);
+        // Redirect to Design Studio (Visual Orchestrator)
+        const slidesIndex = (course.steps || []).findIndex(s => s.title_key.includes('slides') || s.title_key.includes('livrables.slides'));
+        
+        if (slidesIndex !== -1) {
+          const slidesContent = course.steps[slidesIndex].content;
+
+          // DIRECT OVERRIDE: Set content immediately for Design Studio
+          setDirectPreviewContent(slidesContent || '');
+          setShowSlidesPreview(true);
+
+          // Update editor in background
+          if (activeStepIndex !== slidesIndex) {
+              setActiveStepIndex(slidesIndex);
+              userHasInteractedRef.current = true;
+          }
+        } else {
+             // Fallback if no slides step found (should not happen in standard courses)
+             const { data: freshCourse } = await supabase
+              .from('courses')
+              .select('*, steps:course_steps(*)')
+              .eq('id', course.id)
+              .single();
+            await exportCourseAsPptx((freshCourse as unknown as Course) || course);
+        }
       } else if (format === 'pdf') {
         await exportCourseAsPdf(course);
       } else if (format === 'zip') {
@@ -1162,8 +1186,6 @@ const CourseWorkspacePage: React.FC = () => {
   };
 
 
-
-  const currentStep = course?.steps?.[activeStepIndex];
 
   // Phase 1.4: Handler for LO Generator completion
   const handleLOComplete = async () => {
@@ -1635,16 +1657,28 @@ const CourseWorkspacePage: React.FC = () => {
                 </button>
               <button
                 onClick={async () => {
-                  const step = currentStep;
-                  const canonical = formatToCanonicalSlides(step?.content || '');
-                  const html = marked.parse(canonical || '', { breaks: true }) as string;
-                  setEditedContent(html);
-                  setShowSlidesPreview(true);
+                  const isSlidesStep = currentStep?.title_key?.includes('slides') || currentStep?.title_key?.includes('livrables.slides');
+                  
+                  if (isSlidesStep) {
+                      const step = currentStep;
+                      const canonical = formatToCanonicalSlides(step?.content || '');
+                      const html = marked.parse(canonical || '', { breaks: true }) as string;
+                      setEditedContent(html);
+                      setShowSlidesPreview(true);
+                  } else {
+                      // For non-slides, just switch to preview tab
+                      setActiveTab('preview');
+                  }
                 }}
-                className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white bg-red-600 border border-red-600 hover:bg-red-700 dark:bg-red-700 dark:border-red-700 dark:hover:bg-red-600"
-                title="Previzualizează slide-urile"
+                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white border transition-colors ${
+                    (currentStep?.title_key?.includes('slides') || currentStep?.title_key?.includes('livrables.slides'))
+                    ? 'bg-indigo-600 border-indigo-600 hover:bg-indigo-700 dark:bg-indigo-700 dark:border-indigo-700 dark:hover:bg-indigo-600'
+                    : 'bg-gray-600 border-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600'
+                }`}
+                title={(currentStep?.title_key?.includes('slides') || currentStep?.title_key?.includes('livrables.slides')) ? "Design Slides (Visual Editor)" : "Preview Content (Read-only)"}
               >
-                <Pilcrow size={16} /> Preview
+                {(currentStep?.title_key?.includes('slides') || currentStep?.title_key?.includes('livrables.slides')) ? <Layout size={16} /> : <Eye size={16} />}
+                {(currentStep?.title_key?.includes('slides') || currentStep?.title_key?.includes('livrables.slides')) ? "Design Slides" : "Preview"}
               </button>
             </div>
             <div className="flex gap-2 w-full sm:w-auto justify-end">
@@ -1807,9 +1841,18 @@ const CourseWorkspacePage: React.FC = () => {
       {showSlidesPreview && course && (
         <VisualOrchestrator
             isOpen={showSlidesPreview}
-            onClose={() => setShowSlidesPreview(false)}
+            onClose={() => {
+                setShowSlidesPreview(false);
+                setDirectPreviewContent(null);
+            }}
             course={course}
             initialMarkdown={(() => {
+                // 1. Direct override (Export from non-slides)
+                if (directPreviewContent) {
+                    return directPreviewContent;
+                }
+
+                // 2. Editor content (Standard flow)
                 const content = editedContent || '';
                 if (/<[a-z][\s\S]*>/i.test(content)) {
                     return htmlToMarkdownWithComments(content);

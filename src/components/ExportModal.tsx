@@ -94,9 +94,9 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, onExport, is
                             <Presentation size={24} />
                         </div>
                         <div className="ml-4 text-left">
-                            <h4 className="font-bold text-gray-900 dark:text-white">PowerPoint (.pptx){isEnabled('newPptxExporter') ? ' — Beta' : ''}</h4>
+                            <h4 className="font-bold text-gray-900 dark:text-white">PowerPoint (.pptx)</h4>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {t('export.pptx.subtitle') || (hasCritical ? 'Atenție: Probleme critice detectate, dar poți exporta.' : (isEnabled('newPptxExporter') ? 'New deterministic exporter' : 'Legacy exporter'))}
+                                {t('export.pptx.subtitle') || 'Open Design Studio to review and export slides'}
                             </p>
                         </div>
                     </button>

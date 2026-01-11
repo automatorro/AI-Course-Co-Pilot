@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Course } from '../types';
 import { SlideState } from '../types/slideState';
 import { parseSlidesFromMarkdown } from '../services/slideParser';
-import { Download, Save, Image as ImageIcon, Layout } from 'lucide-react';
+import { Download, Image as ImageIcon, Layout } from 'lucide-react';
 import { useTranslation } from '../contexts/I18nContext';
 import { exportSlidesAsPptx } from '../services/exportService';
 import ImageSearchModal from './ImageSearchModal';
@@ -635,15 +635,8 @@ const VisualOrchestrator: React.FC<VisualOrchestratorProps> = ({
             {t('common.cancel') || 'Cancel'}
           </button>
           
-          {onSave && (
-            <button 
-              onClick={() => onSave(slides)}
-              className="px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all shadow-sm hover:shadow active:scale-95"
-            >
-              <Save size={12} />
-              {t('common.save') || 'Save'}
-            </button>
-          )}
+          {/* Save button removed to prevent content corruption - Design Studio is now layout-only for export */}
+          
           <button 
             onClick={handleExport}
             disabled={isExporting}
@@ -661,24 +654,24 @@ const VisualOrchestrator: React.FC<VisualOrchestratorProps> = ({
       </header>
 
       {/* MAIN BODY - Optimized for Mobile (Vertical Stack) & Desktop (3-Column) */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         
         {/* LEFT SIDEBAR - SLIDES */}
         {/* Desktop: Vertical Left Sidebar. Mobile: Bottom Horizontal Strip (Moved to bottom of markup visually via order-last on mobile) */}
         {/* Reduced width from w-48 to w-40 (160px) to save space */}
         {/* Increased mobile height from h-20 to h-32 to make it more usable as requested */}
-        <div className="order-3 lg:order-1 w-full lg:w-40 bg-white dark:bg-gray-800 border-t lg:border-t-0 lg:border-r border-gray-200 dark:border-gray-700 flex flex-row lg:flex-col h-32 lg:h-auto shrink-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] lg:shadow-none">
-          <div className="hidden lg:flex p-3 border-b border-gray-200 dark:border-gray-700 items-center justify-between">
+        <div className="order-3 md:order-1 w-full md:w-40 bg-white dark:bg-gray-800 border-t md:border-t-0 md:border-r border-gray-200 dark:border-gray-700 flex flex-row md:flex-col h-32 md:h-auto shrink-0 z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] md:shadow-none">
+          <div className="hidden md:flex p-3 border-b border-gray-200 dark:border-gray-700 items-center justify-between">
             <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
                 <Layout size={10} /> Slides ({slides.length})
             </h3>
           </div>
-          <div className="flex-1 overflow-x-auto lg:overflow-y-auto p-2 flex lg:flex-col gap-2 scrollbar-thin lg:scrollbar-thin [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:bg-gray-400 dark:[&::-webkit-scrollbar-thumb]:bg-gray-500 [&::-webkit-scrollbar-track]:bg-gray-100 dark:[&::-webkit-scrollbar-track]:bg-gray-800 [&::-webkit-scrollbar-thumb]:rounded-full">
+          <div className="flex-1 overflow-x-auto md:overflow-y-auto p-2 flex md:flex-col gap-2 scrollbar-thin md:scrollbar-thin [&::-webkit-scrollbar]:h-2.5 [&::-webkit-scrollbar-thumb]:bg-gray-400 dark:[&::-webkit-scrollbar-thumb]:bg-gray-500 [&::-webkit-scrollbar-track]:bg-gray-100 dark:[&::-webkit-scrollbar-track]:bg-gray-800 [&::-webkit-scrollbar-thumb]:rounded-full">
             {slides.map((slide, idx) => (
               <div 
                 key={slide.id}
                 onClick={() => setActiveSlideIndex(idx)}
-                className={`flex-shrink-0 lg:flex-shrink w-28 lg:w-auto p-1.5 rounded-lg border cursor-pointer transition-all group ${
+                className={`flex-shrink-0 md:flex-shrink w-28 md:w-auto p-1.5 rounded-lg border cursor-pointer transition-all group ${
                   idx === activeSlideIndex 
                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500 shadow-sm' 
                     : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 hover:bg-gray-50'
@@ -701,9 +694,9 @@ const VisualOrchestrator: React.FC<VisualOrchestratorProps> = ({
         </div>
 
         {/* CENTER - CANVAS */}
-        {/* Reduced padding (lg:p-6 -> lg:p-4) to maximize canvas space */}
+        {/* Reduced padding (md:p-6 -> md:p-4) to maximize canvas space */}
         {/* Mobile: Removed flex-1 so it doesn't force a gap between slide and tools. Added shrink-0. */}
-        <div className="order-1 lg:order-2 w-full lg:flex-1 shrink-0 bg-gray-100/50 dark:bg-gray-900 overflow-y-auto p-2 lg:p-4 flex flex-col items-center justify-start lg:justify-center relative">
+        <div className="order-1 md:order-2 w-full md:flex-1 shrink-0 bg-gray-100/50 dark:bg-gray-900 overflow-y-auto p-2 md:p-4 flex flex-col items-center justify-start md:justify-center relative">
             
             {/* Slide Canvas - Expanded max-width */}
             <div className="w-full max-w-7xl">
@@ -726,7 +719,7 @@ const VisualOrchestrator: React.FC<VisualOrchestratorProps> = ({
             </div>
 
             {/* Mobile-only Hint */}
-            <div className="lg:hidden mt-2 text-[10px] text-gray-400 font-medium text-center">
+            <div className="md:hidden mt-2 text-[10px] text-gray-400 font-medium text-center">
                 Use tools below to edit • Scroll right for more slides
             </div>
         </div>
@@ -734,7 +727,7 @@ const VisualOrchestrator: React.FC<VisualOrchestratorProps> = ({
         {/* RIGHT SIDEBAR - TOOLS */}
         {/* Desktop: Right Vertical. Mobile: Below Canvas (Order 2) */}
         {/* Extremely narrow width (w-28) to maximize canvas */}
-        <div className="order-2 lg:order-3 w-full lg:w-28 bg-white dark:bg-gray-800 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 flex flex-col lg:shrink-0 flex-1 lg:flex-none h-auto lg:h-auto overflow-y-auto z-10 lg:max-h-none scrollbar-thin [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-track]:bg-transparent">
+        <div className="order-2 md:order-3 w-full md:w-28 bg-white dark:bg-gray-800 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 flex flex-col md:shrink-0 flex-1 md:flex-none h-auto md:h-auto overflow-y-auto z-10 md:max-h-none scrollbar-thin [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-gray-600 [&::-webkit-scrollbar-track]:bg-transparent">
             
             {/* 1. Layout Selector */}
             <div className="p-2 border-b border-gray-100 dark:border-gray-700">

@@ -313,8 +313,8 @@
   "footer.home": "Acasă",
   "footer.pricing": "Prețuri"
   ,
-  "export.pptx.subtitle": "Descarcă doar setul de slide-uri (PPTX)",
-  "export.pdf.subtitle": "Descarcă manualul cursului în PDF (în curând)",
+  "export.pptx.subtitle": "Deschide Design Studio pentru revizuire layout și export PPTX",
+  "export.pdf.subtitle": "Descarcă toate materialele într-un singur fișier PDF",
   "export.zip.subtitle": "Descarcă toate materialele în format DOCX, ca arhivă ZIP",
   "health.ping.ok": "Edge conectat",
   "health.ping.fail": "Ping eșuat",

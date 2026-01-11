@@ -316,7 +316,7 @@
   "footer.pricing": "Pricing"
   ,
   "export.pptx.subtitle": "Download only the Slides set (PPTX)",
-  "export.pdf.subtitle": "Download course manual as PDF (coming soon)",
+  "export.pdf.subtitle": "Download all materials in a single PDF file",
   "export.zip.subtitle": "Download all materials as DOCX inside a ZIP",
   "health.ping.ok": "Edge connected",
   "health.ping.fail": "Ping failed",
