@@ -793,11 +793,12 @@ const exportCourseAsPptxV2 = async (course: Course): Promise<void> => {
     // 1. Title Slide
     addTitleSlide(pptx, course);
 
-    // 2. Agenda Slide
-    const structureStep = findStepByKey(course, 'structure');
-    const videoScriptStep = findStepByKey(course, 'video_scripts');
-    addAgendaSlide(pptx, course, structureStep, videoScriptStep);
-    const scripts = videoScriptStep ? parseVideoScripts(videoScriptStep.content) : {};
+    // 2. Agenda Slide - REMOVED per user request
+    // const structureStep = findStepByKey(course, 'structure');
+    // const videoScriptStep = findStepByKey(course, 'video_scripts');
+    // addAgendaSlide(pptx, course, structureStep, videoScriptStep);
+    // const scripts = videoScriptStep ? parseVideoScripts(videoScriptStep.content) : {};
+    const scripts = {}; // Initialize empty scripts since we removed the agenda logic block that used it
 
     // 3. Content Slides
     // Only process the specific "Slides" step to avoid including Manual, Quiz, etc.

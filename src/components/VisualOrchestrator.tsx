@@ -500,11 +500,57 @@ const VisualOrchestrator: React.FC<VisualOrchestratorProps> = ({
   // Ingest content on open
   useEffect(() => {
     if (isOpen && initialMarkdown) {
-      const parsed = parseSlidesFromMarkdown(initialMarkdown, course.language);
+      let parsed = parseSlidesFromMarkdown(initialMarkdown, course.language);
+
+      // --- INJECT COVER SLIDE ---
+      const hasCover = parsed.length > 0 && (parsed[0].layoutId === 'LAYOUT_TITLE' || parsed[0].content.title === course.title);
+      if (!hasCover) {
+        parsed = [{
+          id: `slide-cover-${Date.now()}`,
+          layoutId: 'LAYOUT_TITLE',
+          content: {
+            title: course.title,
+            subtitle: course.subject,
+            bullets: []
+          },
+          speakerNotes: 'Welcome to the course!',
+          metadata: {
+            originalIndex: -1,
+            isManuallyEdited: true,
+            isContentEdited: true
+          }
+        }, ...parsed];
+      }
+
+      // --- INJECT RECAP SLIDE ---
+      const hasRecap = parsed.length > 0 && (parsed[parsed.length - 1].layoutId === 'LAYOUT_SUMMARY' || parsed[parsed.length - 1].content.title === 'Recapitulare');
+      if (!hasRecap) {
+        parsed = [...parsed, {
+          id: `slide-recap-${Date.now()}`,
+          layoutId: 'LAYOUT_SUMMARY',
+          content: {
+            title: 'Recapitulare',
+            subtitle: 'Concluzii',
+            bullets: [
+                'Mulțumim pentru participare!',
+                'Continuați cu proiectele practice',
+                'Descărcați cheat sheet-ul',
+                'Succes!'
+            ]
+          },
+          speakerNotes: 'Thank you for participating.',
+          metadata: {
+            originalIndex: 9999,
+            isManuallyEdited: true,
+            isContentEdited: true
+          }
+        }];
+      }
+
       setSlides(parsed);
       setActiveSlideIndex(0);
     }
-  }, [isOpen, initialMarkdown, course.language]);
+  }, [isOpen, initialMarkdown, course.language, course.title, course.subject]);
 
   if (!isOpen) return null;
 
