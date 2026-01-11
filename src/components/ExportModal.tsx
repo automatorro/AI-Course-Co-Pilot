@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FileText, Presentation, FileArchive, X } from 'lucide-react';
 import { useTranslation } from '../contexts/I18nContext';
-import { FeatureFlags } from '../config/featureFlags';
 import { Course } from '../types';
 import { getSlideModelsForPreview, getPedagogicWarnings } from '../services/exportService';
 
