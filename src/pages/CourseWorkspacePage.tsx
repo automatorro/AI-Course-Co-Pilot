@@ -826,7 +826,7 @@ const CourseWorkspacePage: React.FC = () => {
         const slidesIndex = (course.steps || []).findIndex(s => s.title_key.includes('slides') || s.title_key.includes('livrables.slides'));
         
         if (slidesIndex !== -1) {
-          const slidesContent = course.steps[slidesIndex].content;
+          const slidesContent = course.steps?.[slidesIndex]?.content;
 
           // DIRECT OVERRIDE: Set content immediately for Design Studio
           setDirectPreviewContent(slidesContent || '');

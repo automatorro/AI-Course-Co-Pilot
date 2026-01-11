@@ -489,7 +489,7 @@ const VisualOrchestrator: React.FC<VisualOrchestratorProps> = ({
   onClose,
   course,
   initialMarkdown,
-  onSave
+  // onSave - removed to prevent content corruption
 }) => {
   const { t } = useTranslation();
   const [slides, setSlides] = useState<SlideState[]>([]);
