@@ -20,9 +20,16 @@ const HomePage: React.FC = () => {
   const [pricingError, setPricingError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [particles, setParticles] = useState<Array<{top: string, left: string, delay: string, duration: string}>>([]);
 
   useEffect(() => {
     setIsVisible(true);
+    setParticles([...Array(15)].map(() => ({
+      top: `${Math.random() * 100}%`,
+      left: `${Math.random() * 100}%`,
+      delay: `${Math.random() * 5}s`,
+      duration: `${15 + Math.random() * 10}s`
+    })));
 
     // Observer for scroll animations
     const observerOptions = {
@@ -91,15 +98,15 @@ const HomePage: React.FC = () => {
       
       {/* Floating Particles */}
       <div className="stg-particles fixed inset-0 z-0">
-        {[...Array(15)].map((_, i) => (
+        {particles.map((style, i) => (
           <div 
             key={i}
             className="stg-particle"
             style={{
-              top: `${Math.random() * 100}%`,
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${15 + Math.random() * 10}s`
+              top: style.top,
+              left: style.left,
+              animationDelay: style.delay,
+              animationDuration: style.duration
             }}
           />
         ))}
