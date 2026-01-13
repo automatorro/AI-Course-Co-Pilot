@@ -11,12 +11,17 @@ interface I18nContextType {
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 export const I18nProvider: React.FC<{ children: React.ReactNode; initialTranslations?: { [key: string]: Translations } }> = ({ children, initialTranslations }) => {
-  const [language, setLanguage] = useState(() => {
+  const [language, setLanguage] = useState('en');
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('language') || 'en';
+        const saved = localStorage.getItem('language');
+        if (saved && saved !== 'en') {
+            setLanguage(saved);
+        }
     }
-    return 'en';
-  });
+  }, []);
+
   const [translations, setTranslations] = useState<{ [key: string]: Translations } | null>(initialTranslations || null);
 
   useEffect(() => {
@@ -69,8 +74,10 @@ export const I18nProvider: React.FC<{ children: React.ReactNode; initialTranslat
     return result;
   }, [language, translations]);
 
-  if (!translations) {
-    return null; // Or a loading indicator
+  if (!translations && typeof window === 'undefined' && !initialTranslations) {
+     // On server without initialTranslations, we should still render children 
+     // to avoid empty HTML, even if text is just keys.
+     // But ideally, getStaticProps should provide them.
   }
 
   return (

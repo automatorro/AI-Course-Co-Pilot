@@ -3,7 +3,16 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['lucide-react'],
   images: {
-    unoptimized: true, // For now, to simplify migration if we use standard img tags or if Vercel constraints apply
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'api.dicebear.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+    ],
   },
 };
 

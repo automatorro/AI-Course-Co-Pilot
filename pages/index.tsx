@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
+import { GetStaticProps } from 'next';
 import PricingTableNext from '../src/components/PricingTableNext';
 import { useAuth } from '../src/contexts/AuthContext';
 import { useTranslation } from '../src/contexts/I18nContext';
@@ -108,7 +110,7 @@ const HomePage: React.FC = () => {
         <div className="container mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           
           {/* Hero Content */}
-          <div className={`transition-all duration-1000 transform ${isVisible ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0'}`}>
+          <div className="transition-all duration-1000 transform translate-x-0 opacity-100">
             
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-ink-900 dark:text-white leading-tight mb-6">
               <span className="block">{t('homepage.hero.title1', { defaultValue: 'Course' })}</span>
@@ -133,8 +135,14 @@ const HomePage: React.FC = () => {
             <div className="flex items-center gap-8 pt-4">
               <div className="flex -space-x-4">
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="w-10 h-10 rounded-full border-2 border-white dark:border-ink-900 bg-gray-200 dark:bg-ink-700 flex items-center justify-center overflow-hidden">
-                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i+10}`} alt="User" />
+                  <div key={i} className="w-10 h-10 rounded-full border-2 border-white dark:border-ink-900 bg-gray-200 dark:bg-ink-700 flex items-center justify-center overflow-hidden relative">
+                    <Image 
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i+10}`} 
+                      alt="User" 
+                      width={40} 
+                      height={40}
+                      className="object-cover"
+                    />
                   </div>
                 ))}
                 <div className="w-10 h-10 rounded-full border-2 border-white dark:border-ink-900 bg-accent-100 dark:bg-accent-900 flex items-center justify-center text-xs font-bold text-accent-700 dark:text-accent-300">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import NextImage from 'next/image';
 import { useRouter } from 'next/router';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,7 +14,6 @@ const HeaderNext: React.FC = () => {
   const { t, language, setLanguage } = useTranslation();
   const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -48,19 +48,23 @@ const HeaderNext: React.FC = () => {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0 flex items-center gap-2">
-               {(!imageLoaded || imageError) && (
-                  <div className={`flex items-center gap-2 text-primary-600 dark:text-primary-400 ${imageLoaded && !imageError ? 'hidden' : ''}`}>
+               {imageError && (
+                  <div className="flex items-center gap-2 text-primary-600 dark:text-primary-400">
                      <BookOpen size={28}/>
                      <span className="font-display tracking-tight text-2xl font-bold">{t('header.title')}</span>
                   </div>
                )}
-               <img 
-                 src="/logo-cc.png" 
-                 alt="CourseCopilot Logo" 
-                 className={`h-10 w-auto ${!imageLoaded || imageError ? 'hidden' : 'block'}`}
-                 onLoad={() => setImageLoaded(true)}
-                 onError={() => setImageError(true)}
-               />
+               {!imageError && (
+                 <NextImage 
+                   src="/logo-cc.png" 
+                   alt="CourseCopilot Logo" 
+                   width={150}
+                   height={40}
+                   className="h-10 w-auto"
+                   priority
+                   onError={() => setImageError(true)}
+                 />
+               )}
             </Link>
           </div>
           <div className="flex items-center gap-4">
