@@ -1012,11 +1012,14 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                                             
                                             <button 
                                                 onClick={() => setShowRegenerateConfirm(true)} 
-                                                className="btn-premium-sm w-full sm:w-auto opacity-90 hover:opacity-100"
+                                                className={`btn-premium-sm w-full sm:w-auto ${regenerateAttempts >= 1 ? 'bg-slate-400 cursor-not-allowed opacity-70' : 'opacity-90 hover:opacity-100'}`}
                                                 disabled={regenerateAttempts >= 1}
-                                                title={regenerateAttempts >= 1 ? "Limita de regenerare atinsă" : ""}
+                                                title={regenerateAttempts >= 1 ? safeT('validation.limitReached', "Limita de regenerare atinsă") : ""}
                                             >
-                                                {safeT('validation.actions.regenerateAffected', 'Regenerează livrabilele afectate')}
+                                                {regenerateAttempts >= 1 
+                                                    ? safeT('validation.limitReachedButton', "Limita atinsă (1/1)") 
+                                                    : safeT('validation.actions.regenerateAffected', 'Regenerează livrabilele afectate')
+                                                }
                                             </button>
                                         </div>
                                     )}

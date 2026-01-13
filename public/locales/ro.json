@@ -109,7 +109,10 @@
   "validation.actions.retry": "Regenerează",
   "validation.actions.dismiss": "Ascunde raportul"
   ,"validation.actions.saveDraft": "Salvează ca draft"
-  ,"validation.actions.regenerateAffected": "Regenerează livrabilele afectate"
+  ,"validation.confirmRegenerate": "Această acțiune va regenera livrabilele care prezintă neconcordanțe. Această operațiune poate fi efectuată O SINGURĂ DATĂ și va consuma tokeni suplimentari. Sigur doriți să continuați?"
+  ,"validation.actions.regenerateAffected": "Regenerează livrabilele afectate (O SINGURĂ DATĂ)",
+  "validation.limitReachedButton": "Limita atinsă (1/1)"
+  ,"validation.limitReached": "Limita de regenerare a fost atinsă (max. 1). Vă rugăm să salvați cursul și să faceți editări manuale dacă este necesar."
   ,"validation.actions.autoFixWorkbook": "Auto‑fix durate Workbook"
   ,"course.livrables.structure": "Structură completă",
   "course.livrables.examples": "Exemple și studii de caz",

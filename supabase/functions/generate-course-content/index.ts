@@ -2826,6 +2826,16 @@ serve(async (req) => {
              } else {
                  text = await generateContent(prompt, isJsonMode, genAI, supabase, userId, step_type || action || 'unknown_step');
              }
+
+             // --- CLEANUP: Strip Markdown from Slides ---
+             if (normalizedStepType === 'slides' && text) {
+                 console.log(`[Cleanup] Stripping Markdown from slides (length before: ${text.length})...`);
+                 // Remove markdown code blocks (```xml ... ```) and potential markdown wrappers
+                 text = text.replace(/```xml/gi, '')
+                            .replace(/```markdown/gi, '')
+                            .replace(/```/g, '')
+                            .trim();
+             }
              
              // Save to cache (standard only)
              if (text && text.length > 20 && !isIterative) {

@@ -45,9 +45,17 @@ export const detectNonLocalizedFragments = (text: string, languageCode: string) 
 export const extractModuleTitles = (text: string): string[] => {
   const lines = text.split(/\r?\n/);
   const titles: string[] = [];
-  const modRegex = /^(?:Modul(?:ul)?\s*)(\d+)\s*:\s*(.+)$/i;
+  // Expanded regex to catch:
+  // - Optional markdown bold/header (** or #)
+  // - "Modul", "Module", "Section", "Sesiunea"
+  // - Separators: :, ., -, –
+  // - Captures the title content
+  const modRegex = /^(?:(?:\*\*|#+\s*)?)(?:Modul(?:ul)?|Module|Section|Sesiunea)\s+(\d+)\s*[:.\-–\)]\s*(.+?)(?:\*\*|$)/i;
+  
   for (const line of lines) {
-    const m = line.match(modRegex);
+    // Strip common markdown wrappers for cleaner matching
+    const cleanLine = line.replace(/^\s*[-*]\s+/, '').trim(); 
+    const m = cleanLine.match(modRegex);
     if (m) {
       titles.push(m[2].trim());
     }
@@ -89,11 +97,13 @@ export const alignWorkbookDurationsByStructure = (structureText: string, workboo
   if (structureTitles.length === 0 || structureDurations.length === 0) return workbookText;
 
   const lines = workbookText.split(/\r?\n/);
-  const modRegex = /^(?:Modul(?:ul)?\s*)(\d+)\s*:\s*(.+)$/i;
+  // Match same robust pattern as extractModuleTitles
+  const modRegex = /^(?:(?:\*\*|#+\s*)?)(?:Modul(?:ul)?|Module|Section|Sesiunea)\s+(\d+)\s*[:.\-–\)]\s*(.+?)(?:\*\*|$)/i;
   const durRegex = /\((\d+)\s*(?:oră|ore)\)/i;
 
   const outLines = lines.map(line => {
-    const m = line.match(modRegex);
+    const cleanLine = line.replace(/^\s*[-*]\s+/, '').trim();
+    const m = cleanLine.match(modRegex);
     if (!m) return line;
     const idx = parseInt(m[1], 10) - 1;
     const targetDuration = structureDurations[idx];
