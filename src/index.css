@@ -98,6 +98,136 @@
     background: radial-gradient(1000px 500px at 20% 10%, rgba(50,205,50,0.18) 0%, rgba(255,255,255,0) 60%),
                 radial-gradient(900px 450px at 90% 0%, rgba(20,184,166,0.18) 0%, rgba(255,255,255,0) 60%);
   }
+
+  /* --- STG ANIMATIONS (Restored & Optimized) --- */
+  
+  .stg-mesh-bg {
+    background: radial-gradient(at 0% 0%, rgba(var(--accent-600-rgb), 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(var(--accent-600-rgb), 0.15) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, rgba(59, 130, 246, 0.15) 0px, transparent 50%);
+    filter: blur(80px);
+  }
+
+  .stg-gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-600 to-blue-500;
+  }
+
+  .stg-hero-visual {
+    @apply relative;
+    perspective: 1000px;
+  }
+
+  /* Particles */
+  .stg-particles {
+    pointer-events: none;
+  }
+  .stg-particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: currentColor;
+    border-radius: 50%;
+    opacity: 0.1;
+    color: var(--accent-500);
+    animation: float-particle 20s infinite linear;
+  }
+  @keyframes float-particle {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(20px, -20px); }
+    50% { transform: translate(0, -40px); }
+    75% { transform: translate(-20px, -20px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  /* Floating Elements - Optimized for performance */
+  .stg-float-main { animation: stg-float 6s ease-in-out infinite; }
+  .stg-float-secondary-1 { animation: stg-float 8s ease-in-out infinite reverse; }
+  .stg-float-secondary-2 { animation: stg-float 7s ease-in-out infinite 1s; }
+  
+  @keyframes stg-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+  }
+
+  .stg-file-float { animation: stg-float-sm 4s ease-in-out infinite; }
+  @keyframes stg-float-sm {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  /* Pulse Effects */
+  .stg-pulse-ring {
+    animation: stg-pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  @keyframes stg-pulse-ring {
+    0% { transform: scale(0.8); opacity: 0.5; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+  
+  .stg-brain-pulse {
+    animation: stg-brain-pulse 2s infinite;
+  }
+  @keyframes stg-brain-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(var(--accent-600-rgb), 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(var(--accent-600-rgb), 0); }
+    100% { box-shadow: 0 0 0 0 rgba(var(--accent-600-rgb), 0); }
+  }
+
+  /* Tree / Node Animations */
+  .stg-tree-container {
+    @apply relative w-full h-full;
+  }
+  .stg-node-pop {
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .stg-node-pop.in-view {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Slide Deck */
+  .stg-slide-deck {
+    @apply relative;
+    perspective: 1000px;
+  }
+  .stg-slide {
+    @apply absolute w-full h-full transition-all duration-300 ease-out;
+    transform-style: preserve-3d;
+  }
+  .stg-slide-1 { z-index: 4; transform: translateY(0) scale(1); }
+  .stg-slide-2 { z-index: 3; transform: translateY(15px) scale(0.95) translateZ(-20px); opacity: 0.8; }
+  .stg-slide-3 { z-index: 2; transform: translateY(30px) scale(0.9) translateZ(-40px); opacity: 0.6; }
+  .stg-slide-4 { z-index: 1; transform: translateY(45px) scale(0.85) translateZ(-60px); opacity: 0.4; }
+
+  .stg-slide-deck:hover .stg-slide-1 { transform: translateY(-5px); }
+  .stg-slide-deck:hover .stg-slide-2 { transform: translateY(35px) rotate(-1deg); opacity: 0.9; }
+  .stg-slide-deck:hover .stg-slide-3 { transform: translateY(75px) rotate(1deg); opacity: 0.8; }
+  .stg-slide-deck:hover .stg-slide-4 { transform: translateY(115px); opacity: 0.7; }
+
+  /* Layers Animation */
+  .stg-layers-container {
+    @apply relative flex flex-col items-center gap-6;
+  }
+  .stg-connector-line {
+    @apply absolute top-6 bottom-6 left-6 w-0.5 bg-gradient-to-b from-transparent via-accent-500 to-transparent z-0;
+  }
+  .stg-layer {
+    @apply relative z-10 w-full max-w-sm bg-white/90 dark:bg-ink-800/90 backdrop-blur-md 
+           border border-white/50 dark:border-ink-700 rounded-xl p-4 flex items-center gap-4 
+           shadow-lg transition-all duration-300 ease-out translate-x-10 opacity-0;
+  }
+  .stg-layer.in-view {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  
+  /* Mockup Window */
+  .stg-mockup-window {
+    @apply transition-all duration-700 ease-out;
+  }
 }
 
 @layer utilities {

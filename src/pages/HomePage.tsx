@@ -21,6 +21,30 @@ const HomePage: React.FC = () => {
 
   useEffect(() => {
     setIsVisible(true);
+
+    // Observer for scroll animations
+    const observerOptions = {
+      root: null,
+      rootMargin: '0px',
+      threshold: 0.15
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, observerOptions);
+
+    // Select elements to animate
+    const animatedElements = document.querySelectorAll('.stg-node-pop, .stg-layer');
+    animatedElements.forEach(el => observer.observe(el));
+
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   const handleCTA = () => {
@@ -334,7 +358,7 @@ const HomePage: React.FC = () => {
 
                                      {[t('homepage.feature2.module1', { defaultValue: 'Modul 1: Bazele' }), t('homepage.feature2.module2', { defaultValue: 'Modul 2: Echipe' }), t('homepage.feature2.module3', { defaultValue: 'Modul 3: Strategie' })].map((mod, i) => (
                                          <div key={i} className="flex flex-col gap-2">
-                                             <div className="bg-white dark:bg-ink-800 p-3 rounded-lg border border-purple-200 dark:border-purple-800 shadow text-sm font-semibold text-center text-ink-800 dark:text-ink-200 stg-node-pop" style={{animationDelay: `${i * 0.2}s`}}>
+                                             <div className="bg-white dark:bg-ink-800 p-3 rounded-lg border border-purple-200 dark:border-purple-800 shadow text-sm font-semibold text-center text-ink-800 dark:text-ink-200 stg-node-pop" style={{transitionDelay: `${i * 0.15}s`}}>
                                                  {mod}
                                              </div>
                                              <div className="h-4 w-0.5 bg-gray-300 mx-auto" />
