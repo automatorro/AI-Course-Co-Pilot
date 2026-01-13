@@ -1,5 +1,6 @@
 import type { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
+import { Analytics } from '@vercel/analytics/next';
 import { HelmetProvider } from 'react-helmet-async';
 import { ThemeProvider } from '../src/contexts/ThemeContext';
 import { AuthProvider } from '../src/contexts/AuthContext';
@@ -33,6 +34,7 @@ function MyApp({ Component, pageProps }: AppProps) {
                   {!isWorkspaceRoute && <FooterNext />}
                 </div>
               )}
+              <Analytics />
             </HelmetProvider>
           </ToastProvider>
         </AuthProvider>
