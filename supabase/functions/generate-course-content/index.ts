@@ -107,7 +107,7 @@ Să ofere feedback corectiv și recunoaștere folosind modelul SBI (Situation-Be
 - Practică în roleplay cu minimum 3 colegi
 - Primește rating minim 7/10 de la peer pentru claritate și empatie
 `,
-  structure: `
+  structure_live: `
 # Structura Detaliată: Leadership Situațional
 **Total:** 8 ore (09:00 - 17:00, cu pauze)
 
@@ -240,8 +240,69 @@ Participanții bifează în workbook:
 **TOTAL PRACTICĂ:** 230 min (48%)
 **TOTAL PAUZE:** 90 min (19%)
 **TOTAL ADMIN/Q&A:** 45 min (9%)
-`,
-  slides: `
+  `,
+  structure_online: `
+# Structura Detaliată: Leadership Situațional (Online Course)
+**Total:** 2-3 ore video + 2 ore studiu individual
+**Format:** Online Video Course (Self-paced)
+
+---
+
+## 📚 MODUL 1: Fundamentele Leadership-ului Situațional
+**Durată video:** 25 min
+**Obiectiv:** Să înțeleagă că nu există stil "universal" de conducere
+
+---
+
+### Lecția 1.1: Mitul "Stilului Natural" (Video 8 min)
+
+**Obiective de învățare:**
+- Să **analizeze** (Bloom) propriul stil dominant de management
+- Să **definească** (Bloom) cele 4 stiluri de leadership (Directing, Coaching, Supporting, Delegating)
+
+**Conținut:**
+
+#### A. Hook (Video)
+**Narativ:** "Anul trecut, un manager m-a sunat disperat..." (Povestea introductivă adaptată pentru cameră, focus pe durerea privitorului)
+
+#### B. Teoria (Video + Animații)
+- **SLIDE 1:** Matricea Stiluri de Leadership (vizual: 2x2 grid animat)
+- **SLIDE 2:** Când folosești fiecare stil? (Exemple vizuale clare)
+- **SLIDE 3:** Red Flags (Avertismente vizuale pe ecran)
+
+#### C. Exercițiu Reflexiv (Pauză Video)
+**Instrucțiuni pe ecran:**
+"Pune pauză la video acum. Deschide workbook-ul digital la pagina 3. Identifică scenariile..."
+(Timp estimat de lucru individual: 10 min)
+
+---
+
+### Lecția 1.2: Diagnoza Maturității Echipei (Video 12 min)
+
+**Obiective:**
+- Să **clasifice** (Bloom) membrii echipei în D1-D4
+- Să **aplice** (Bloom) instrumentul de diagnoză pe 2 membri reali
+
+**Conținut:**
+- Explicație detaliată D1-D4 cu exemple video (roleplay pre-înregistrat)
+- Quiz interactiv (pop-up în player-ul video dacă e posibil, sau link)
+
+---
+
+## 📊 TABELUL OBLIGATORIU: AGENDĂ CURS ONLINE
+| Modul | Subiect | Format | Durată Video | Activitate Individuală |
+|-------|---------|--------|--------------|------------------------|
+| Intro | Welcome & Context | Video | 5 min | Setare obiective personale |
+| 1.1 | Mitul Stilului Natural | Video | 8 min | Exercițiu Workbook (10 min) |
+| 1.2 | Diagnoza Maturității | Video | 12 min | Analiză Echipă (15 min) |
+| 1.3 | Quiz Modul 1 | Interactiv | - | Test Grilă 10 întrebări |
+| 2.1 | Stilul Directing | Video | 10 min | Studiu de Caz (10 min) |
+| ... | ... | ... | ... | ... |
+
+**TOTAL VIDEO:** ~120 min
+**TOTAL PRACTICĂ INDIVIDUALĂ:** ~120 min
+  `,
+  slides_live: `
 <SLIDE_E id="7">
 <TITLE>De ce eșuează delegarea? 
 (Matematica ascunsă a "Fac eu mai repede")</TITLE>
@@ -279,8 +340,33 @@ E ca și cum ai planta un pom. Primele luni ceri apă, îngrijire, răbdare. Dar
 Următorul slide o să vă arăt exact cum să delegați fără să deveniți micro-manageri. Stay with me.
 </SPEAKER_NOTES>
 <SLIDE_END id="7">
-`,
-  workbook: `
+  `,
+  slides_online: `
+<SLIDE_E id="7">
+<TITLE>De ce eșuează delegarea? (Matematica "Fac eu")</TITLE>
+<!-- slide-layout: VISUAL_EXPLAINER -->
+<VISUAL>
+Animated Split Screen:
+LEFT: Manager drowning in tasks (Red zone). Tasks piling up.
+RIGHT: Manager calm, team working (Green zone). Tasks distributed.
+Overlays: "30 min investment" vs "100 min lost"
+</VISUAL>
+<CONTENT>
+- **Capcană:** "Dacă explic, pierd 30 min."
+- **Realitate:** Task-ul se repetă x20.
+- **Soluție:** Investiția inițială aduce ROI în 2 săptămâni.
+</CONTENT>
+<VOICE_OVER_SCRIPT>
+[Tone: Urgent but analytical]
+Hai să vorbim despre matematică. Uită-te în stânga ecranului. Ăsta ești tu când spui "Fac eu mai repede".
+Pare eficient pe moment. 5 minute vs 30 minute.
+Dar uită-te la graficul din dreapta. Alea 5 minute se adună. În 3 luni, ai pierdut 2 ore.
+Delegarea nu e despre timp pierdut. E despre timp investit.
+Vreau să te gândești la un task pe care l-ai făcut ieri și pe care puteai să-l delegi.
+</VOICE_OVER_SCRIPT>
+<SLIDE_END id="7">
+  `,
+  workbook_live: `
 ## Modulul 3: Gestionarea Conflictelor în Echipă (2 ore)
 
 ### De ce contează acest modul? (The Hook)
@@ -433,7 +519,52 @@ Completează:
 > **Reține 3:** Evitarea conflictului costă mai mult decât gestionarea lui. În medie, un conflict evitat consumă **7 ore/săptămână** din timpul managerului (email-uri, mediere informală, stres).
 
 ---
-`,
+  `,
+  workbook_online: `
+## Modulul 3: Gestionarea Conflictelor în Echipă (Online)
+
+### De ce contează acest modul?
+Conflictele nerezolvate te costă 7 ore pe săptămână. Acest modul te va învăța cum să le rezolvi.
+
+---
+
+### 🎯 EXERCIȚIU PRACTIC 3.1: "Cele 5 De Ce-uri" (Individual)
+
+**Instrucțiuni:**
+1. **Pune pauză la video.**
+2. Gândește-te la o problemă recentă.
+3. Completează tabelul de mai jos în liniște.
+4. **Nu trece mai departe până nu găsești cauza rădăcină.**
+
+**Spațiul tău de lucru:**
+[Input fields for digital PDF]
+
+**Conflictul inițial:**
+_________________________
+
+**De ce 1:**
+_________________________
+
+**De ce 2:**
+_________________________
+
+**De ce 3:**
+_________________________
+
+**De ce 4:**
+_________________________
+
+**De ce 5 (Cauza Rădăcină):**
+_________________________
+
+**Reflecție Personală:**
+Scrie 3 idei principale în jurnalul tău de învățare.
+1. _______________________
+2. _______________________
+3. _______________________
+
+---
+  `,
   case_study: `
 # STUDIU DE CAZ 2.1: "Micro-Management Salvat"
 ## Categoria: Adaptarea Stilului de Leadership
@@ -634,7 +765,7 @@ Laura a avut panic attacks prima săptămână. Asta nu înseamnă că schimbare
 
 ---
 `,
-  video_script: `
+  video_script_online: `
 # VIDEO SCRIPT 1.2: "Cele 4 Stiluri de Leadership"
 **Modul:** Leadership Situațional
 **Durata:** 8 minute
@@ -1223,6 +1354,134 @@ _____________________________________________________________________________
 - Rezultate în 48h
 - Grade D = 15 min call 1-on-1
 - Grade A = Advanced track
+  `,
+  video_script_live: `
+# VIDEO SCRIPT: Mesaj de Bun Venit (Pre-Workshop)
+**Target:** Participanții la Workshop-ul LIVE
+**Canal:** Email / WhatsApp (trimis cu 3 zile înainte)
+**Durata:** 60 secunde
+
+---
+
+**[VISUAL]**
+- Tu (Facilitatorul) filmat simplu cu telefonul (selfie mode)
+- Fundal: Sala de curs sau un birou luminos
+- Zâmbet, energie relaxată
+
+**[AUDIO]**
+"Salutare tuturor! Sunt [Numele Tău] și abia aștept să ne vedem marți la workshop-ul de Leadership Situațional.
+
+Știu că sunteți ocupați, așa că promisiunea mea e simplă:
+Nu o să fie o zi de teorie plictisitoare.
+Nu o să stăm să citim slide-uri.
+
+O să lucrăm pe cazurile VOASTRE reale. O să rezolvăm problemele cu care vă confruntați ACUM în echipă.
+
+Așa că, o singură rugăminte am la voi:
+Gândiți-vă la un om din echipa voastră care vă dă bătăi de cap.
+Aduceți acel 'caz' în minte la curs. Îl vom rezolva împreună.
+
+Ne vedem marți la 9:00. Cafeaua e pe mine!
+Ciao!"
+
+---
+`
+  ,
+  video_script_online: `
+# VIDEO SCRIPT: Modulul 2.1 - Stilul Directing (Exemplu)
+**Format:** Talking Head + B-Roll + Screen Capture
+**Durată:** 3-5 minute
+**Ton:** Clar, Empatic, dar Direct
+
+---
+
+**[SCENE 1: Talking Head - Hook]**
+**(Visual: Tu în prim plan, fundal blurat, lumină caldă)**
+
+"Ți s-a întâmplat vreodată să delegi un task unui om nou, să-l lași în pace ca să nu fii 'micromanager', și când te întorci peste 2 zile să găsești un dezastru?
+
+(Pauză scurtă)
+
+Și probabil ți-ai zis: 'Nu se mai găsesc oameni buni azi.'
+
+Dar dacă ți-aș spune că greșeala nu a fost a lor? A fost a ta. Pentru că ai folosit stilul greșit."
+
+---
+
+**[SCENE 2: Concept Explain - Animation/Slide]**
+**(Visual: Graficul Matricei, zoom pe cadranul S1 - Directing)**
+
+"Astăzi vorbim despre Stilul 1: Directing.
+Mulți manageri fug de el. Li se pare că e 'Bossy'. Că e 'Comunist'.
+
+Dar hai să ne uităm la realitate. Când un om e nou (D1 - Enthusiastic Beginner), el NU are nevoie de 'spațiu'. Are nevoie de CLARITATE.
+
+Stilul Directing înseamnă 3 lucruri:
+1. Definești CE trebuie făcut (Standardul)
+2. Definești CUM trebuie făcut (Procesul)
+3. Definești PÂNĂ CÂND (Deadline-ul)
+
+Nu e răutate. E bunătate. Îi dai omului harta exactă ca să poată câștiga."
+
+---
+
+**[SCENE 3: Roleplay - Split Screen]**
+**(Visual: Stânga - Manager, Dreapta - Angajat Nou)**
+
+**Manager:** "Salut Andrei. Pentru raportul de mâine, vreau să folosești template-ul din drive. Uită-te la coloana B și C. Vreau să fie completate exact ca în exemplul de luna trecută. Hai să facem primele 3 rânduri împreună acum."
+
+**Angajat:** "Super, mersi! Chiar nu știam de unde să încep."
+
+**(Visual: Text Overlay - "Direction is NOT Micromanagement")**
+
+---
+
+**[SCENE 4: Call to Action - Talking Head]**
+**(Visual: Tu din nou)**
+
+"Provocarea ta pentru azi:
+Identifică un om din echipa ta care e la început pe un task nou.
+Nu-l întreba 'Cum te simți?'.
+Du-te la el și clarifică CE, CUM și CÂND.
+Apoi dă-mi un reply și spune-mi cum a reacționat.
+
+Ne vedem în lecția următoare."
+  `,
+  exercises_live: `
+### Exercițiu: Roleplay Triadic (30 min)
+
+**Format:** Grupuri de 3 (Manager, Angajat, Observator)
+**Obiectiv:** Practicarea stilului Coaching (S2)
+
+**Instrucțiuni:**
+1. **Runda 1 (10 min):**
+   - A este Manager, B este Angajat, C este Observator.
+   - Scenariu: Angajatul e demotivat după un refuz. Managerul trebuie să asculte și să ghideze.
+2. **Debrief (5 min):** Observatorul oferă feedback folosind SBI.
+3. **Rotire:** Schimbați rolurile.
+
+**Fișă Observator:**
+- [ ] A ascultat fără să întrerupă?
+- [ ] A pus întrebări deschise?
+- [ ] A validat emoția?
+`,
+  exercises_online: `
+### Exercițiu Individual: "Cele 5 De Ce-uri" (15 min)
+
+**Format:** Individual (Workbook Digital / PDF)
+**Obiectiv:** Identificarea cauzei rădăcină a unei probleme.
+
+**Instrucțiuni:**
+1. **Identifică o problemă recurentă** din echipa ta.
+2. **Întreabă "De ce?" de 5 ori** succesiv pentru a săpa la rădăcină.
+3. **Completează tabelul** de mai jos.
+
+**Template:**
+| Nivel | Întrebare | Răspunsul tău |
+|-------|-----------|---------------|
+| 1 | De ce a apărut problema? | [Scrie aici] |
+| 2 | De ce [Răspuns 1]? | [Scrie aici] |
+| ... | ... | ... |
 `
   };
 
@@ -1656,6 +1915,9 @@ const getLegacyPrompt = (
     fileContext: string, 
     previousStepsContext: string
 ) => {
+    // Define Environment Suffix
+    const envSuffix = course.environment === 'OnlineCourse' ? 'online' : 'live';
+
     // Define Pedagogical Guidance based on Environment
     let pedagogicalGuidance = "";
     if (course.environment === 'LiveWorkshop') {
@@ -1684,12 +1946,9 @@ const getLegacyPrompt = (
         specificInstructions = `
           - Create a **Detailed Course Outline** structured by Modules and Lessons.
           - **CRITICAL**: For EVERY Lesson, you MUST define 2-3 specific **Learning Objectives** using Bloom's Taxonomy verbs (e.g., Define, Analyze, Create).
-          - Format:
-            ### Module 1: [Title] (Total Time)
-            #### Lesson 1.1: [Title] ([Time] min)
-            *   **Objectives**:
-                *   By the end of this lesson, participants will be able to...
-            *   **Key Topics**: [List of topics]
+          - **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
+            You must emulate the depth and structure of this EXACT example below:
+            ${GOLDEN_SAMPLES[`structure_${envSuffix}`] || GOLDEN_SAMPLES.structure_live}
           - Ensure the flow is logical and builds complexity gradually.
         `;
         break;
@@ -1700,6 +1959,9 @@ const getLegacyPrompt = (
           - Include a "Hook" at the start and a "Call to Action" at the end of each script.
           - Keep sentences short and conversational.
           ${TONE_INSTRUCTIONS}
+          - **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
+            You must emulate the tone and format of this EXACT example below:
+            ${GOLDEN_SAMPLES[`video_script_${envSuffix}`] || GOLDEN_SAMPLES.video_script_live}
         `;
         break;
       case 'course.steps.slides':
@@ -1708,6 +1970,9 @@ const getLegacyPrompt = (
           ${TONE_INSTRUCTIONS}
           Use this template for each slide:
           ${PROMPT_TEMPLATES.slide}
+          - **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
+            You must emulate the visual description style and notes of this EXACT example below:
+            ${GOLDEN_SAMPLES[`slides_${envSuffix}`] || GOLDEN_SAMPLES.slides_live}
         `;
         break;
       case 'course.steps.cheat_sheets':
@@ -1723,6 +1988,9 @@ const getLegacyPrompt = (
         specificInstructions = `
           ${DEPTH_SPECS.exercises}
           ${TONE_INSTRUCTIONS}
+          - **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
+            You must emulate the structure, timing, and debriefing of this EXACT example below:
+            ${GOLDEN_SAMPLES[`exercises_${envSuffix}`] || GOLDEN_SAMPLES.exercises_live}
         `;
         break;
       case 'course.steps.manual':
@@ -1730,6 +1998,9 @@ const getLegacyPrompt = (
           specificInstructions = `
           ${DEPTH_SPECS.manual}
           ${TONE_INSTRUCTIONS}
+          - **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
+            You must emulate the structure (Flow Table, Scripts, Troubleshooting) of this EXACT example below:
+            ${GOLDEN_SAMPLES.facilitator_guide}
           `;
         } else {
           specificInstructions = `
@@ -1737,6 +2008,9 @@ const getLegacyPrompt = (
           ${TONE_INSTRUCTIONS}
           Use this structure for sections:
           ${PROMPT_TEMPLATES.workbook_section}
+          - **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
+            You must emulate the structure and depth of this EXACT example below:
+            ${GOLDEN_SAMPLES.workbook_online}
           `;
         }
         break;
@@ -1744,10 +2018,12 @@ const getLegacyPrompt = (
         specificInstructions = `
           - Create a **Final Assessment**.
           - Include 5-10 Multiple Choice Questions with correct answers and explanations.
+          - **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
+            You must emulate the structure (Knowledge Check, Scenarios, Self-Assessment) and scoring logic of this EXACT example below:
+            ${GOLDEN_SAMPLES.quiz}
         `;
         break;
-      case 'course.steps.tests':
-    case 'quiz':
+      case 'quiz':
       return `
         **TASK**: Create a Final Assessment / Quiz.
         **GOAL**: Verify learning retention and application.
@@ -1805,6 +2081,8 @@ const getDurationEnforcement = (blueprintDuration: string) => `
 
 // Helper to get step-specific prompts
 const getStepPrompt = (step_type: string, course: Course, blueprintDuration: string) => {
+  const envSuffix = course.environment === 'OnlineCourse' ? 'online' : 'live';
+  
   switch (step_type) {
     case 'performance_objectives':
       return `
@@ -1883,7 +2161,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
         You must emulate the "TABELUL OBLIGATORIU: AGENDĂ COMPLETĂ" section from this EXACT example below:
 
-        ${GOLDEN_SAMPLES.structure}
+        ${GOLDEN_SAMPLES[`structure_${envSuffix}`] || GOLDEN_SAMPLES.structure_live}
       `;
     case 'exercises':
       return `
@@ -1897,7 +2175,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
         You must emulate the structure, timing, and debriefing of this EXACT example below:
 
-        ${GOLDEN_SAMPLES.facilitator_guide}
+        ${GOLDEN_SAMPLES[`exercises_${envSuffix}`] || GOLDEN_SAMPLES.exercises_live}
       `;
     case 'examples_and_stories':
       return `
@@ -1951,7 +2229,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
         You must emulate the structure and XML format of this EXACT example below:
 
-        ${GOLDEN_SAMPLES.slides}
+        ${GOLDEN_SAMPLES[`slides_${envSuffix}`] || GOLDEN_SAMPLES.slides_live}
       `;
     case 'facilitator_manual':
       return `
@@ -1985,7 +2263,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
         You must emulate the depth, tone, and practical exercises of this EXACT example below:
 
-        ${GOLDEN_SAMPLES.workbook}
+        ${GOLDEN_SAMPLES[`workbook_${envSuffix}`] || GOLDEN_SAMPLES.workbook_online}
         
         And also this Case Study example:
         ${GOLDEN_SAMPLES.case_study}
@@ -2015,7 +2293,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
         You must emulate the tone, structure (Visual/Audio), and engagement of this EXACT example below:
 
-        ${GOLDEN_SAMPLES.video_script}
+        ${GOLDEN_SAMPLES[`video_script_${envSuffix}`] || GOLDEN_SAMPLES.video_script_online}
       `;
     case 'course.steps.tests':
     case 'quiz':
