@@ -101,6 +101,7 @@ const addTitleSlide = (pptx: PptxGenJS, course: Course): void => {
     });
 };
 
+/*
 const addAgendaSlide = (
     pptx: PptxGenJS,
     course: Course,
@@ -131,8 +132,10 @@ const addAgendaSlide = (
         }
     }
 };
+*/
 
-const addContentSlides = async (
+/*
+const _addContentSlides = async (
     pptx: PptxGenJS,
     step: CourseStep,
     course: Course
@@ -265,7 +268,9 @@ const addContentSlides = async (
         });
     }
 };
+*/
 
+/*
 const addSummarySlide = (pptx: PptxGenJS): void => {
     const slide = pptx.addSlide();
     slide.background = { color: 'F3F4F6' };
@@ -289,6 +294,7 @@ const addSummarySlide = (pptx: PptxGenJS): void => {
         align: 'center', lineSpacing: 32
     });
 };
+*/
 
 const fetchToDataUrl = async (url: string): Promise<string | null> => {
     const toDataUrl = async (blob: Blob) => new Promise<string>((resolve, reject) => {
@@ -358,8 +364,11 @@ export const parseContentSections = (markdown: string, language: string = 'en'):
     const slideIdentifierPattern = keywords.slideIdentifier.join('|');
     
     // --- 0. PRE-CLEANING (Fix for Markdown Code Blocks) ---
-    // Remove ```xml or ``` wrappers if present
-    markdown = markdown.replace(/^```(?:xml|html)?\s*[\r\n]+/, '').replace(/[\r\n]+```\s*$/, '');
+    // Remove ```xml, ```markdown, or ``` wrappers if present
+    // Enhanced regex to handle optional whitespace before/after and various language tags
+    markdown = markdown
+        .replace(/^\s*```(?:xml|html|markdown|text)?\s*[\r\n]+/, '')
+        .replace(/[\r\n]+\s*```\s*$/, '');
 
     // --- 1. XML-BASED PARSING (STRICT MODE) ---
     // Căutăm blocuri <SLIDE_BEGIN ...> ... <SLIDE_END ...> SAU <SLIDE_START ...>
@@ -487,6 +496,11 @@ export const parseContentSections = (markdown: string, language: string = 'en'):
         }
 
         if (currentTitle) {
+            currentBuffer.push(raw);
+        } else if (line.length > 0) {
+            // IMPLICIT START: Found content before any explicit slide header
+            // Treat this as the start of the first slide
+            currentTitle = 'Slide 1';
             currentBuffer.push(raw);
         }
     }
@@ -744,6 +758,7 @@ const findMatchingScript = (
     return null;
 };
 
+/*
 const extractIntroScript = (markdown: string): string => {
     const introMatch = markdown.match(/\[AUDIO\]\s*(.+?)(?=\[VISUAL\]|\n##|$)/s);
     return introMatch ? introMatch[1].trim() : '';
@@ -770,6 +785,7 @@ const generateModulesFromSteps = (steps: CourseStep[]): string => {
         .map((s, i) => `${i + 1}. ${s.title_key}`)
         .join('\n');
 };
+*/
 
 const shouldExcludeFromSlides = (step: CourseStep): boolean => {
     const excludedKeys = ['structure', 'video_scripts', 'tests', 'cheat_sheets'];
@@ -819,6 +835,7 @@ const exportCourseAsPptxV2 = async (course: Course): Promise<void> => {
     // Parallel Processing Configuration
     const MAX_CONCURRENCY = 3; // Limit concurrent AI/Image requests to avoid timeouts/rate-limits
 
+    let hasSummarySlide = false;
     const blockingErrors: string[] = [];
     for (const step of stepsToExport) {
         if (step.content) {
@@ -862,6 +879,10 @@ const exportCourseAsPptxV2 = async (course: Course): Promise<void> => {
                     // We still use getSmartFallbackDesign to rotate through templates
                     let aiDesign: SlideDesignJSON = getSmartFallbackDesign(section.rawContent);
                     
+                    if (section.slideLayout === SlideArchetype.Summary || section.title.toLowerCase().includes('summary') || section.title.toLowerCase().includes('rezumat')) {
+                        hasSummarySlide = true;
+                    }
+
                     // 1. Apply explicit layout from metadata (<!-- slide-layout: ... -->)
                     if (section.slideLayout) {
                         const mapLayout = (a: SlideArchetype): SlideDesignJSON['layout'] => {
@@ -1023,7 +1044,28 @@ const exportCourseAsPptxV2 = async (course: Course): Promise<void> => {
                             }
                         }
                         try {
-                            renderDefault(chunkSlide, designForChunk, imageUrl);
+                            // Dispatch to specific renderer based on layout
+                            // This ensures Design Studio layouts are respected in direct export
+                            switch (designForChunk.layout) {
+                                case 'HERO': renderHeroSlide(chunkSlide, designForChunk, imageUrl); break;
+                                case 'SPLIT_LEFT': renderSplitLeft(chunkSlide, designForChunk, imageUrl); break;
+                                case 'SPLIT_RIGHT': renderSplitRight(chunkSlide, designForChunk, imageUrl); break;
+                                case 'BIG_STAT': renderBigStat(chunkSlide, designForChunk, imageUrl); break;
+                                case 'COMPARISON': renderComparison(chunkSlide, designForChunk, imageUrl); break;
+                                case 'QUOTATION': renderQuotation(chunkSlide, designForChunk, imageUrl); break;
+                                case 'TIMELINE': renderTimeline(chunkSlide, designForChunk, imageUrl); break;
+                                case 'FULL_IMAGE': renderFullImage(chunkSlide, designForChunk, imageUrl); break;
+                                case 'GRID_CARDS': renderGridCards(chunkSlide, designForChunk, imageUrl); break;
+                                case 'IMAGE_CENTER': renderImageCenter(chunkSlide, designForChunk, imageUrl); break;
+                                case 'THREE_COLUMNS': renderThreeColumns(chunkSlide, designForChunk, imageUrl); break;
+                                case 'SECTION_HEADER': renderSectionHeader(chunkSlide, designForChunk, imageUrl); break;
+                                case 'CHECKLIST': renderChecklist(chunkSlide, designForChunk, imageUrl); break;
+                                case 'DO_DONT': renderDoDont(chunkSlide, designForChunk, imageUrl); break;
+                                case 'TABLE_SIMPLE': renderTableSimple(chunkSlide, designForChunk, imageUrl); break;
+                                case 'PROCESS_STEPS': renderProcessSteps(chunkSlide, designForChunk, imageUrl); break;
+                                case 'AGENDA_COMPACT': renderAgendaCompact(chunkSlide, designForChunk, imageUrl); break;
+                                default: renderDefault(chunkSlide, designForChunk, imageUrl);
+                            }
 
                         if (isEnabled('pptxEnhancedPipeline')) {
                             let notesAdded = false;
@@ -1067,43 +1109,22 @@ const exportCourseAsPptxV2 = async (course: Course): Promise<void> => {
         console.warn(`Export finalizat cu avertismente:\n${blockingErrors.join('\n')}`);
         // throw new Error(`Export oprit. Probleme:\n${blockingErrors.join('\n')}`);
     }
-    addSummarySlide(pptx);
+    if (!hasSummarySlide) {
+        // addSummarySlide(pptx);
+    }
     const fileName = `${course.title.replace(/[^a-z0-9]/gi, '_')}_AI.pptx`;
     await pptx.writeFile({ fileName });
 };
 
 export const exportCourseAsPptx = async (course: Course): Promise<void> => {
-    // ALWAYS use V2 exporter as it contains the critical fixes for PPTX corruption and content parsing
-    // if (isEnabled('newPptxExporter')) {
-        try {
-            await exportCourseAsPptxV2(course);
-            return;
-        } catch (e) {
-            if (isEnabled('pptxEnhancedPipeline')) {
-                throw e instanceof Error ? e : new Error(String(e));
-            }
-            console.warn('[Export] V2 exporter failed, falling back to legacy:', e);
-        }
-    // }
-    const pptx = new PptxGenJS();
-    pptx.layout = 'LAYOUT_16x9';
-
-    addTitleSlide(pptx, course);
-
-    const structureStep = findStepByKey(course, 'structure');
-    const videoScriptStep = findStepByKey(course, 'video_scripts');
-    addAgendaSlide(pptx, course, structureStep, videoScriptStep);
-
-    for (const step of course.steps || []) {
-        if (!shouldExcludeFromSlides(step) && step.content) {
-            await addContentSlides(pptx, step, course);
-        }
+    // ALWAYS use V2 exporter (Design Studio pipeline)
+    // We removed the fallback to legacy to prevent mixed slide styles and missing features (diacritics, layout)
+    try {
+        await exportCourseAsPptxV2(course);
+    } catch (e) {
+        console.error('[Export] V2 exporter CRITICAL FAILURE:', e);
+        throw e; // Fail loud instead of falling back to broken legacy
     }
-
-    addSummarySlide(pptx);
-
-    const fileName = `${course.title.replace(/[^a-z0-9]/gi, '_')}.pptx`;
-    await pptx.writeFile({ fileName });
 };
 
 const linkSlideModelsToBlueprint = (course: Course, models: SlideModel[]): SlideModel[] => {
@@ -1280,17 +1301,24 @@ const buildSlideModelsFromCourse = (course: Course, scripts: Record<string, stri
 
 
 export const formatToCanonicalSlides = (markdown: string, language: string = 'en'): string => {
+    // Clean wrappers first (fix for XML/Markdown code blocks)
+    let cleaned = markdown;
+    // Remove ```xml, ```markdown, or ``` wrappers if present at start/end
+    cleaned = cleaned
+        .replace(/^\s*```(?:xml|html|markdown|text)?\s*[\r\n]+/, '')
+        .replace(/[\r\n]+\s*```\s*$/, '');
+
     const keywords = getParsingKeywords(language);
     const slideIdentifierPattern = keywords.slideIdentifier.join('|');
     const primarySlideId = keywords.slideIdentifier[0] || 'Slide';
 
     // If content already has explicit "Slide N:" markers, respect existing authoring and return as-is
     const hasExplicitSlidesRegex = new RegExp(`\\b(${slideIdentifierPattern})\\s*\\d+\\s*:`, 'i');
-    const hasExplicitSlides = hasExplicitSlidesRegex.test(markdown || '');
+    const hasExplicitSlides = hasExplicitSlidesRegex.test(cleaned || '');
     if (hasExplicitSlides) {
-        return markdown;
+        return cleaned;
     }
-    const sections = parseContentSections(markdown, language);
+    const sections = parseContentSections(cleaned, language);
     const lines: string[] = [];
     sections.forEach((s, idx) => {
         const n = idx + 1;
@@ -1750,7 +1778,8 @@ export const exportSlidesAsPptx = async (course: Course, slides: SlideState[]): 
                  renderAgendaCompact(pptxSlide, designData, imageUrl);
                  break;
             case 'LAYOUT_SUMMARY':
-                 renderHeroSlide(pptxSlide, { ...designData, title: 'Summary' }, imageUrl);
+                 // Use GridCards for summary to match Design Studio look, and respect the original title
+                 renderGridCards(pptxSlide, designData, imageUrl);
                  break;
             case 'LAYOUT_CASE_STUDY':
                  renderSplitRight(pptxSlide, designData, imageUrl);

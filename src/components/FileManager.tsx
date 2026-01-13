@@ -4,6 +4,7 @@ import { CourseFile } from '../types';
 import { uploadCourseFile, getCourseFiles, deleteCourseFile } from '../services/fileStorageService';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../contexts/ToastContext';
+import { useTranslation } from '../contexts/I18nContext';
 
 interface FileManagerProps {
     courseId: string;
@@ -11,6 +12,7 @@ interface FileManagerProps {
 }
 
 const FileManager: React.FC<FileManagerProps> = ({ courseId, onUseFile }) => {
+    const { t } = useTranslation();
     const { user } = useAuth();
     const { showToast } = useToast();
     const [files, setFiles] = useState<CourseFile[]>([]);
@@ -104,10 +106,10 @@ const FileManager: React.FC<FileManagerProps> = ({ courseId, onUseFile }) => {
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Reference Materials
+                    {t('fileManager.title')}
                 </h3>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {files.length} {files.length === 1 ? 'file' : 'files'}
+                    {files.length} {files.length === 1 ? t('fileManager.file_one') : t('fileManager.file_other')}
                 </span>
             </div>
 
@@ -132,14 +134,14 @@ const FileManager: React.FC<FileManagerProps> = ({ courseId, onUseFile }) => {
                         <>
                             <Loader2 className="animate-spin text-primary-600" size={20} />
                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                Uploading...
+                                {t('fileManager.uploading')}
                             </span>
                         </>
                     ) : (
                         <>
                             <Upload className="text-primary-600" size={20} />
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                Upload File (PDF, DOCX, TXT, PPTX)
+                                {t('fileManager.uploadButton')}
                             </span>
                         </>
                     )}
@@ -153,7 +155,7 @@ const FileManager: React.FC<FileManagerProps> = ({ courseId, onUseFile }) => {
                 </div>
             ) : files.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
-                    No files uploaded yet. Add reference materials to enhance AI-generated content.
+                    {t('fileManager.noFiles')}
                 </div>
             ) : (
                 <div className="space-y-2">
@@ -178,7 +180,7 @@ const FileManager: React.FC<FileManagerProps> = ({ courseId, onUseFile }) => {
                                     <button
                                         onClick={() => onUseFile(file)}
                                         className="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
-                                        title="Use in editor"
+                                        title={t('fileManager.useInEditor')}
                                     >
                                         <ArrowRight size={16} />
                                     </button>
@@ -187,7 +189,7 @@ const FileManager: React.FC<FileManagerProps> = ({ courseId, onUseFile }) => {
                                     onClick={() => handleDelete(file.id)}
                                     disabled={deletingId === file.id}
                                     className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
-                                    title="Delete file"
+                                    title={t('fileManager.deleteFile')}
                                 >
                                     {deletingId === file.id ? (
                                         <Loader2 className="animate-spin" size={16} />

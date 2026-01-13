@@ -110,6 +110,8 @@ const CourseWorkspacePage: React.FC = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
   const [course, setCourse] = useState<Course | null>(null);
+  // Add local state for the dropdown to ensure instant visual feedback
+  const [selectedCourseId, setSelectedCourseId] = useState<string>('');
 
   const [userCourses, setUserCourses] = useState<Array<{ id: string; title: string }>>([]);
   const [activeStepIndex, setActiveStepIndex] = useState(() => {
@@ -450,8 +452,8 @@ const CourseWorkspacePage: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     const loadCourse = async () => {
-      // Avoid showing global loading spinner on re-fetches to prevent UI flickering
-      if (!initialLoadDone.current) setIsLoading(true);
+      // Show loading spinner on initial load or when switching courses
+      if (!initialLoadDone.current || (course?.id !== id)) setIsLoading(true);
       
       const courseData = await fetchCourseData();
       if (isMounted && courseData) {
@@ -1418,10 +1420,11 @@ const CourseWorkspacePage: React.FC = () => {
           <div className="mb-4">
             <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Schimbă cursul</label>
             <select
-              value={course.id}
+              value={course?.id}
               onChange={(e) => {
                 const nextId = e.target.value;
-                navigate(`/course/${nextId}`);
+                // Force full navigation to ensure clean state in hybrid Next.js environment
+                window.location.href = `/course/${nextId}`;
               }}
               className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900"
             >
@@ -2027,10 +2030,13 @@ const CourseWorkspacePage: React.FC = () => {
                 <div className="mb-4">
                   <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Schimbă cursul</label>
                   <select
-                    value={course?.id}
+                    value={selectedCourseId || course?.id || ''}
                     onChange={(e) => {
                       const nextId = e.target.value;
-                      window.location.hash = `#/course/${nextId}`;
+                      setSelectedCourseId(nextId); // Update visual state immediately
+                      setIsLoading(true);
+                      setIsSidebarOpen(false);
+                      navigate(`/course/${nextId}`); // Client-side navigation
                     }}
                     className="w-full px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900"
                   >

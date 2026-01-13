@@ -468,5 +468,20 @@
   "homepage.feature5.layer2_title": "25 Years Human Experience",
   "homepage.feature5.layer2_desc": "Training & Professional Development",
   "homepage.feature5.layer3_title": "Google Gemini AI Core",
-  "homepage.feature5.layer3_desc": "Advanced Contextual Processing"
+  "homepage.feature5.layer3_desc": "Advanced Contextual Processing",
+  "fileManager.title": "Reference Materials",
+  "fileManager.file_one": "file",
+  "fileManager.file_other": "files",
+  "fileManager.uploading": "Uploading...",
+  "fileManager.uploadButton": "Upload File (PDF, DOCX, TXT, PPTX)",
+  "fileManager.noFiles": "No files uploaded yet. Add reference materials to enhance AI-generated content.",
+  "fileManager.useInEditor": "Use in editor",
+  "fileManager.deleteFile": "Delete file",
+  "fileManager.confirmDelete": "Are you sure you want to delete this file?",
+  "fileManager.errorLogin": "You must be logged in to upload files.",
+  "fileManager.uploadSuccess": "File uploaded successfully!",
+  "fileManager.uploadError": "Upload failed",
+  "fileManager.deleteSuccess": "File deleted successfully",
+  "fileManager.deleteError": "Delete failed",
+  "fileManager.errorUnexpected": "An unexpected error occurred."
 }

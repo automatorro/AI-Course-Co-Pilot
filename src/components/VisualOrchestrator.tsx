@@ -59,11 +59,11 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
   };
 
   // Refined Typography - Smaller, Modern, Fluid
-  // Updated to prevent title taking 50% of slide (lg:text-3xl instead of 4xl, lg:text-xl instead of 2xl)
-  const h1Class = "text-xl md:text-2xl lg:text-3xl font-bold mb-2 md:mb-5 text-gray-900 dark:text-white leading-tight tracking-tight";
-  const h2Class = "text-lg md:text-xl lg:text-xl font-bold mb-2 md:mb-4 text-gray-900 dark:text-white leading-tight tracking-tight";
-  const pClass = "text-[11px] md:text-sm lg:text-base text-gray-600 dark:text-gray-300 mb-2 md:mb-4 leading-relaxed";
-  const liClass = "text-[10px] md:text-sm lg:text-sm text-gray-700 dark:text-gray-200 leading-relaxed";
+  // Updated to prevent title taking 50% of slide (lg:text-2xl instead of 3xl, lg:text-lg instead of xl)
+  const h1Class = "text-base md:text-lg lg:text-xl font-bold mb-2 md:mb-5 text-gray-900 dark:text-white leading-tight tracking-tight";
+  const h2Class = "text-sm md:text-base lg:text-lg font-bold mb-2 md:mb-4 text-gray-900 dark:text-white leading-tight tracking-tight";
+  const pClass = "text-[9px] md:text-[11px] lg:text-xs text-gray-600 dark:text-gray-300 mb-2 md:mb-4 leading-relaxed";
+  const liClass = "text-[8px] md:text-[10px] lg:text-[11px] text-gray-700 dark:text-gray-200 leading-relaxed";
 
   // Title / Centered Layouts
   if (['LAYOUT_TITLE', 'LAYOUT_BIG_NUMBER', 'LAYOUT_QUOTE', 'LAYOUT_SECTION_HEADER'].includes(layoutId)) {
@@ -80,16 +80,16 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
               {content.subtitle && <p className={`${pClass} max-w-2xl mx-auto opacity-90`}>{content.subtitle}</p>}
               
               {layoutId === 'LAYOUT_QUOTE' && content.quote && (
-                   <blockquote className="text-sm md:text-xl lg:text-xl italic text-blue-600 dark:text-blue-400 max-w-3xl mx-auto leading-relaxed font-serif border-l-4 border-blue-200 pl-4 my-4">
+                   <blockquote className="text-xs md:text-base lg:text-base italic text-blue-600 dark:text-blue-400 max-w-3xl mx-auto leading-relaxed font-serif border-l-4 border-blue-200 pl-4 my-4">
                      "{content.quote.text}"
-                     <footer className="text-[10px] md:text-sm mt-2 font-semibold text-gray-500 dark:text-gray-400 not-italic sans-serif">— {content.quote.author}</footer>
+                     <footer className="text-[8px] md:text-[10px] mt-2 font-semibold text-gray-500 dark:text-gray-400 not-italic sans-serif">— {content.quote.author}</footer>
                    </blockquote>
               )}
 
               {layoutId === 'LAYOUT_BIG_NUMBER' && content.bigValue && (
                   <div className="my-2 md:my-6 transform hover:scale-105 transition-transform duration-500">
-                      <div className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-blue-600 dark:text-blue-500 tracking-tighter drop-shadow-sm">{content.bigValue}</div>
-                      <div className="text-[10px] md:text-sm text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1 font-medium">{content.bigLabel}</div>
+                      <div className="text-2xl md:text-4xl lg:text-5xl font-extrabold text-blue-600 dark:text-blue-500 tracking-tighter drop-shadow-sm">{content.bigValue}</div>
+                      <div className="text-[8px] md:text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-1 font-medium">{content.bigLabel}</div>
                   </div>
               )}
           </div>
@@ -108,7 +108,7 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
                 <div className="space-y-1 md:space-y-2">
                     {content.bullets.map((b, i) => (
                         <div key={i} className="flex gap-2 items-start">
-                           <span className="text-blue-500 text-xs md:text-lg mt-0.5">•</span>
+                           <span className="text-blue-500 text-[9px] md:text-sm mt-0.5">•</span>
                            <span className={liClass}>{b}</span>
                         </div>
                     ))}
@@ -128,7 +128,7 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
                 <div className="space-y-1 md:space-y-2">
                     {content.bullets.map((b, i) => (
                         <div key={i} className="flex gap-2 items-start">
-                           <span className="text-blue-500 text-xs md:text-lg mt-0.5">•</span>
+                           <span className="text-blue-500 text-[9px] md:text-sm mt-0.5">•</span>
                            <span className={liClass}>{b}</span>
                         </div>
                     ))}
@@ -151,8 +151,8 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
                </div>
            )}
            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col items-center justify-end md:justify-center text-center px-4 md:px-16 pb-6 md:pb-0">
-               <h1 className="text-xl md:text-3xl lg:text-4xl font-bold mb-2 md:mb-4 text-white drop-shadow-lg tracking-tight">{content.title}</h1>
-               {content.subtitle && <p className="text-xs md:text-base lg:text-lg text-gray-100 drop-shadow-md max-w-3xl mx-auto font-light">{content.subtitle}</p>}
+               <h1 className="text-base md:text-xl lg:text-2xl font-bold mb-2 md:mb-4 text-white drop-shadow-lg tracking-tight">{content.title}</h1>
+               {content.subtitle && <p className="text-[9px] md:text-xs lg:text-sm text-gray-100 drop-shadow-md max-w-3xl mx-auto font-light">{content.subtitle}</p>}
            </div>
         </div>
       );
@@ -167,12 +167,12 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
               <div className="flex-1 grid grid-cols-2 gap-3 md:gap-6 overflow-hidden">
                   {/* Left Column */}
                   <div className={`p-3 md:p-5 rounded-2xl ${isDoDont ? 'bg-green-50/50 border border-green-200/50' : 'bg-gray-50/50 border border-gray-200/50'} overflow-y-auto backdrop-blur-sm`}>
-                      <h3 className={`text-[10px] md:text-lg font-bold mb-2 md:mb-3 ${isDoDont ? 'text-green-700' : 'text-gray-800'}`}>
+                      <h3 className={`text-[8px] md:text-sm font-bold mb-2 md:mb-3 ${isDoDont ? 'text-green-700' : 'text-gray-800'}`}>
                           {isDoDont ? 'DO' : (content.columns?.[0]?.header || 'Option A')}
                       </h3>
                       <ul className="space-y-1.5 md:space-y-2">
                           {(content.columns?.[0]?.content || content.bullets.slice(0, Math.ceil(content.bullets.length/2))).map((b, i) => (
-                              <li key={i} className={`flex gap-1.5 text-[10px] md:text-sm ${isDoDont ? 'text-green-900' : 'text-gray-700'}`}>
+                              <li key={i} className={`flex gap-1.5 text-[8px] md:text-[10px] ${isDoDont ? 'text-green-900' : 'text-gray-700'}`}>
                                   <span className={isDoDont ? 'text-green-600' : 'text-blue-500'}>✓</span> {b}
                               </li>
                           ))}
@@ -180,12 +180,12 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
                   </div>
                   {/* Right Column */}
                   <div className={`p-3 md:p-5 rounded-2xl ${isDoDont ? 'bg-red-50/50 border border-red-200/50' : 'bg-gray-50/50 border border-gray-200/50'} overflow-y-auto backdrop-blur-sm`}>
-                      <h3 className={`text-[10px] md:text-lg font-bold mb-2 md:mb-3 ${isDoDont ? 'text-red-700' : 'text-gray-800'}`}>
+                      <h3 className={`text-[8px] md:text-sm font-bold mb-2 md:mb-3 ${isDoDont ? 'text-red-700' : 'text-gray-800'}`}>
                           {isDoDont ? 'DON\'T' : (content.columns?.[1]?.header || 'Option B')}
                       </h3>
                       <ul className="space-y-1.5 md:space-y-2">
                           {(content.columns?.[1]?.content || content.bullets.slice(Math.ceil(content.bullets.length/2))).map((b, i) => (
-                              <li key={i} className={`flex gap-1.5 text-[10px] md:text-sm ${isDoDont ? 'text-red-900' : 'text-gray-700'}`}>
+                              <li key={i} className={`flex gap-1.5 text-[8px] md:text-[10px] ${isDoDont ? 'text-red-900' : 'text-gray-700'}`}>
                                   <span className={isDoDont ? 'text-red-500' : 'text-blue-500'}>{isDoDont ? '✕' : '•'}</span> {b}
                               </li>
                           ))}
@@ -209,10 +209,10 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
 
                       return (
                         <div key={idx} className="p-3 md:p-4 bg-gray-50/80 rounded-2xl border border-gray-100 flex flex-col hover:bg-white hover:shadow-sm transition-all">
-                            <h3 className="text-xs md:text-base font-bold mb-2 text-blue-900">{col?.header || `Column ${idx+1}`}</h3>
+                            <h3 className="text-[9px] md:text-xs font-bold mb-2 text-blue-900">{col?.header || `Column ${idx+1}`}</h3>
                             <ul className="space-y-1 md:space-y-2 flex-1">
                                 {displayBullets.map((b, ii) => (
-                                    <li key={ii} className="text-[10px] md:text-xs text-gray-700 leading-relaxed">• {b}</li>
+                                    <li key={ii} className="text-[8px] md:text-[9px] text-gray-700 leading-relaxed">• {b}</li>
                                 ))}
                             </ul>
                         </div>
@@ -237,10 +237,10 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
                   <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4 overflow-y-auto content-start">
                       {content.bullets.map((b, i) => (
                           <div key={i} className="p-2 md:p-4 bg-white/80 backdrop-blur-sm shadow-sm border border-gray-100 rounded-xl flex flex-col gap-1.5 hover:shadow-md transition-all hover:-translate-y-0.5">
-                              <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-[10px] md:text-xs shrink-0">
+                              <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-[8px] md:text-[9px] shrink-0">
                                   {i+1}
                               </div>
-                              <p className="text-gray-700 text-[10px] md:text-sm leading-relaxed">{b}</p>
+                              <p className="text-gray-700 text-[8px] md:text-[10px] leading-relaxed">{b}</p>
                           </div>
                       ))}
                   </div>
@@ -257,7 +257,7 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
                 <div key={i} className="relative pl-3 md:pl-6">
                     <div className="absolute -left-[23px] md:-left-[41px] top-1 w-3 h-3 md:w-6 md:h-6 rounded-full bg-blue-500 border-2 md:border-4 border-white shadow-sm ring-1 ring-blue-100"></div>
                     <div className="bg-gray-50 p-2 md:p-4 rounded-xl border border-gray-100 hover:bg-white hover:shadow-sm transition-colors">
-                        <p className="text-[10px] md:text-sm text-gray-800">{b}</p>
+                        <p className="text-[8px] md:text-[10px] text-gray-800">{b}</p>
                     </div>
                 </div>
             ))}
@@ -303,11 +303,11 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
                   <ul className="space-y-2 md:space-y-3">
                       {content.bullets.map((b, i) => (
                           <li key={i} className="flex items-center gap-2 md:gap-3">
-                              <div className="w-4 h-4 md:w-5 md:h-5 rounded border-2 border-blue-500 flex items-center justify-center text-blue-500 shrink-0">
-                                  ✓
-                              </div>
-                              <span className="text-xs md:text-base text-gray-700">{b}</span>
-                          </li>
+                          <div className="w-4 h-4 md:w-5 md:h-5 rounded border-2 border-blue-500 flex items-center justify-center text-blue-500 shrink-0">
+                              ✓
+                          </div>
+                          <span className="text-[9px] md:text-xs text-gray-700">{b}</span>
+                      </li>
                       ))}
                   </ul>
               </div>
@@ -329,8 +329,8 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
                   <div className="flex-1 space-y-2 md:space-y-4 max-w-2xl mx-auto w-full overflow-y-auto py-2 md:py-4">
                       {content.bullets.map((b, i) => (
                           <div key={i} className="flex items-center gap-3 md:gap-5 p-2 md:p-4 bg-white/95 rounded-xl shadow-sm border border-gray-100/50">
-                              <span className="text-xl md:text-3xl font-black text-blue-200">{(i+1).toString().padStart(2, '0')}</span>
-                              <span className="text-xs md:text-lg font-medium text-gray-800">{b}</span>
+                              <span className="text-base md:text-xl font-black text-blue-200">{(i+1).toString().padStart(2, '0')}</span>
+                              <span className="text-[9px] md:text-sm font-medium text-gray-800">{b}</span>
                           </div>
                       ))}
                   </div>
@@ -362,7 +362,7 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
                           <thead className="bg-gray-50 border-b border-gray-200">
                               <tr>
                                   {headers.map((h, i) => (
-                                      <th key={i} className="p-2 md:p-3 font-bold text-gray-700 uppercase text-[10px] md:text-xs tracking-wider">{h}</th>
+                                      <th key={i} className="p-2 md:p-3 font-bold text-gray-700 uppercase text-[8px] md:text-[9px] tracking-wider">{h}</th>
                                   ))}
                               </tr>
                           </thead>
@@ -370,7 +370,7 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
                               {rows.map((row, rI) => (
                                   <tr key={rI} className="hover:bg-gray-50">
                                       {row.map((cell, cI) => (
-                                          <td key={cI} className="p-2 md:p-3 text-[10px] md:text-sm text-gray-800">{cell}</td>
+                                          <td key={cI} className="p-2 md:p-3 text-[8px] md:text-[10px] text-gray-800">{cell}</td>
                                       ))}
                                   </tr>
                               ))}
@@ -395,7 +395,7 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
               {content.bullets.length > 0 && (
                   <div className="max-w-3xl mx-auto space-y-1">
                       {content.bullets.map((b, i) => (
-                          <p key={i} className="text-xs md:text-base text-gray-700 dark:text-gray-300">{b}</p>
+                          <p key={i} className="text-[9px] md:text-xs text-gray-700 dark:text-gray-300">{b}</p>
                       ))}
                   </div>
               )}
@@ -414,15 +414,15 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
               )}
               <div className="z-10 flex flex-col h-full">
                   <div className="text-center mb-4 md:mb-8">
-                      <h2 className="text-2xl md:text-4xl font-bold mb-2 text-blue-900 dark:text-white">{content.title}</h2>
+                      <h2 className="text-lg md:text-2xl font-bold mb-2 text-blue-900 dark:text-white">{content.title}</h2>
                       <div className="w-12 md:w-20 h-1 bg-blue-500 mx-auto rounded-full"></div>
                   </div>
                   
                   <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5 max-w-4xl mx-auto w-full overflow-y-auto p-2">
                       {content.bullets.map((b, i) => (
                           <div key={i} className="bg-white/90 dark:bg-gray-800 p-3 md:p-5 rounded-2xl shadow-sm border-l-4 border-blue-500 hover:shadow-md transition-all">
-                              <h3 className="font-bold text-xs md:text-base text-gray-900 dark:text-gray-100 mb-1">Key Point {i+1}</h3>
-                              <p className="text-[10px] md:text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{b}</p>
+                              <h3 className="font-bold text-[9px] md:text-xs text-gray-900 dark:text-gray-100 mb-1">Key Point {i+1}</h3>
+                              <p className="text-[8px] md:text-[10px] text-gray-600 dark:text-gray-300 leading-relaxed">{b}</p>
                           </div>
                       ))}
                   </div>
@@ -437,7 +437,7 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
           <div className="mb-3 md:mb-6 border-b-2 md:border-b-4 border-blue-500 pb-2 md:pb-3 flex justify-between items-end">
               <div>
                   <h2 className={h2Class}>{content.title}</h2>
-                  {content.subtitle && <p className="text-xs md:text-lg text-gray-500 dark:text-gray-400 mt-1">{content.subtitle}</p>}
+                  {content.subtitle && <p className="text-[9px] md:text-sm text-gray-500 dark:text-gray-400 mt-1">{content.subtitle}</p>}
               </div>
           </div>
 
@@ -446,7 +446,7 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
                  <div className="space-y-1.5 md:space-y-3">
                     {content.bullets.map((b, i) => (
                         <div key={i} className="flex gap-2 items-start">
-                           <span className="text-blue-500 font-bold text-sm md:text-lg">•</span>
+                           <span className="text-blue-500 font-bold text-[10px] md:text-sm">•</span>
                            <span className={liClass}>{b}</span>
                         </div>
                     ))}
@@ -456,10 +456,10 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
                      <div className={`grid grid-cols-1 md:grid-cols-${content.columns.length} gap-3 md:gap-6 mt-3 md:mt-6`}>
                         {content.columns.map((col, idx) => (
                             <div key={idx} className="bg-gray-50 dark:bg-gray-800 p-2 md:p-4 rounded-xl border border-gray-100 dark:border-gray-700">
-                                {col.header && <h4 className="font-bold text-xs md:text-base mb-1 md:mb-2 text-blue-900 dark:text-blue-300">{col.header}</h4>}
+                                {col.header && <h4 className="font-bold text-[9px] md:text-xs mb-1 md:mb-2 text-blue-900 dark:text-blue-300">{col.header}</h4>}
                                 <ul className="space-y-1">
                                     {col.content.map((c, ii) => (
-                                        <li key={ii} className="flex gap-2 text-[10px] md:text-xs text-gray-700 dark:text-gray-300">
+                                        <li key={ii} className="flex gap-2 text-[8px] md:text-[9px] text-gray-700 dark:text-gray-300">
                                             <span className="text-blue-400">-</span> {c}
                                         </li>
                                     ))}
@@ -476,7 +476,7 @@ const SlideRenderer: React.FC<{ slide: SlideState }> = ({ slide }) => {
                       <div className="h-full rounded-2xl overflow-hidden bg-gray-50 dark:bg-gray-800 shadow-inner">
                           <img src={media.url} alt={media.alt} className="w-full h-full object-cover" />
                       </div>
-                      {media.caption && <p className="mt-2 text-[10px] text-gray-500 italic">{media.caption}</p>}
+                      {media.caption && <p className="mt-2 text-[9px] text-gray-500 italic">{media.caption}</p>}
                   </div>
               )}
           </div>

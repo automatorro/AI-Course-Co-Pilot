@@ -1,6 +1,7 @@
 import { SlideState, SlideLayoutId } from '../types/slideState';
 import { SlideArchetype } from '../types';
 import { parseContentSections } from './exportService';
+import TurndownService from 'turndown';
 
 // Mapping from old Archetype to new LayoutId
 const ARCHETYPE_TO_LAYOUT_ID: Record<SlideArchetype, SlideLayoutId> = {
@@ -33,8 +34,29 @@ const DEFAULT_LAYOUT: SlideLayoutId = 'LAYOUT_EXPLAINER';
  * The Bridge: Transforms raw Markdown into Structured SlideState
  */
 export const parseSlidesFromMarkdown = (markdown: string, language: string = 'en'): SlideState[] => {
+  // Ensure we have Markdown (convert HTML if needed)
+  let content = markdown;
+  if (/<[a-z][\s\S]*>/i.test(content)) {
+      try {
+          const td = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+          // Preserve layout/adapted metadata comments
+          td.addRule('preserveComments', {
+              filter: (node: any) => node.nodeType === 8 && (
+                  node.nodeValue?.trim().startsWith('slide-layout:') || 
+                  node.nodeValue?.trim().startsWith('slide-adapted:')
+              ),
+              replacement: (_content: string, node: any) => {
+                  return '<!--' + node.nodeValue + '-->';
+              }
+          });
+          content = td.turndown(content);
+      } catch (e) {
+          console.warn('Failed to convert HTML to Markdown in slideParser:', e);
+      }
+  }
+
   // Use existing robust parser to get sections
-  const sections = parseContentSections(markdown, language);
+  const sections = parseContentSections(content, language);
 
   return sections.map((section, index) => {
     // 1. Determine Layout
@@ -42,6 +64,17 @@ export const parseSlidesFromMarkdown = (markdown: string, language: string = 'en
     
     if (section.slideLayout && ARCHETYPE_TO_LAYOUT_ID[section.slideLayout]) {
       layoutId = ARCHETYPE_TO_LAYOUT_ID[section.slideLayout];
+    } else {
+      // Robust Fallback Heuristics for missing/unknown archetypes
+      const t = (section.title || '').toLowerCase();
+      const raw = (section.rawContent || '').toLowerCase();
+      
+      if (t.includes('summary') || t.includes('rezumat') || t.includes('concluzi')) layoutId = 'LAYOUT_SUMMARY';
+      else if (t.includes('agenda') || t.includes('cuprins') || t.includes('structur')) layoutId = 'LAYOUT_AGENDA';
+      else if (t.includes('exercise') || t.includes('exerci')) layoutId = 'LAYOUT_EXERCISE';
+      else if (t.includes('studiu de caz') || t.includes('case study')) layoutId = 'LAYOUT_CASE_STUDY';
+      else if (raw.includes('> "') || t.includes('citat') || t.includes('quote')) layoutId = 'LAYOUT_QUOTE';
+      else if (section.images && section.images.length > 0) layoutId = 'LAYOUT_IMAGE_RIGHT';
     }
 
     // 2. Map Content

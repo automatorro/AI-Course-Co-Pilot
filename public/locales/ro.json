@@ -468,5 +468,20 @@
   "homepage.feature5.layer2_title": "25 Ani Experiență Umană",
   "homepage.feature5.layer2_desc": "Training & Dezvoltare Profesională",
   "homepage.feature5.layer3_title": "Google Gemini AI Core",
-  "homepage.feature5.layer3_desc": "Procesare Contextuală Avansată"
+  "homepage.feature5.layer3_desc": "Procesare Contextuală Avansată",
+  "fileManager.title": "Materiale de Referință",
+  "fileManager.file_one": "fișier",
+  "fileManager.file_other": "fișiere",
+  "fileManager.uploading": "Se încarcă...",
+  "fileManager.uploadButton": "Încarcă Fișier (PDF, DOCX, TXT, PPTX)",
+  "fileManager.noFiles": "Niciun fișier încărcat. Adaugă materiale de referință pentru a îmbunătăți conținutul generat de AI.",
+  "fileManager.useInEditor": "Folosește în editor",
+  "fileManager.deleteFile": "Șterge fișier",
+  "fileManager.confirmDelete": "Sigur vrei să ștergi acest fișier?",
+  "fileManager.errorLogin": "Trebuie să fii autentificat pentru a încărca fișiere.",
+  "fileManager.uploadSuccess": "Fișier încărcat cu succes!",
+  "fileManager.uploadError": "Încărcare eșuată",
+  "fileManager.deleteSuccess": "Fișier șters cu succes",
+  "fileManager.deleteError": "Ștergere eșuată",
+  "fileManager.errorUnexpected": "A apărut o eroare neașteptată."
 }

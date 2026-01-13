@@ -284,8 +284,42 @@ export const renderSectionHeader = (slide: PptxGenJS.Slide, data: SlideDesignJSO
 
 export const renderChecklist = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
     addTextIntl(slide, data.title, { x: 0.5, y: 0.5, w: '90%', h: 0.8, fontSize: 28, bold: true, color: '1F2937' });
-    const items = data.content.slice(0, 7).map(i => `✔ ${i}`).join('\n');
-    addTextIntl(slide, items, { x: 1, y: 1.5, w: '80%', h: 4.5, fontSize: 20, bullet: true, lineSpacing: 30, color: '374151' });
+    
+    // Vertical list of cards
+    const items = data.content.slice(0, 5); // Max 5 items to fit
+    const startY = 1.5;
+    const gap = 0.2;
+    const itemH = (5.0 - (items.length - 1) * gap) / items.length; // Distribute height
+
+    items.forEach((item, idx) => {
+        const y = startY + idx * (itemH + gap);
+        
+        // Card Background
+        slide.addShape('roundRect' as any, {
+            x: 1, y: y, w: 8, h: itemH,
+            fill: { color: 'F9FAFB' },
+            line: { color: 'E5E7EB', width: 1 },
+            rectRadius: 0.1 // Rounded corners
+        });
+
+        // Number/Check circle
+        slide.addShape('ellipse' as any, {
+            x: 1.2, y: y + (itemH - 0.5) / 2, w: 0.5, h: 0.5,
+            fill: { color: 'DEF7EC' } // Light green
+        });
+        
+        // Checkmark/Number
+        addTextIntl(slide, (idx + 1).toString().padStart(2, '0'), {
+            x: 1.2, y: y + (itemH - 0.5) / 2, w: 0.5, h: 0.5,
+            fontSize: 14, color: '03543F', align: 'center', bold: true
+        });
+
+        // Text
+        addTextIntl(slide, item, {
+            x: 2.0, y: y + 0.1, w: 6.8, h: itemH - 0.2,
+            fontSize: 18, color: '374151', valign: 'middle'
+        });
+    });
 };
 
 export const renderDoDont = (slide: PptxGenJS.Slide, data: SlideDesignJSON, _imageUrl?: string) => {
