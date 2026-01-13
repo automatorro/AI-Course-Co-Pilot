@@ -721,4 +721,29 @@ const HomePage: React.FC = () => {
   );
 };
 
+export const getStaticProps = async () => {
+  const fs = await import('fs');
+  const path = await import('path');
+
+  const langs = ['en', 'ro', 'es', 'fr', 'de', 'it'];
+  const translations: { [key: string]: any } = {};
+
+  for (const lang of langs) {
+    const filePath = path.join(process.cwd(), 'public', 'locales', `${lang}.json`);
+    try {
+      const fileContent = fs.readFileSync(filePath, 'utf8');
+      translations[lang] = JSON.parse(fileContent);
+    } catch (e) {
+      console.warn(`Could not load translation for ${lang}`, e);
+      translations[lang] = {};
+    }
+  }
+
+  return {
+    props: {
+      initialTranslations: translations,
+    },
+  };
+};
+
 export default HomePage;
