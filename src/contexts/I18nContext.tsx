@@ -10,11 +10,18 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
-export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState(localStorage.getItem('language') || 'en');
-  const [translations, setTranslations] = useState<{ [key: string]: Translations } | null>(null);
+export const I18nProvider: React.FC<{ children: React.ReactNode; initialTranslations?: { [key: string]: Translations } }> = ({ children, initialTranslations }) => {
+  const [language, setLanguage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('language') || 'en';
+    }
+    return 'en';
+  });
+  const [translations, setTranslations] = useState<{ [key: string]: Translations } | null>(initialTranslations || null);
 
   useEffect(() => {
+    if (translations) return;
+
     const loadTranslations = async () => {
       try {
         const langs = ['en', 'ro', 'es', 'fr', 'de', 'it'];

@@ -37,6 +37,7 @@
   position: relative !important;
   display: flex !important;
   flex-direction: column !important;
+  height: 100% !important; /* Ensure full height */
 }
 
 /* 
@@ -98,6 +99,8 @@
   padding-top: 0 !important;
   overflow: hidden !important; /* Ensure internal scroll works */
   height: 100% !important; /* Force full height */
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 /* TinyMCE Sidebar/Edit Area - Allow internal scroll */
@@ -154,12 +157,22 @@
 }
 
 /* Ensure content area allows editor to grow */
+.editor-wrapper-container {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
 .editor-content-scrollable {
-  overflow-y: hidden !important; /* No scroll here, internal only */
+  overflow-y: auto !important; /* Allow scrolling for content */
   flex: 1 !important;
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
+  min-height: 0 !important; /* Critical for nested flex scrolling */
 }
 
 .dark .tox .tox-editor-header { 
@@ -171,4 +184,3 @@
 .tox-tinymce-aux {
     z-index: 9999 !important;
 }
-

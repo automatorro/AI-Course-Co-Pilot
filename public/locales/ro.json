@@ -1,4 +1,6 @@
 {
+  "auth.signIn": "Autentificare",
+  "auth.getStarted": "Începe Gratuit",
   "chat.onboarding.greetNoObj": "Salut! Sunt CourseCopilot. Văd că vrei să creezi un curs de tip **{env}** despre **\"{title}\"**.\n\nPentru a construi structura potrivită, am nevoie de câteva detalii.\n\n**Care este obiectivul principal pe care vrei să îl atingă participanții până la finalul cursului?**",
   "chat.onboarding.greetWithObj": "Salut! Sunt CourseCopilot. Văd că vrei să creezi un curs de tip **{env}** despre **\"{title}\"**.\n\nAm notat obiectivele tale de învățare:\n\n{los}\n\nExcelent. Spune‑mi puțin despre publicul țintă și nivelul/dificultatea dorită, ca să pot rafina structura.",
   "chat.onboarding.placeholder": "Scrie răspunsul tău...",

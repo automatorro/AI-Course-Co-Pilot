@@ -36,7 +36,7 @@ import VersionHistoryModal from '../components/VersionHistoryModal';
 import { createStepVersion } from '../services/versioningService';
 import { GenerationProgressModal } from '../components/GenerationProgressModal';
 import { isEnabled } from '../config/featureFlags';
-import '../styles/sticky-editor.css';
+
 const HelpModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { t } = useTranslation();
   const helpItems = [

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import './styles/sticky-editor.css';
 
 // Patch for non-passive event listeners violation (Chrome DevTools)
 // Defaults touch/wheel events to passive:true if not specified

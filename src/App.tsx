@@ -21,39 +21,39 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   return user ? <>{children}</> : <Navigate to="/login" />;
 };
 
-function App() {
-  const AppShell: React.FC = () => {
-    const location = useLocation();
-    const isWorkspaceRoute = location.pathname.startsWith('/course/');
-    return (
-      <div className="min-h-screen flex flex-col premium-texture bg-ink-50 dark:bg-ink-900 text-ink-900 dark:text-ink-100 transition-colors duration-300">
-        {!isWorkspaceRoute && <Header />}
-        <main className={isWorkspaceRoute ? 'flex-grow' : 'pt-16 flex-grow'}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/demo" element={<DemoPage />} />
-            <Route path="/auto-export" element={<AutoExportPage />} />
-            <Route path="/login" element={<AuthPage />} />
-            <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-            <Route path="/course/:id" element={<PrivateRoute><CourseWorkspacePage /></PrivateRoute>} />
-            <Route path="/billing" element={<PrivateRoute><BillingPage /></PrivateRoute>} />
-            <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-            <Route path="/tests" element={<PrivateRoute><RlsTestPage /></PrivateRoute>} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </main>
-        {!isWorkspaceRoute && <Footer />}
-      </div>
-    );
-  };
+export const AppContent: React.FC = () => {
+  const location = useLocation();
+  const isWorkspaceRoute = location.pathname.startsWith('/course/');
+  return (
+    <div className="min-h-screen flex flex-col premium-texture bg-ink-50 dark:bg-ink-900 text-ink-900 dark:text-ink-100 transition-colors duration-300">
+      {!isWorkspaceRoute && <Header />}
+      <main className={isWorkspaceRoute ? 'flex-grow' : 'pt-16 flex-grow'}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/demo" element={<DemoPage />} />
+          <Route path="/auto-export" element={<AutoExportPage />} />
+          <Route path="/login" element={<AuthPage />} />
+          <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
+          <Route path="/course/:id" element={<PrivateRoute><CourseWorkspacePage /></PrivateRoute>} />
+          <Route path="/billing" element={<PrivateRoute><BillingPage /></PrivateRoute>} />
+          <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+          <Route path="/tests" element={<PrivateRoute><RlsTestPage /></PrivateRoute>} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </main>
+      {!isWorkspaceRoute && <Footer />}
+    </div>
+  );
+};
 
+function App() {
   return (
     <I18nProvider>
       <ThemeProvider>
         <AuthProvider>
           <HelmetProvider>
             <BrowserRouter>
-              <AppShell />
+              <AppContent />
             </BrowserRouter>
           </HelmetProvider>
         </AuthProvider>

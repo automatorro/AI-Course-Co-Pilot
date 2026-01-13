@@ -3,6 +3,7 @@ module.exports = {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
+    "./pages/**/*.{js,ts,jsx,tsx}",
   ],
   safelist: [
     { pattern: /^text-ink-(50|100|200|300|400|500|600|700|800|900)$/ },

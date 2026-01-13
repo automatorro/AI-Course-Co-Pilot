@@ -1,4 +1,6 @@
 {
+  "auth.signIn": "Sign In",
+  "auth.getStarted": "Get Started",
   "chat.onboarding.greetNoObj": "Hello! I'm your CourseCopilot. I see you want to create a **{env}** course on **\"{title}\"**.\n\nTo build the perfect structure for you, I need to know a bit more.\n\n**What is the main goal you want your participants to achieve by the end of this course?**",
   "chat.onboarding.greetWithObj": "Hello! I'm your CourseCopilot. I see you want to create a **{env}** course on **\"{title}\"**.\n\nI've noted your learning objectives:\n\n{los}\n\nGreat. Could you tell me more about your target audience and the depth/tone you prefer so I can refine the structure?",
   "chat.onboarding.placeholder": "Type your answer...",

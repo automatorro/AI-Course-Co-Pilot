@@ -1,7 +1,14 @@
 import { supabase } from '../services/supabaseClient';
 
 export const uploadEditorImageToSupabase = async (file: File, userId?: string): Promise<string> => {
-  const primaryBucket: string = (import.meta as any).env?.VITE_EDITOR_IMAGES_BUCKET || 'course-assets';
+  // Safe environment variable access for both Vite and Next.js
+  let primaryBucket = 'course-assets';
+  
+  if (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_EDITOR_IMAGES_BUCKET) {
+    primaryBucket = (import.meta as any).env.VITE_EDITOR_IMAGES_BUCKET;
+  } else if (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_EDITOR_IMAGES_BUCKET) {
+    primaryBucket = process.env.NEXT_PUBLIC_EDITOR_IMAGES_BUCKET;
+  }
   const fallbackBucket = 'editor-images';
   const ext = (file.name.split('.').pop() || 'png').toLowerCase();
   const base = file.name.replace(/\.[^\/\.]+$/, '').toLowerCase().replace(/[^a-z0-9_-]/g, '').slice(0, 40) || 'img';
