@@ -33,6 +33,7 @@ import BlueprintReview from '../components/BlueprintReview';
 import FileManager from '../components/FileManager';
 import ImportStagingModal from '../components/ImportStagingModal';
 import VersionHistoryModal from '../components/VersionHistoryModal';
+import DNAEditModal from '../components/DNAEditModal';
 import { createStepVersion } from '../services/versioningService';
 import { GenerationProgressModal } from '../components/GenerationProgressModal';
 import { isEnabled } from '../config/featureFlags';
@@ -176,6 +177,7 @@ const CourseWorkspacePage: React.FC = () => {
   const [showLOGenerator, setShowLOGenerator] = useState(false);
   const [showBlueprintReview, setShowBlueprintReview] = useState(false);
   const [showBlueprintEdit, setShowBlueprintEdit] = useState(false);
+  const [showDNAEdit, setShowDNAEdit] = useState(false);
   const [showBlueprintRefine, setShowBlueprintRefine] = useState(false);
   const [showUploadBlueprint, setShowUploadBlueprint] = useState(false);
   const [tableRows, setTableRows] = useState(3);
@@ -1268,8 +1270,29 @@ const CourseWorkspacePage: React.FC = () => {
             onGenerateContent={handleGenerateContent}
             onRefine={() => setShowBlueprintRefine(true)}
             onEdit={() => setShowBlueprintEdit(true)}
+            onEditDNA={course.dna ? () => setShowDNAEdit(true) : undefined}
           />
         </div>
+        {showDNAEdit && course.dna && (
+            <DNAEditModal
+                isOpen={showDNAEdit}
+                dna={course.dna}
+                onClose={() => setShowDNAEdit(false)}
+                onSave={async (dna) => {
+                    const { error } = await supabase
+                        .from('courses')
+                        .update({ dna })
+                        .eq('id', course.id);
+                    if (error) {
+                        console.error('Failed to save DNA:', error);
+                        showToast('Failed to save DNA.', 'error');
+                        return;
+                    }
+                    setCourse(prev => prev ? { ...prev, dna } : null);
+                    showToast('DNA updated successfully.', 'success');
+                }}
+            />
+        )}
         {showBlueprintEdit && (
           <BlueprintEditModal
             isOpen={showBlueprintEdit}
@@ -1360,11 +1383,30 @@ const CourseWorkspacePage: React.FC = () => {
         </div>
         <GenerationProgressModal
           isOpen={true}
-          onClose={() => {
+          onClose={async () => {
             setShowGenerationModal(false);
-            // If we closed without generating steps, go back to blueprint
-            if ((course.steps || []).length === 0) {
-              setShowBlueprintReview(true);
+            
+            // Refresh course data to check for updated DNA
+            try {
+                const { data: latestCourse } = await supabase
+                    .from('courses')
+                    .select('*')
+                    .eq('id', course.id)
+                    .single();
+                if (latestCourse) {
+                    setCourse(latestCourse);
+                }
+                
+                // If we closed without generating steps, go back to blueprint
+                if ((latestCourse?.steps || []).length === 0) {
+                  setShowBlueprintReview(true);
+                }
+            } catch (e) {
+                console.error("Failed to refresh course on modal close", e);
+                // Fallback
+                if ((course.steps || []).length === 0) {
+                  setShowBlueprintReview(true);
+                }
             }
           }}
           course={course}

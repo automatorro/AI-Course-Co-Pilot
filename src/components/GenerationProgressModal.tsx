@@ -211,6 +211,34 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
         setCompletedSteps([]);
         accumulatedContentRef.current = [];
 
+        // Attempt to restore DNA from DB (User closed modal case)
+        try {
+             const { data: existingDNA } = await supabase
+                 .from('course_steps')
+                 .select('content')
+                 .eq('course_id', course.id)
+                 .eq('title_key', 'course.livrables.course_dna')
+                 .maybeSingle();
+             
+             if (existingDNA && existingDNA.content) {
+                 console.log('[GenerationProgressModal] Found existing Course DNA in DB. Resuming from Step 1.');
+                 
+                 accumulatedContentRef.current = [{
+                     step_type: TrainerStepType.CourseDNA,
+                     content: existingDNA.content
+                 }];
+                 
+                 setCompletedSteps([TrainerStepType.CourseDNA]);
+                 setCurrentStepIndex(1);
+                 
+                 // Immediately process Step 1
+                 await processStep(1);
+                 return;
+             }
+        } catch (e) {
+             console.warn('[GenerationProgressModal] Failed to check existing DNA:', e);
+        }
+
         try {
             // 0. Connection Check (Ping)
             console.log('[GenerationProgressModal] Pinging Edge Function...');
@@ -243,8 +271,8 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             if (!validationReport || validationReport.ok) return;
 
             // Limit check
-            if (regenerateAttempts >= 1) {
-                setError("Ați atins limita maximă de regenerări (1). Vă rugăm să salvați draft-ul.");
+            if (regenerateAttempts >= 3) {
+                setError("Ați atins limita maximă de regenerări (3). Vă rugăm să salvați draft-ul.");
                 return;
             }
 
@@ -494,39 +522,48 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                      // So start index for modules is parts.length - 1
                      const startIndex = Math.max(0, parts.length - 1);
                      
-                     for (let i = startIndex; i < modulesToProcess.length; i++) {
+                     // Batch processing (Concurrency = 2)
+                     const BATCH_SIZE = 2;
+                     for (let i = startIndex; i < modulesToProcess.length; i += BATCH_SIZE) {
                          if (isStoppedRef.current) break;
-                         const m = modulesToProcess[i];
-                         console.log(`[Workbook] Generating Module ${i+1}/${modulesToProcess.length}: ${m.title}`);
                          
-                         // Retry logic
-                         let modContent = "";
-                         let retries = 0;
-                         while(retries < 3 && !modContent) {
-                             try {
-                                 const { data: modData, error: modErr } = await supabase.functions.invoke('generate-course-content', {
-                                     body: { 
-                                         action: 'generate_workbook_part', 
-                                         part_type: 'module', 
-                                         course, 
-                                         module_data: m, 
-                                         module_index: i,
-                                         context_files: [] 
-                                     }
-                                 });
-                                 if (modErr) throw modErr;
-                                 modContent = modData.content;
-                             } catch (e) {
-                                 console.warn(`Error generating module ${i}, retry ${retries}`, e);
-                                 retries++;
-                                 await new Promise(r => setTimeout(r, 1500));
+                         const batch = modulesToProcess.slice(i, i + BATCH_SIZE);
+                         console.log(`[Workbook] Processing batch starting at index ${i}, size ${batch.length}`);
+
+                         const results = await Promise.all(batch.map(async (m: any, batchIdx: number) => {
+                             const realIdx = i + batchIdx;
+                             let modContent = "";
+                             let retries = 0;
+                             while(retries < 3 && !modContent) {
+                                 try {
+                                     const { data: modData, error: modErr } = await supabase.functions.invoke('generate-course-content', {
+                                         body: { 
+                                             action: 'generate_workbook_part', 
+                                             part_type: 'module', 
+                                             course, 
+                                             module_data: m, 
+                                             module_index: realIdx,
+                                             context_files: [] 
+                                         }
+                                     });
+                                     if (modErr) throw modErr;
+                                     modContent = modData.content;
+                                 } catch (e) {
+                                     console.warn(`Error generating module ${realIdx}, retry ${retries}`, e);
+                                     retries++;
+                                     await new Promise(r => setTimeout(r, 1500));
+                                 }
                              }
-                         }
-                         
-                         if (!modContent) {
-                             modContent = `## Module ${i+1}: ${m.title}\n\n(Content generation failed for this module after retries.)`;
-                         }
-                         parts.push(modContent);
+                             if (!modContent) {
+                                 modContent = `## Module ${realIdx+1}: ${m.title}\n\n(Content generation failed for this module after retries.)`;
+                             }
+                             return { index: realIdx, content: modContent };
+                         }));
+
+                         // Push to parts in order
+                         results.sort((a, b) => a.index - b.index).forEach(r => {
+                             parts.push(r.content);
+                         });
                          
                          // Progressive Save
                          try {
@@ -703,6 +740,88 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                 // NEW: Pause after CourseDNA (Step 0) to allow user review
                 if (step.type === TrainerStepType.CourseDNA) {
                      console.log('[GenerationProgressModal] Pausing after CourseDNA for user review.');
+                     
+                     // SAVE DNA TO DB (courses table)
+                     try {
+                         let dnaContent = generatedContent;
+                         let parsedDNA = null;
+
+                         if (typeof dnaContent === 'string') {
+                             // 1. Try to find code blocks
+                             const jsonMatch = dnaContent.match(/```json\s*([\s\S]*?)\s*```/) || dnaContent.match(/```\s*([\s\S]*?)\s*```/);
+                             if (jsonMatch) {
+                                 dnaContent = jsonMatch[1];
+                             } else {
+                                 // 2. Try to find raw JSON object structure (start with { and end with })
+                                 const firstBrace = dnaContent.indexOf('{');
+                                 const lastBrace = dnaContent.lastIndexOf('}');
+                                 if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                                     dnaContent = dnaContent.substring(firstBrace, lastBrace + 1);
+                                 } else {
+                                     // No braces found? It's not JSON.
+                                      // Log warning but CREATE FALLBACK so user can edit raw text
+                                      console.warn("No JSON object found in Course DNA response. Creating fallback.");
+                                      dnaContent = null; 
+                                  }
+                              }
+                              
+                              // 3. Try to parse (only if we have content)
+                              if (dnaContent) {
+                                 try {
+                                     parsedDNA = JSON.parse(dnaContent);
+                                 } catch (e) {
+                                     console.warn("JSON parse failed. Creating fallback.");
+                                     parsedDNA = null;
+                                 }
+                              }
+                          } else {
+                              // Already an object?
+                              parsedDNA = dnaContent;
+                          }
+                          
+                          // 4. Fallback if parsing failed or no JSON found
+                          if (!parsedDNA) {
+                              parsedDNA = {
+                                  _status: "parse_error",
+                                  _raw_content: typeof generatedContent === 'string' ? generatedContent : JSON.stringify(generatedContent),
+                                  terminology: { 
+                                      participant: "Participant", 
+                                      trainer: "Trainer", 
+                                      exercise: "Exercise",
+                                      mandatoryTerms: {} 
+                                  },
+                                  narrativeUniverse: { 
+                                      protagonists: [] 
+                                  },
+                                  voiceProfile: {
+                                      formality: "professional",
+                                      humorLevel: "none",
+                                      forbiddenPhrases: [],
+                                      signaturePhrases: []
+                                  },
+                                  masterTimeline: {
+                                      totalDuration: 0,
+                                      bufferPerModule: 0,
+                                      modules: []
+                                  }
+                              };
+                          }
+                          
+                          // Always save something (valid or fallback)
+                          if (parsedDNA) {
+                             const { error: updateError } = await supabase
+                                 .from('courses')
+                                 .update({ dna: parsedDNA })
+                                 .eq('id', course.id);
+                                 
+                             if (updateError) throw updateError;
+                             console.log('[GenerationProgressModal] DNA saved to courses table.');
+                          }
+                     } catch (e) {
+                         console.error('[GenerationProgressModal] Failed to save DNA to DB (Non-fatal):', e);
+                         // Do NOT rethrow, so the UI keeps working.
+                     }
+
                      setIsGenerating(false);
                      setSuccessMessage("Pasul 0 (ADN) completat. Puteți închide fereastra pentru a revizui/edita ADN-ul, apoi reluați generarea.");
                      return;
@@ -734,11 +853,8 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
 
             // 1. Define Mapping (8 Livrables - Fixed to separate incompatible types)
             const LIVRABLE_MAPPING = [
-                {
-                    key: 'course.livrables.course_dna',
-                    label: 'Course DNA',
-                    sources: [TrainerStepType.CourseDNA]
-                },
+                // NOTE: Course DNA (Step 0) is internal and stored in course.dna column. 
+                // We do not create a standalone user-facing step for it here to avoid confusion.
                 {
                     key: 'course.livrables.structure',
                     label: 'Complete Structure',
@@ -1060,12 +1176,12 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                                             
                                             <button 
                                                 onClick={() => setShowRegenerateConfirm(true)} 
-                                                className={`btn-premium-sm w-full sm:w-auto ${regenerateAttempts >= 1 ? 'bg-slate-400 cursor-not-allowed opacity-70' : 'opacity-90 hover:opacity-100'}`}
-                                                disabled={regenerateAttempts >= 1}
-                                                title={regenerateAttempts >= 1 ? safeT('validation.limitReached', "Limita de regenerare atinsă") : ""}
+                                                className={`btn-premium-sm w-full sm:w-auto ${regenerateAttempts >= 3 ? 'bg-slate-400 cursor-not-allowed opacity-70' : 'opacity-90 hover:opacity-100'}`}
+                                                disabled={regenerateAttempts >= 3}
+                                                title={regenerateAttempts >= 3 ? safeT('validation.limitReached', "Limita de regenerare atinsă") : ""}
                                             >
-                                                {regenerateAttempts >= 1 
-                                                    ? safeT('validation.limitReachedButton', "Limita atinsă (1/1)") 
+                                                {regenerateAttempts >= 3 
+                                                    ? safeT('validation.limitReachedButton', "Limita atinsă (3/3)") 
                                                     : safeT('validation.actions.regenerateAffected', 'Regenerează livrabilele afectate')
                                                 }
                                             </button>

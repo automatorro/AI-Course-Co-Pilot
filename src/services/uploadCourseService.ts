@@ -41,6 +41,36 @@ function parseTxt(arrayBuffer: ArrayBuffer): string {
 }
 
 /**
+ * Helper to safely parse JSON from AI response
+ */
+function safeJsonParse(text: string): any {
+    if (!text) throw new Error('Empty content');
+    let clean = text.trim();
+    
+    // Remove markdown code blocks
+    clean = clean.replace(/```json\s*([\s\S]*?)\s*```/g, '$1');
+    clean = clean.replace(/```\s*([\s\S]*?)\s*```/g, '$1');
+    
+    try {
+        return JSON.parse(clean);
+    } catch (e) {
+        // Try to find JSON object bounds
+        const first = clean.indexOf('{');
+        const last = clean.lastIndexOf('}');
+        if (first !== -1 && last !== -1) {
+            const extracted = clean.substring(first, last + 1);
+            try {
+                return JSON.parse(extracted);
+            } catch (e2) {
+                // If standard parse fails, we might want to try a relaxed parser or just fail
+                throw new Error(`JSON parse failed: ${(e as Error).message}`);
+            }
+        }
+        throw e;
+    }
+}
+
+/**
  * Create a new course from an uploaded file
  */
 export async function createCourseFromUpload(
@@ -140,7 +170,7 @@ export async function createCourseFromUpload(
             if (!analysisData || typeof (analysisData as any).content !== 'string') {
                 return { success: false, error: 'Invalid response from Edge Function (no content)' };
             }
-            blueprint = JSON.parse((analysisData as any).content);
+            blueprint = safeJsonParse((analysisData as any).content);
         } catch (e) {
             console.error('Blueprint parse error:', e);
             return { success: false, error: 'Failed to generate course blueprint' };
@@ -209,7 +239,7 @@ async function fillContentGaps(
             return;
         }
 
-        const gapsData = JSON.parse(data.content);
+        const gapsData = safeJsonParse(data.content);
         const gaps = gapsData.gaps || [];
 
         if (gaps.length === 0) {

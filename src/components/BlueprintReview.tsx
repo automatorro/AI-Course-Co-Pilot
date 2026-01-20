@@ -9,6 +9,7 @@ interface BlueprintReviewProps {
     onGenerateContent: () => void;
     onRefine: () => void;
     onEdit: () => void;
+    onEditDNA?: () => void; // Optional, only if DNA exists
 }
 
 const BlueprintReview: React.FC<BlueprintReviewProps> = ({
@@ -16,6 +17,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
     onGenerateContent,
     onRefine,
     onEdit,
+    onEditDNA,
 }) => {
     const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set());
     const { t } = useTranslation();
@@ -177,6 +179,16 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                             <Edit size={18} />
                             {t('blueprint.actions.edit')}
                         </button>
+                        {onEditDNA && (
+                             <button
+                                 onClick={onEditDNA}
+                                 className="btn-secondary flex items-center gap-2 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300"
+                                 title="Edit Course DNA (Consistency Rules)"
+                             >
+                                 <span className="text-lg">🧬</span>
+                                 Edit DNA
+                             </button>
+                        )}
                     </div>
                     <button
                         onClick={onGenerateContent}
