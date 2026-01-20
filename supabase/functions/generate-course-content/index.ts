@@ -2006,6 +2006,11 @@ const getLegacyPrompt = (
           specificInstructions = `
           ${DEPTH_SPECS.workbook}
           ${TONE_INSTRUCTIONS}
+          
+          **CRITICAL: DURATION CONSISTENCY**
+          - You must match the durations defined in the Course Structure EXACTLY.
+          - Use the format "(X min)" or "(X ore)" at the start of each module/section.
+          
           Use this structure for sections:
           ${PROMPT_TEMPLATES.workbook_section}
           - **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
@@ -2116,6 +2121,11 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         - Learning objectives (1 sentence per module)
         - Logical flow markers (e.g., "Simple → Complex")
         
+        **CRITICAL: REALISTIC TIMING RULES:**
+        - When assigning durations (e.g. "30 min"), assume ONLY 60-70% is content delivery.
+        - The rest is "Reality Buffer" (Questions, Transitions, Setup).
+        - DO NOT overstuff modules. Less is more.
+        
         **WHAT TO EXCLUDE (CRITICAL - DO NOT INCLUDE):**
         ❌ Icebreaker activities or specific exercise names
         ❌ Step-by-step facilitator instructions
@@ -2152,10 +2162,23 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         **GOAL**: Create a minute-by-minute agenda that covers EVERY module from the structure.
         **INSTRUCTIONS**:
         - **completeness**: You MUST include every single module and lesson from the provided Structure.
+        - **REALITY BUFFERS (CRITICAL)**:
+          For every activity, you must calculate and display:
+          1. **Declared Time**: What fits the official agenda.
+          2. **Real Time**: The actual time needed including friction.
+          
+          Use these buffers:
+          - Theory/Lecture: +20% (Q&A)
+          - Individual Exercise: +10% (Writing speed)
+          - Group Exercise: +40% (Sync delays)
+          - Debrief: +50% (Discussion)
+          - Transitions: +3 min between activities
+          
+          *Note: Ensure the TOTAL DECLARED time matches the blueprint duration.*
         - **granularity**: Break down each module into specific activities (Presentation, Discussion, Break).
         - **timing**: Assign specific minutes to each activity.
         - **total_time**: Ensure the total time matches ${blueprintDuration} EXACTLY.
-        - **format**: STRICTLY use a Markdown table with columns: Module | Topic | Activity | Duration (min).
+        - **format**: STRICTLY use a Markdown table with columns: Module | Topic | Activity | Declared Time | Real Time (Internal).
         **LANGUAGE**: ${course.language}.
 
         **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
@@ -2172,6 +2195,18 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         **LANGUAGE**: The content MUST be in **${course.language}**. Do NOT use English headers.
         **CRITICAL INSTRUCTION**: Refer to the MASTER STRUCTURE above. You MUST generate exercises for EVERY module listed there.
 
+        **EXERCISE DEPTH ENGINE (MANDATORY STRUCTURE PER EXERCISE)**:
+        For each exercise, you must provide:
+        1. **Title & Objective**: Clear, action-oriented.
+        2. **Intro Script (Verbatim)**: EXACTLY what the trainer says (Hook -> Instructions -> Timing -> Go Signal).
+        3. **Timing Breakdown (Table)**: 
+           - Columns: Min | Facilitator Action | Participant Action | Red Flags.
+           - Apply Reality Buffers (e.g., +40% for Group Work).
+        4. **Debrief Script**: 3 specific questions (Factual, Analytical, Applicative) + Expected Answers.
+        5. **Linkage**: Backward link (what concept it builds on) and Forward link (where the result is used).
+        6. **Troubleshooting**: 3 specific scenarios (e.g., "Group is silent", "Time running out").
+        7. **Validation Criteria**: How the trainer knows it worked.
+
         **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
         You must emulate the structure, timing, and debriefing of this EXACT example below:
 
@@ -2185,6 +2220,12 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         - **QUANTITY**: Provide at least **2 concrete examples** and **1 Case Study/Story** per module.
         - **SCOPE**: Cover EVERY module in the MASTER STRUCTURE.
         - **LANGUAGE**: The content MUST be in **${course.language}**.
+        
+        **NARRATIVE ARC (CRITICAL)**:
+        - You MUST use the **Course DNA Protagonist** defined in the input context.
+        - Ensure their story evolves across modules (Beginning -> Struggle -> Learning -> Mastery).
+        - Do NOT create random isolated characters for the main case studies. Use the same protagonist to build emotional investment.
+        
         ${TONE_INSTRUCTIONS}
 
         **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
@@ -2200,6 +2241,13 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         ${TONE_INSTRUCTIONS}
         **SCOPE**: Write notes for EVERY module in the MASTER STRUCTURE.
         **LANGUAGE**: The content MUST be in **${course.language}**.
+        
+        **TRANSITION SCRIPTS (MANDATORY)**:
+        For every transition between modules or major activities, write a script containing:
+        1. **Closing Statement**: Acknowledge what just happened.
+        2. **Bridge**: "And that's perfect because..." (Connect to next topic).
+        3. **Preview Hook**: Tease what's coming.
+        4. **Physical Transition**: Instructions on where to move/what to setup.
 
         **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
         You must emulate the structure, facilitator instructions, and debriefing questions of this EXACT example below:
@@ -2315,6 +2363,135 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
   }
 };
 
+// --- NEW: Course DNA Generation ---
+
+const getCourseDNAPrompt = (course: Course, blueprint: any) => {
+  return `
+    **ROLE**: Lead Instructional Designer & Creative Director.
+    **TASK**: Define the "Course DNA" - the single source of truth for consistency across all course materials.
+    
+    **INPUT CONTEXT**:
+    - Title: "${course.title}"
+    - Target Audience: "${course.target_audience}"
+    - Blueprint Duration: "${blueprint?.estimated_duration || 'Standard'}"
+    - Modules: ${blueprint?.modules?.map((m: any) => m.title).join(', ') || 'N/A'}
+
+    **REQUIREMENTS**:
+    Generate a JSON object defining the consistent elements of this course.
+    
+    1. **Terminology**: decide on 3-5 specific terms to use consistently (e.g., "Participant" vs "Student").
+    2. **Narrative Universe**: Create 1 main protagonist (Persona) who will face challenges throughout the course.
+       - **Protagonist**: Name, Role, Personality, Initial State.
+       - **Narrative Arc**: Define 3 key milestones where this character evolves (Beginning, Middle, End) linked to specific modules.
+    3. **Voice Profile**: Define the tone (e.g., Professional but warm).
+    4. **Master Timeline**: Break down the total duration into modules with realistic timing (including breaks).
+
+    **OUTPUT FORMAT**:
+    Return ONLY valid JSON matching this structure:
+    {
+      "terminology": {
+        "participant": "string",
+        "trainer": "string",
+        "exercise": "string",
+        "mandatoryTerms": {
+          "term_key": { "term": "string", "definition": "string" }
+        }
+      },
+      "narrativeUniverse": {
+        "protagonists": [
+          {
+            "name": "string",
+            "role": "string",
+            "personality": "string",
+            "initial_state": "string",
+            "final_state": "string",
+            "arc": [
+              { "module_index": number, "challenge": "string", "learns": "string", "transformation": "string" }
+            ]
+          }
+        ]
+      },
+      "voiceProfile": {
+        "formality": "buddy" | "professional" | "academic",
+        "humorLevel": "none" | "light" | "heavy",
+        "forbiddenPhrases": ["string"],
+        "signaturePhrases": ["string"]
+      },
+      "masterTimeline": {
+        "totalDuration": number,
+        "bufferPerModule": number,
+        "modules": [
+          { 
+            "id": "string", 
+            "title": "string", 
+            "duration": number,
+            "activities": [
+               { "type": "theory|exercise|break", "duration": number, "description": "string" }
+            ]
+          }
+        ]
+      }
+    }
+  `;
+};
+
+// Helper to format DNA as Markdown for the User
+const formatDNAToMarkdown = (dna: any) => {
+  if (!dna) return "Error: No DNA generated.";
+  
+  const p = dna.narrativeUniverse?.protagonists?.[0];
+  
+  return `
+# 🧬 Course DNA (Blueprint & Standards)
+
+> **Rolul acestui document:** Acesta este "Contractul de Consistență" pentru întregul curs. AI-ul va respecta strict aceste definiții în toate modulele, slide-urile și manualele.
+
+---
+
+## 1. 🗣️ Dicționar & Terminologie
+Vom folosi acești termeni **peste tot**, fără excepție:
+
+| Concept | Termen Oficial | Definiție Scurtă |
+|:---|:---|:---|
+| **Audiența** | **${dna.terminology?.participant || 'Participant'}** | Cel care învață. |
+| **Tu (Trainerul)** | **${dna.terminology?.trainer || 'Facilitator'}** | Cel care livrează cursul. |
+| **Practica** | **${dna.terminology?.exercise || 'Activitate'}** | Momentele practice. |
+
+**Termeni Cheie Obligatorii:**
+${Object.values(dna.terminology?.mandatoryTerms || {}).map((t: any) => `- **${t.term}**: ${t.definition}`).join('\n')}
+
+---
+
+## 2. 🎭 Universul Narativ (Povestea Cursului)
+Pentru a lega modulele între ele, vom urmări povestea acestui personaj:
+
+### 👤 Protagonist: **${p?.name || 'N/A'}**
+*   **Rol:** ${p?.role || 'N/A'}
+*   **Personalitate:** ${p?.personality || 'N/A'}
+*   **Misiunea (Arc):** ${p?.arc || 'N/A'}
+
+*Acest personaj va apărea în studiile de caz și exerciții în fiecare modul.*
+
+---
+
+## 3. 🎙️ Vocea și Tonul
+*   **Stil:** ${dna.voiceProfile?.formality || 'Professional'}
+*   **Nivel Umor:** ${dna.voiceProfile?.humorLevel || 'Light'}
+*   **Expresii Semnătură:** "${dna.voiceProfile?.signaturePhrases?.join('", "') || ''}"
+*   **⛔ INTERZIS:** "${dna.voiceProfile?.forbiddenPhrases?.join('", "') || ''}"
+
+---
+
+## 4. ⏱️ Master Timeline (Structura Temporală)
+**Durata Totală:** ${dna.masterTimeline?.totalDuration} minute
+
+${dna.masterTimeline?.modules?.map((m: any) => `
+### 🔹 ${m.title} (${m.duration} min)
+${m.activities?.map((a: any) => `- **${a.duration} min** [${a.type.toUpperCase()}] ${a.description}`).join('\n')}
+`).join('\n')}
+  `.trim();
+};
+
 const getMainPrompt = (
   course: Course,
   step_type: string,
@@ -2328,11 +2505,27 @@ const getMainPrompt = (
   const specificPrompt = getStepPrompt(step_type, course, blueprintDuration);
   const durationEnforcement = getDurationEnforcement(blueprintDuration);
 
+  // --- NEW: Inject Course DNA if available ---
+  let dnaContext = "";
+  if (course.dna) {
+    const dna = course.dna;
+    dnaContext = `
+    **🧬 COURSE DNA (STRICT CONSISTENCY RULES)**:
+    - **TERMINOLOGY**: Use "${dna.terminology.participant}" (learner), "${dna.terminology.trainer}" (you), "${dna.terminology.exercise}" (practice).
+    - **MANDATORY TERMS**: ${Object.values(dna.terminology.mandatoryTerms || {}).map((t: any) => `${t.term} (${t.definition})`).join(', ')}.
+    - **TONE**: ${dna.voiceProfile.formality}, Humor: ${dna.voiceProfile.humorLevel}.
+    - **FORBIDDEN**: Do NOT use these phrases: ${dna.voiceProfile.forbiddenPhrases.join(', ')}.
+    - **PROTAGONIST**: ${dna.narrativeUniverse.protagonists?.[0]?.name} (${dna.narrativeUniverse.protagonists?.[0]?.role}). Arc: ${dna.narrativeUniverse.protagonists?.[0]?.arc}.
+    `;
+  }
+
   return `
     **ROLE**: You are a World-Class Instructional Designer and Curriculum Architect.
     **CONTEXT**: Creating a **${course.environment}** course titled "**${course.title}**".
     **TARGET AUDIENCE**: ${course.target_audience}
     **LANGUAGE**: ${course.language}
+
+    ${dnaContext}
 
     ${durationEnforcement}
 
@@ -2346,16 +2539,6 @@ const getMainPrompt = (
       `- Focus on SELF-PACED learning, digital quizzes, and screen-friendly formatting.
        - Include 'Reflection moments' instead of group work.
        - Use phrases like 'Pause the video', 'Download the worksheet', 'Think about this'.` 
-      : ''}
-    ${course.environment === 'Corporate' ? 
-      `- Focus on BUSINESS IMPACT, ROI, and workplace application.
-       - Use professional scenarios relevant to the industry.
-       - Keep exercises time-efficient and results-oriented.` 
-      : ''}
-    ${course.environment === 'Academic' ? 
-      `- Focus on THEORETICAL DEPTH, citations, and critical thinking.
-       - Include extensive reading lists and research prompts.
-       - Use formal definitions and structured arguments.` 
       : ''}
 
     ${fileContext ? `**REFERENCE MATERIALS**:\n${fileContext}\n` : ''}
@@ -2387,10 +2570,22 @@ function getWorkbookModulePrompt(
   fileContext: string
 ): string {
   
+  let dnaContext = "";
+  if (course.dna) {
+    const dna = course.dna;
+    dnaContext = `
+    **🧬 COURSE DNA (STRICT CONSISTENCY RULES)**:
+    - **TERMINOLOGY**: Use "${dna.terminology.participant}" (learner), "${dna.terminology.trainer}" (you), "${dna.terminology.exercise}" (practice).
+    - **PROTAGONIST**: ${dna.narrativeUniverse.protagonists?.[0]?.name} (${dna.narrativeUniverse.protagonists?.[0]?.role}). Arc: ${dna.narrativeUniverse.protagonists?.[0]?.arc}.
+    `;
+  }
+
   return `
     **ROLE**: You are an expert Instructional Designer.
     **TASK**: Generate workbook content for **ONE MODULE ONLY**.
     **LANGUAGE**: ${course.language}
+    
+    ${dnaContext}
 
     **MODULE DETAILS**:
     - Module Number: ${moduleIndex + 1}
@@ -2408,19 +2603,24 @@ function getWorkbookModulePrompt(
     #### Conceptul de bază (300-500 words)
     [Full explanation. Define terms, provide context. NO academic tone - use "buddy-to-buddy" tone.]
 
-    **Exemplu concret:** (200-300 words)
-    [Story: Context -> Challenge -> Action -> Result]
+    **Exemplu concret (NARRATIVE ARC):** (200-300 words)
+    [Continue the story of **${course.dna?.narrativeUniverse?.protagonists?.[0]?.name || 'the protagonist'}**. Show how they face a challenge related to this module's concept and how they apply the solution.]
 
     ---
     🎯 **EXERCIȚIU PRACTIC ${moduleIndex + 1}.1**
-    **Obiectiv:** [What to practice]
-    **Durată:** 15 min
+    **Obiectiv:** [What specific skill will be practiced]
+    **Durată:** [Time] min
+    
     **Instrucțiuni:**
-    1. [Step 1]
-    2. [Step 2]
+    1. [Clear Step 1]
+    2. [Clear Step 2]
     
     **Spațiul tău de lucru:**
-    [Insert Answer Space / Table / Lines]
+    [Insert ample space for writing/answering]
+    
+    **Checklist de succes:**
+    - [ ] Am identificat...
+    - [ ] Am aplicat...
     ---
 
     ### Recapitulare ${module.title}
@@ -2850,6 +3050,15 @@ serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id;
 
+    // --- NEW: Refresh Course DNA from DB to ensure Single Source of Truth consistency ---
+    if (course && course.id) {
+       const { data: dbCourse } = await supabase.from('courses').select('dna').eq('id', course.id).single();
+       if (dbCourse && dbCourse.dna) {
+           console.log(`[Edge] Refreshed Course DNA from DB for ${course.id}`);
+           course.dna = dbCourse.dna;
+       }
+    }
+
     const genAI = geminiApiKey ? new GoogleGenerativeAI(geminiApiKey) : null;
 
     const stepTitle = step ? (STEP_TITLES[step.title_key] || "Unknown Step") : "General";
@@ -3023,54 +3232,32 @@ serve(async (req) => {
               .join('\n');
       }
 
-      // --- ITERATIVE GENERATION CHECK ---
-      // Check if we should use iterative generation for this step
-      if (normalizedStepType === 'participant_workbook' && course.blueprint?.modules && course.blueprint.modules.length > 0) {
-          console.log(`Using ITERATIVE generation for ${normalizedStepType} (Modules: ${course.blueprint.modules.length})`);
-          // We generate iteratively and skip the standard "generateContent" call below
-          // Note: we assign it to 'prompt' variable temporarily if we wanted to standard flow, 
-          // but here we want to assign to 'text' directly.
-          // However, 'text' is defined inside the try block below.
-          // So we need to restructure slightly or use a flag.
-          
-          // Actually, we can just set a special flag or handle it right here?
-          // The cleanest way is to handle it in the "AI EXECUTION" block, or execute it here and set 'text'.
-          // But 'text' is scoped inside the try block.
-          // Let's modify the Prompt generation to return a special object? No.
-          
-          // Let's execute it here and pass it down via a variable, or move this logic inside the try block.
-          // Moving inside the try block is safer.
+      // --- SPECIAL CASE: Course DNA ---
+      if (normalizedStepType === 'course_dna') {
+         prompt = getCourseDNAPrompt(course, course.blueprint);
+      } else {
+         // Standard Prompt Generation
+         prompt = getMainPrompt(
+            course,
+            normalizedStepType,
+            blueprintDuration,
+            fileContext,
+            structuredContext,
+            previousContext,
+            fullStructureContext,
+            explicitModuleList
+         );
       }
-      
-      prompt = getMainPrompt(
-        course,
-        normalizedStepType,
-        blueprintDuration,
-        fileContext,
-        structuredContext,
-        previousContext,
-        fullStructureContext,
-        explicitModuleList
-      );
 
     } else {
-      // --- GENERATION PROMPT (LEGACY / FALLBACK) ---
-
-      // 1. Build Context from Previous Steps
-      const previousStepsContext = Array.isArray(course.steps)
-        ? (course.steps as Array<{ step_order: number; content?: string; title_key: string }>)
-            .filter((s) => typeof s.step_order === 'number' && s.step_order < step.step_order && !!s.content)
-            .map((s) => `--- PREVIOUS STEP: ${STEP_TITLES[s.title_key]} ---\n${(s.content || '').substring(0, 500)}...\n`)
-            .join('\n')
-        : "";
-
-      prompt = getLegacyPrompt(course, stepTitle, step.title_key, fileContext, previousStepsContext);
+      throw new Error(`Invalid action or missing parameters. Received action: ${action}, step_type: ${step_type}`);
     }
 
     // --- AI EXECUTION VIA HELPER ---
     try {
         let text = '';
         const normalizedStepType = step_type ? normalizeStepType(step_type) : '';
+        const isDNA = normalizedStepType === 'course_dna';
         const isIterative = !isJsonMode && 
                             action === 'generate_step_content' && 
                             normalizedStepType === 'participant_workbook' && 
@@ -3101,6 +3288,26 @@ serve(async (req) => {
              if (isIterative) {
                  console.log(`[Main] Executing Iterative Generation for ${normalizedStepType}`);
                  text = await generateWorkbookIteratively(course, course.blueprint, fileContext, genAI, supabase, userId);
+             } else if (isDNA) {
+                 // Generate JSON DNA
+                 console.log(`[Main] Generating Course DNA (JSON Mode)...`);
+                 const jsonText = await generateContent(prompt, true, genAI, supabase, userId, 'course_dna');
+                 
+                 try {
+                    // Parse JSON to validate and then format as Markdown for the user
+                    const dnaObj = JSON.parse(jsonText);
+                    
+                    // Save DNA to course object (Single Source of Truth)
+                    if (supabase && course.id) {
+                        await supabase.from('courses').update({ dna: dnaObj }).eq('id', course.id);
+                    }
+                    
+                    // Return human-readable Markdown for the frontend step content
+                    text = formatDNAToMarkdown(dnaObj);
+                 } catch (e) {
+                    console.error("Failed to parse generated DNA JSON:", e);
+                    text = "Error generating Course DNA. Please try again.";
+                 }
              } else {
                  text = await generateContent(prompt, isJsonMode, genAI, supabase, userId, step_type || action || 'unknown_step');
              }

@@ -39,6 +39,7 @@ interface GenerationProgressModalProps {
 }
 
 const STEPS_ORDER = [
+    { type: TrainerStepType.CourseDNA, key: 'generation.steps.courseDNA' },
     { type: TrainerStepType.PerformanceObjectives, key: 'generation.steps.performanceObjectives' },
     { type: TrainerStepType.CourseObjectives, key: 'generation.steps.courseObjectives' },
     { type: TrainerStepType.Structure, key: 'generation.steps.structure' },
@@ -278,8 +279,41 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             if (!userId) throw new Error('User ID is missing.');
 
             for (const s of stepTypesToRegenerate) {
+                // Build Context (Identical to processStep)
+                const contextMap: Record<TrainerStepType, TrainerStepType[]> = {
+                    [TrainerStepType.CourseDNA]: [],
+                    [TrainerStepType.PerformanceObjectives]: [TrainerStepType.CourseDNA],
+                    [TrainerStepType.CourseObjectives]: [TrainerStepType.CourseDNA, TrainerStepType.PerformanceObjectives],
+                    [TrainerStepType.Structure]: [TrainerStepType.CourseDNA, TrainerStepType.PerformanceObjectives, TrainerStepType.CourseObjectives],
+                    [TrainerStepType.LearningMethods]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
+                    [TrainerStepType.TimingAndFlow]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.LearningMethods],
+                    [TrainerStepType.Exercises]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
+                    [TrainerStepType.ExamplesAndStories]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
+                    [TrainerStepType.FacilitatorNotes]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
+                    [TrainerStepType.Slides]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ExamplesAndStories],
+                    [TrainerStepType.FacilitatorManual]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.TimingAndFlow, TrainerStepType.FacilitatorNotes, TrainerStepType.Exercises],
+                    [TrainerStepType.ParticipantWorkbook]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
+                    [TrainerStepType.VideoScripts]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
+                    [TrainerStepType.CheatSheets]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ParticipantWorkbook],
+                    [TrainerStepType.Projects]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
+                    [TrainerStepType.Tests]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.CourseObjectives]
+                };
+
+                const allowed = new Set(contextMap[s] || []);
+                const prevForContext = accumulatedContentRef.current
+                    .filter((item: any) => allowed.size === 0 || allowed.has(item.step_type))
+                    .map((item: any) => ({ step_type: item.step_type, content: String(item.content || '').slice(0, 2000) }));
+                
+                const summary = buildContextSummary(accumulatedContentRef.current);
+
                 const { data, error: fnError } = await supabase.functions.invoke('generate-course-content', {
-                    body: { action: 'generate_step_content', course, step_type: s, context_files: [] },
+                    body: { 
+                        action: 'generate_step_content', 
+                        course, 
+                        step_type: s, 
+                        previous_steps: prevForContext,
+                        context_summary: summary 
+                    },
                 });
                 if (fnError) {
                     const ctx = (fnError as any)?.context;
@@ -665,6 +699,14 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
 
             // 3. Next Step (Recursive)
             if (!isStoppedRef.current) {
+                // NEW: Pause after CourseDNA (Step 0) to allow user review
+                if (step.type === TrainerStepType.CourseDNA) {
+                     console.log('[GenerationProgressModal] Pausing after CourseDNA for user review.');
+                     setIsGenerating(false);
+                     setSuccessMessage("Pasul 0 (ADN) completat. Puteți închide fereastra pentru a revizui/edita ADN-ul, apoi reluați generarea.");
+                     return;
+                }
+
                 await processStep(index + 1);
             }
 
@@ -691,6 +733,11 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
 
             // 1. Define Mapping (8 Livrables - Fixed to separate incompatible types)
             const LIVRABLE_MAPPING = [
+                {
+                    key: 'course.livrables.course_dna',
+                    label: 'Course DNA',
+                    sources: [TrainerStepType.CourseDNA]
+                },
                 {
                     key: 'course.livrables.structure',
                     label: 'Complete Structure',
@@ -1079,7 +1126,7 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                                             isCompleted ? 'text-green-700 dark:text-green-300' :
                                                 'text-slate-500 dark:text-slate-500'
                                             }`}>
-                                            {`${index + 1}. ${t(step.key)}`}
+                                            {`${index}. ${t(step.key)}`}
                                         </span>
                                     </div>
 

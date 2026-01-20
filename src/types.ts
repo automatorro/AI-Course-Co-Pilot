@@ -36,6 +36,52 @@ export interface Course {
   steps?: CourseStep[]; // Optional, as we might load them separately
   blueprint?: CourseBlueprint;
   ai_refinement_history?: AIMessage[]; // NEW: Optional log of AI suggestions
+  dna?: CourseDNA; // NEW: The Single Source of Truth for the course
+}
+
+// === COURSE DNA (Global Source of Truth) ===
+export interface CourseDNA {
+  terminology: {
+    participant: string; // e.g. "Participant" vs "Learner"
+    exercise: string;    // e.g. "Exercise" vs "Activity"
+    trainer: string;     // e.g. "Facilitator" vs "Instructor"
+    mandatoryTerms: Record<string, {
+      term: string;
+      abbreviation?: string;
+      definition: string;
+      firstMention?: string;
+    }>;
+  };
+  narrativeUniverse: {
+    protagonists: Array<{
+      name: string;
+      role: string;
+      personality: string;
+      arc: string;
+    }>;
+  };
+  masterTimeline: {
+    totalDuration: number; // minutes
+    bufferPerModule: number; // minutes
+    modules: Array<{
+      id: string;
+      title: string;
+      duration: number; // minutes
+      startTime?: string; // "09:00"
+      endTime?: string;   // "10:30"
+      activities: Array<{
+        type: 'theory' | 'exercise' | 'break' | 'debrief';
+        duration: number;
+        description: string;
+      }>
+    }>;
+  };
+  voiceProfile: {
+    formality: 'buddy' | 'professional' | 'academic';
+    humorLevel: 'none' | 'light' | 'heavy';
+    forbiddenPhrases: string[];
+    signaturePhrases: string[];
+  };
 }
 
 export interface CourseStep {
@@ -101,6 +147,7 @@ export interface CourseFile {
 
 // NEW: The 12 Steps of the Trainer's Flow
 export enum TrainerStepType {
+  CourseDNA = 'course_dna', // Step 0: The Single Source of Truth
   PerformanceObjectives = 'performance_objectives',
   CourseObjectives = 'course_objectives',
   Structure = 'structure',
