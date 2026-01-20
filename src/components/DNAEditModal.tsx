@@ -104,7 +104,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                     <div className="flex items-center gap-2">
                         <span className="text-2xl">🧬</span>
                         <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                            {t('dna.edit.title', 'Edit Course DNA')}
+                            {t('dna.edit.title')}
                         </h2>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors">
@@ -123,7 +123,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                         }`}
                     >
                         <LayoutTemplate size={16} />
-                        {t('dna.edit.tabs.form', 'Visual Editor')}
+                        {t('dna.edit.tabs.form')}
                     </button>
                     <button
                         onClick={() => handleTabChange('json')}
@@ -134,7 +134,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                         }`}
                     >
                         <Code size={16} />
-                        {t('dna.edit.tabs.json', 'JSON Editor (Advanced)')}
+                        {t('dna.edit.tabs.json')}
                     </button>
                 </div>
 
@@ -144,7 +144,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                         <div className="bg-red-50 dark:bg-red-900/20 p-3 border-b border-red-100 dark:border-red-900/50 flex items-start gap-3">
                             <AlertTriangle size={18} className="text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
                             <p className="text-sm text-red-800 dark:text-red-200">
-                                {t('dna.edit.parseError', 'Structure error detected. Use JSON editor to fix manually or fill the form to overwrite.')}
+                                {t('dna.edit.parseError')}
                             </p>
                         </div>
                     )}
@@ -154,12 +154,12 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                             {/* Terminology Section */}
                             <section>
                                 <h3 className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-4 border-b pb-2">
-                                    {t('dna.edit.section.terminology', 'Terminology')}
+                                    {t('dna.edit.section.terminology')}
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                     <div>
                                         <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            {t('dna.edit.field.participant', 'Participant Term')}
+                                            {t('dna.edit.field.participant')}
                                         </label>
                                         <input
                                             type="text"
@@ -173,7 +173,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            {t('dna.edit.field.trainer', 'Trainer Term')}
+                                            {t('dna.edit.field.trainer')}
                                         </label>
                                         <input
                                             type="text"
@@ -187,7 +187,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            {t('dna.edit.field.exercise', 'Exercise Term')}
+                                            {t('dna.edit.field.exercise')}
                                         </label>
                                         <input
                                             type="text"
@@ -205,12 +205,12 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                             {/* Voice Profile Section */}
                             <section>
                                 <h3 className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-4 border-b pb-2">
-                                    {t('dna.edit.section.voice', 'Voice Profile')}
+                                    {t('dna.edit.section.voice')}
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            {t('dna.edit.field.formality', 'Formality')}
+                                            {t('dna.edit.field.formality')}
                                         </label>
                                         <select
                                             value={formData.voiceProfile?.formality || 'professional'}
@@ -227,7 +227,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                                     </div>
                                     <div>
                                         <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            {t('dna.edit.field.humor', 'Humor Level')}
+                                            {t('dna.edit.field.humor')}
                                         </label>
                                         <select
                                             value={formData.voiceProfile?.humorLevel || 'none'}
@@ -248,7 +248,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                             {/* Narrative Section - Simplified to JSON for now as it's complex array */}
                             <section>
                                 <h3 className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-4 border-b pb-2">
-                                    {t('dna.edit.section.narrative', 'Narrative Universe')} (JSON)
+                                    {t('dna.edit.section.narrative')} (JSON)
                                 </h3>
                                 <textarea
                                     value={JSON.stringify(formData.narrativeUniverse || {}, null, 2)}
@@ -270,7 +270,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                             <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 border-b border-yellow-100 dark:border-yellow-900/50 flex items-start gap-3">
                                 <AlertTriangle size={18} className="text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
                                 <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                                    {t('dna.edit.warning', 'Warning: Raw JSON editing.')}
+                                    {t('dna.edit.warning')}
                                 </p>
                             </div>
                             <textarea
@@ -293,7 +293,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                             onClick={onClose}
                             className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
                         >
-                            {t('dna.edit.cancel', 'Cancel')}
+                            {t('dna.edit.cancel')}
                         </button>
                         <button
                             onClick={handleSave}
@@ -301,7 +301,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                             className="btn-primary flex items-center gap-2"
                         >
                             {isSaving ? <span className="animate-spin">⏳</span> : <Save size={18} />}
-                            {t('dna.edit.save', 'Save DNA')}
+                            {t('dna.edit.save')}
                         </button>
                     </div>
                 </div>
