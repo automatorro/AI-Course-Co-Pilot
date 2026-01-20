@@ -594,21 +594,22 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             }
 
             const contextMap: Record<TrainerStepType, TrainerStepType[]> = {
-                [TrainerStepType.PerformanceObjectives]: [],
-                [TrainerStepType.CourseObjectives]: [TrainerStepType.PerformanceObjectives],
-                [TrainerStepType.Structure]: [TrainerStepType.PerformanceObjectives, TrainerStepType.CourseObjectives],
-                [TrainerStepType.LearningMethods]: [TrainerStepType.Structure],
-                [TrainerStepType.TimingAndFlow]: [TrainerStepType.Structure, TrainerStepType.LearningMethods],
-                [TrainerStepType.Exercises]: [TrainerStepType.Structure],
-                [TrainerStepType.ExamplesAndStories]: [TrainerStepType.Structure],
-                [TrainerStepType.FacilitatorNotes]: [TrainerStepType.Structure, TrainerStepType.Exercises],
-                [TrainerStepType.Slides]: [TrainerStepType.Structure, TrainerStepType.ExamplesAndStories],
-                [TrainerStepType.FacilitatorManual]: [TrainerStepType.Structure, TrainerStepType.TimingAndFlow, TrainerStepType.FacilitatorNotes, TrainerStepType.Exercises],
-                [TrainerStepType.ParticipantWorkbook]: [TrainerStepType.Structure, TrainerStepType.Exercises],
-                [TrainerStepType.VideoScripts]: [TrainerStepType.Structure],
-                [TrainerStepType.CheatSheets]: [TrainerStepType.Structure, TrainerStepType.ParticipantWorkbook],
-                [TrainerStepType.Projects]: [TrainerStepType.Structure, TrainerStepType.Exercises],
-                [TrainerStepType.Tests]: [TrainerStepType.Structure, TrainerStepType.CourseObjectives]
+                [TrainerStepType.CourseDNA]: [],
+                [TrainerStepType.PerformanceObjectives]: [TrainerStepType.CourseDNA],
+                [TrainerStepType.CourseObjectives]: [TrainerStepType.CourseDNA, TrainerStepType.PerformanceObjectives],
+                [TrainerStepType.Structure]: [TrainerStepType.CourseDNA, TrainerStepType.PerformanceObjectives, TrainerStepType.CourseObjectives],
+                [TrainerStepType.LearningMethods]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
+                [TrainerStepType.TimingAndFlow]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.LearningMethods],
+                [TrainerStepType.Exercises]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
+                [TrainerStepType.ExamplesAndStories]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
+                [TrainerStepType.FacilitatorNotes]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
+                [TrainerStepType.Slides]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ExamplesAndStories],
+                [TrainerStepType.FacilitatorManual]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.TimingAndFlow, TrainerStepType.FacilitatorNotes, TrainerStepType.Exercises],
+                [TrainerStepType.ParticipantWorkbook]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
+                [TrainerStepType.VideoScripts]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
+                [TrainerStepType.CheatSheets]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ParticipantWorkbook],
+                [TrainerStepType.Projects]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
+                [TrainerStepType.Tests]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.CourseObjectives]
             };
             const allowed = new Set(contextMap[step.type] || []);
             const prevForContext = (accumulatedContentRef.current || [])
