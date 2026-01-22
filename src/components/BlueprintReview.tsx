@@ -183,10 +183,10 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                              <button
                                  onClick={onEditDNA}
                                  className="btn-secondary flex items-center gap-2 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300"
-                                 title="Edit Course DNA (Consistency Rules)"
+                                 title={t('blueprint.actions.editDNATitle')}
                              >
                                  <span className="text-lg">🧬</span>
-                                 Edit DNA
+                                 {t('blueprint.actions.editDNA')}
                              </button>
                         )}
                     </div>
