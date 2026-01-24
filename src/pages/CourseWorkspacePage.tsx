@@ -38,6 +38,25 @@ import { createStepVersion } from '../services/versioningService';
 import { GenerationProgressModal } from '../components/GenerationProgressModal';
 import { isEnabled } from '../config/featureFlags';
 
+const safeMarkedParse = (content: string, options?: any): string => {
+  if (!content) return '';
+  // Prevent stack overflow on very large content (approx 100KB limit for safe parsing)
+  if (content.length > 100000) {
+     return `<div class="p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 mb-4 text-sm">
+      <strong>Content too large for preview:</strong> displaying raw text (${Math.round(content.length/1024)}KB).
+    </div><pre class="whitespace-pre-wrap font-mono text-xs bg-gray-50 p-4 rounded overflow-auto max-h-[500px]">${content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`;
+  }
+  try {
+    return marked.parse(content, options) as unknown as string;
+  } catch (error) {
+    console.error('Markdown parsing failed:', error);
+    // Return a safe fallback that displays the raw content
+    return `<div class="p-4 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 mb-4 text-sm">
+      <strong>Rendering Warning:</strong> Content is too complex for rich preview. Showing raw text.
+    </div><pre class="whitespace-pre-wrap font-mono text-xs bg-gray-50 p-4 rounded overflow-auto max-h-[500px]">${content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`;
+  }
+};
+
 const HelpModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { t } = useTranslation();
   const helpItems = [
@@ -228,7 +247,7 @@ const CourseWorkspacePage: React.FC = () => {
       const key = s.id || `idx-${i}`;
       if (previewCache[key]) return;
       const content = s.content || '';
-      const html = looksLikeHtml(content) ? content : (marked.parse(resolveTokensForPreview(content)) as string);
+      const html = looksLikeHtml(content) ? content : safeMarkedParse(resolveTokensForPreview(content));
       setPreviewCache(prev => ({ ...prev, [key]: html }));
     });
   }, [activeStepIndex, course?.steps, resolveTokensForPreview, looksLikeHtml]);
@@ -511,7 +530,7 @@ const CourseWorkspacePage: React.FC = () => {
 
   useEffect(() => {
     const isHtml = /<[a-z][\s\S]*>/i.test(originalContentForStep || '');
-    const next = isHtml ? originalContentForStep : marked.parse(originalContentForStep || '', { breaks: true }) as string;
+    const next = isHtml ? originalContentForStep : safeMarkedParse(originalContentForStep || '', { breaks: true });
     setEditedContent(next);
   }, [originalContentForStep]);
 
@@ -519,13 +538,13 @@ const CourseWorkspacePage: React.FC = () => {
   useEffect(() => {
     const nextContent = course?.steps?.[activeStepIndex]?.content ?? '';
     const isHtml = /<[a-z][\s\S]*>/i.test(nextContent || '');
-    const next = isHtml ? nextContent : marked.parse(nextContent || '', { breaks: true }) as string;
+    const next = isHtml ? nextContent : safeMarkedParse(nextContent || '', { breaks: true });
     setEditedContent(next);
   }, [activeStepIndex]);
 
   const originalHtml = /<[a-z][\s\S]*>/i.test(originalContentForStep || '')
     ? (originalContentForStep || '')
-    : (marked.parse(originalContentForStep || '', { breaks: true }) as string);
+    : safeMarkedParse(originalContentForStep || '', { breaks: true });
   const hasUnsavedChanges = editedContent !== originalHtml;
 
   const handleGenerate = useCallback(async () => {
@@ -605,7 +624,7 @@ const CourseWorkspacePage: React.FC = () => {
       if (!refinedText || refinedText.trim().length === 0) {
         throw new Error('Serviciul de AI nu a returnat conținut. Încearcă din nou.');
       }
-      const refinedHtml = marked.parse(refinedText || '', { breaks: true }) as string;
+      const refinedHtml = safeMarkedParse(refinedText || '', { breaks: true });
       setOriginalForProposal(editedContent);
       let previewHtml = refinedHtml;
       if (selectionRef.current.end > selectionRef.current.start) {
@@ -762,14 +781,14 @@ const CourseWorkspacePage: React.FC = () => {
     }
 
     // Reflect processed content back into editor as HTML
-    const html = marked.parse(processedContent || '', { breaks: true }) as string;
+    const html = safeMarkedParse(processedContent || '', { breaks: true });
     setEditedContent(html);
     showToast('Changes saved successfully!', 'success');
 
     // Optimistic update: autosave + local course state to prevent revert
     try {
       const key = `autosave:${course.id}:${currentStep.id}`;
-      const htmlStr = marked.parse(processedContent || '', { breaks: true }) as string;
+      const htmlStr = safeMarkedParse(processedContent || '', { breaks: true });
       localStorage.setItem(key, htmlStr);
     } catch {}
     setCourse(prev => {
@@ -1620,7 +1639,7 @@ const CourseWorkspacePage: React.FC = () => {
                   {currentStep.title_key === 'course.steps.manual' || currentStep.title_key === 'course.steps.cheat_sheets' ? (
                     (() => {
                       const isHtml = looksLikeHtml(editedContent);
-                      const html = isHtml ? (editedContent || '') : marked.parse(resolveTokensForPreview(editedContent || ''));
+                      const html = isHtml ? (editedContent || '') : safeMarkedParse(resolveTokensForPreview(editedContent || ''));
                       return <div className="p-4 sm:p-5 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: html }} />;
                     })()
                   ) : looksLikeHtml(editedContent) ? (
@@ -1707,7 +1726,7 @@ const CourseWorkspacePage: React.FC = () => {
                   if (isSlidesStep) {
                       const step = currentStep;
                       const canonical = formatToCanonicalSlides(step?.content || '');
-                      const html = marked.parse(canonical || '', { breaks: true }) as string;
+                      const html = safeMarkedParse(canonical || '', { breaks: true });
                       setEditedContent(html);
                       setShowSlidesPreview(true);
                   } else {
@@ -1758,7 +1777,7 @@ const CourseWorkspacePage: React.FC = () => {
                       setCourse(updatedCourseData);
                       const updatedStep = (updatedCourseData.steps || []).find((s: CourseStep) => s.id === currentStep.id);
                       if (updatedStep) {
-                         const html = marked.parse(updatedStep.content || '', { breaks: true }) as string;
+                         const html = safeMarkedParse(updatedStep.content || '', { breaks: true });
                          setEditedContent(html);
                       }
                     }
@@ -1806,7 +1825,7 @@ const CourseWorkspacePage: React.FC = () => {
           currentContent={editedContent}
           onRestore={(content) => {
             // Optimistic update
-            const html = marked.parse(content, { breaks: true }) as string;
+            const html = safeMarkedParse(content, { breaks: true });
             setEditedContent(html);
             
             if (course) {
@@ -1834,7 +1853,7 @@ const CourseWorkspacePage: React.FC = () => {
           initialFileName={stagingFile?.name}
           onApplied={async (oldContent: string, newContent: string) => {
             // Optimistic update for immediate feedback
-            const html = marked.parse(newContent, { breaks: true }) as string;
+            const html = safeMarkedParse(newContent, { breaks: true });
             setEditedContent(html);
 
             // FIX: Update autosave immediately to prevent revert by useEffect when course updates
@@ -1934,7 +1953,7 @@ const CourseWorkspacePage: React.FC = () => {
                  });
                  
                  // Update state
-                 const nextHtml = marked.parse(nextMarkdown, { breaks: true }) as string;
+                 const nextHtml = safeMarkedParse(nextMarkdown, { breaks: true });
                  setEditedContent(nextHtml);
                  
                  const currentStep = (course?.steps || [])[activeStepIndex];

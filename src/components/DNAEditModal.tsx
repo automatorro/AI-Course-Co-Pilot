@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, AlertTriangle, LayoutTemplate, Plus, Trash2 } from 'lucide-react';
+import { X, Save, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from '../contexts/I18nContext';
 import { CourseDNA } from '../types';
 

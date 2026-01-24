@@ -2724,6 +2724,85 @@ async function generateWorkbookIteratively(
   return sections.join('\n\n---\n\n');
 }
 
+function getSlideModulePrompt(
+  course: Course,
+  module: any,
+  moduleIndex: number,
+  fileContext: string
+): string {
+  const envSuffix = course.environment === 'OnlineCourse' ? 'online' : 'live';
+  
+  return `
+    **TASK**: Generate Slide Content for **ONE MODULE ONLY**.
+    **MODULE**: ${moduleIndex + 1}. ${module.title}
+    **GOAL**: Create the visual support structure for this specific module.
+    
+    **LANGUAGE**: The content MUST be in **${course.language}**.
+    
+    **QUANTITY**: Generate approx. 3-5 slides for this module.
+    
+    **CRITICAL OUTPUT RULE**:
+    - Output ONLY valid XML tags.
+    - Start with <SLIDE_BEGIN id="...">
+    - Do not wrap in markdown code blocks.
+    - Use the exact XML template provided below.
+    
+    ${DEPTH_SPECS.slides}
+    
+    **THE GOLDEN STANDARD**:
+    ${GOLDEN_SAMPLES[`slides_${envSuffix}`] || GOLDEN_SAMPLES.slides_live}
+  `;
+}
+
+async function generateSlidesIteratively(
+  course: Course,
+  blueprint: any,
+  fileContext: string,
+  genAI: any,
+  supabase?: any,
+  userId?: string
+): Promise<string> {
+  const sections: string[] = [];
+  
+  if (blueprint && Array.isArray(blueprint.modules)) {
+      const modules = blueprint.modules;
+      // Process modules sequentially or in small batches to ensure we don't hit rate limits too hard
+      const BATCH_SIZE = 3; 
+      
+      for (let i = 0; i < modules.length; i += BATCH_SIZE) {
+          const batch = modules.slice(i, i + BATCH_SIZE);
+          console.log(`[Iterative] Generating Slides Batch ${Math.floor(i/BATCH_SIZE)+1} (${batch.length} modules)...`);
+          
+          const batchResults = await Promise.all(batch.map(async (module, index) => {
+              const globalIndex = i + index;
+              const modulePrompt = getSlideModulePrompt(course, module, globalIndex, fileContext);
+              try {
+                  let content = await generateContent(modulePrompt, false, genAI, supabase, userId, `slides_module_${globalIndex+1}`);
+                  
+                  // Cleanup markdown if present
+                   content = content.replace(/```xml/gi, '')
+                            .replace(/```markdown/gi, '')
+                            .replace(/```/g, '')
+                            .trim();
+
+                  return content;
+              } catch (err) {
+                  console.error(`Error generating slides for module ${module.title}:`, err);
+                  return `<!-- Error generating slides for Module ${globalIndex+1} -->`;
+              }
+          }));
+          
+          sections.push(...batchResults);
+          
+          if (i + BATCH_SIZE < modules.length) {
+             await new Promise(r => setTimeout(r, 1000));
+          }
+      }
+  }
+
+  return sections.join('\n\n');
+}
+
 // --- AI CLIENT ---
 
 // --- USAGE TRACKING ---
@@ -3260,7 +3339,7 @@ serve(async (req) => {
         const isDNA = normalizedStepType === 'course_dna';
         const isIterative = !isJsonMode && 
                             action === 'generate_step_content' && 
-                            normalizedStepType === 'participant_workbook' && 
+                            (normalizedStepType === 'participant_workbook' || normalizedStepType === 'slides') && 
                             course.blueprint?.modules?.length > 0;
 
         // --- CACHE LAYER ---
@@ -3287,7 +3366,11 @@ serve(async (req) => {
         if (!text) {
              if (isIterative) {
                  console.log(`[Main] Executing Iterative Generation for ${normalizedStepType}`);
-                 text = await generateWorkbookIteratively(course, course.blueprint, fileContext, genAI, supabase, userId);
+                 if (normalizedStepType === 'participant_workbook') {
+                     text = await generateWorkbookIteratively(course, course.blueprint, fileContext, genAI, supabase, userId);
+                 } else if (normalizedStepType === 'slides') {
+                     text = await generateSlidesIteratively(course, course.blueprint, fileContext, genAI, supabase, userId);
+                 }
              } else if (isDNA) {
                  // Generate JSON DNA
                  console.log(`[Main] Generating Course DNA (JSON Mode)...`);

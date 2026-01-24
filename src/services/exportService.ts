@@ -506,7 +506,74 @@ export const parseContentSections = (markdown: string, language: string = 'en'):
     }
 
     flush();
+
+    // --- 3. IMPLICIT SLIDE DETECTION (RECOVERY MODE) ---
+    // If we only found 1 slide (or 0) and the content is long, it might be a malformed generation
+    // where "Slide X" headers are missing. We try to split by visual description paragraphs.
+    if (sections.length <= 1 && markdown.length > 200) {
+        const potentialImplicitSlides = detectImplicitSlides(markdown);
+        if (potentialImplicitSlides.length > 1) {
+             console.log('[SlideParser] Recovery: Detected implicit slides:', potentialImplicitSlides.length);
+             return potentialImplicitSlides;
+        }
+    }
+
     return sections;
+};
+
+const detectImplicitSlides = (markdown: string): ContentSection[] => {
+    // Heuristic: Look for paragraphs that start with specific visual cues (especially for Romanian 'Un', 'O', 'Două', etc.)
+    // followed by content.
+    const chunks = markdown.split(/\n\n+/);
+    const newSections: ContentSection[] = [];
+    let currentSection: ContentSection | null = null;
+    
+    // Keywords that likely start a visual description in this specific failure mode
+    const visualStarts = ['Un ', 'O ', 'Două ', 'Trei ', 'Patru ', 'Cinci ', 'Imagine ', 'Vizual ', 'Grafic ', 'A ', 'An ', 'The ', 'Two ', 'Three '];
+    
+    chunks.forEach((chunk) => {
+        const trimmed = chunk.trim();
+        if (!trimmed) return;
+        
+        // Check if this chunk looks like a new Visual Description (Start of Slide)
+        // It must start with one of the keywords AND not be a bullet/list
+        const isVisualStart = visualStarts.some(v => trimmed.startsWith(v)) && 
+                              !trimmed.startsWith('-') && 
+                              !trimmed.startsWith('*') && 
+                              !trimmed.startsWith('#') &&
+                              !trimmed.match(/^\d+\./);
+
+        // Always treat the first chunk as a start if we don't have one
+        if (isVisualStart || newSections.length === 0) {
+             currentSection = {
+                title: `Slide ${newSections.length + 1}`,
+                bulletPoints: [],
+                images: [],
+                rawContent: trimmed,
+                bodyText: '',
+                visualSearchTerm: trimmed, // Assume the paragraph IS the visual description
+                speakerNotes: '',
+                slideLayout: undefined
+             };
+             newSections.push(currentSection);
+        } else if (currentSection) {
+             // Append to current section
+             // If it looks like a script (starts with "Salutare", "Hello", etc) or list
+             if (trimmed.startsWith('-') || trimmed.startsWith('*')) {
+                 // It's bullets
+                 const bullets = trimmed.split('\n').map(l => l.replace(/^[-*•]\s+/, '').trim());
+                 currentSection.bulletPoints.push(...bullets);
+             } else {
+                 // It's body text / script
+                 currentSection.bodyText += (currentSection.bodyText ? '\n\n' : '') + trimmed;
+                 // Also populate speaker notes as fallback
+                 currentSection.speakerNotes += (currentSection.speakerNotes ? '\n\n' : '') + trimmed;
+             }
+             currentSection.rawContent += '\n\n' + trimmed;
+        }
+    });
+
+    return newSections.length > 1 ? newSections : [];
 };
 
 const processSlideBlock = (title: string, contentBlock: string, sections: ContentSection[], language: string = 'en') => {

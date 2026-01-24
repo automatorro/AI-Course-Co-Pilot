@@ -4,6 +4,25 @@ import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeRaw from 'rehype-raw';
 
+class ErrorBoundary extends React.Component<{ fallback: React.ReactNode, children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: any, info: any) {
+    console.error("MarkdownPreview Error:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
+
 interface MarkdownPreviewProps {
   content: string;
 }
@@ -91,31 +110,39 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content }) => {
   }, [normalized]);
   return (
     <div className="prose-sm sm:prose dark:prose-invert max-w-none p-4 sm:p-6 break-words">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw as any, rehypeHighlight]}
-        components={{
-          table: ({ node, ...props }) => (
-            <div className="w-full overflow-x-auto">
-              <table className="table-auto border-collapse w-full" {...props} />
-            </div>
-          ),
-          th: ({ node, ...props }) => (
-            <th className="border px-3 py-2 bg-gray-50 dark:bg-gray-700" {...props} />
-          ),
-          td: ({ node, ...props }) => (
-            <td className="border px-3 py-2" {...props} />
-          ),
-          img: ({ node, ...props }) => (
-            <ResolvedImage {...(props as any)} />
-          ),
-          pre: ({ node, ...props }) => (
-            <pre className="overflow-x-auto" {...props} />
-          )
-        }}
-      >
-        {resolved}
-      </ReactMarkdown>
+      <ErrorBoundary fallback={
+        <div className="p-4 bg-red-50 border border-red-200 rounded text-red-800">
+           <p className="font-bold">Rendering Error</p>
+           <p className="text-sm">Content too complex to display in preview.</p>
+           <pre className="mt-2 text-xs overflow-auto max-h-60 bg-white p-2 border">{resolved}</pre>
+        </div>
+      }>
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw as any, rehypeHighlight]}
+          components={{
+            table: ({ node, ...props }) => (
+              <div className="w-full overflow-x-auto">
+                <table className="table-auto border-collapse w-full" {...props} />
+              </div>
+            ),
+            th: ({ node, ...props }) => (
+              <th className="border px-3 py-2 bg-gray-50 dark:bg-gray-700" {...props} />
+            ),
+            td: ({ node, ...props }) => (
+              <td className="border px-3 py-2" {...props} />
+            ),
+            img: ({ node, ...props }) => (
+              <ResolvedImage {...(props as any)} />
+            ),
+            pre: ({ node, ...props }) => (
+              <pre className="overflow-x-auto" {...props} />
+            )
+          }}
+        >
+          {resolved}
+        </ReactMarkdown>
+      </ErrorBoundary>
     </div>
   );
 };
