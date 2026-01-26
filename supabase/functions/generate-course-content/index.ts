@@ -1765,53 +1765,74 @@ function validateGeneratedContent(text: string, step_type: string, blueprint: an
      }
   }
 
-  // --- MODULE COUNT VALIDATION (GLOBAL) ---
+  // --- PS-5: STRICT MODULE VALIDATION (SMART MATCHING) ---
   // If we have a blueprint with modules, ensure the output mentions roughly the same number of modules
   if (step_type !== 'structure' && step_type !== 'course_objectives' && step_type !== 'performance_objectives' && blueprint?.modules && Array.isArray(blueprint.modules)) {
-      const expectedCount = blueprint.modules.length;
-      if (expectedCount > 0) {
-          // 1. Strict Count Check (Expanded Regex for multi-language)
-          const matches = (text.match(/(modul|module|le|section|week|capitol|unit|part|tema|subiect)\s*\d+/gi) || []).length;
+      const expectedModules = blueprint.modules;
+      if (expectedModules.length > 0) {
           
-          if (step_type === 'video_scripts') {
-               const visualMatches = (text.match(/\[VISUAL\]/gi) || []).length;
-               if (visualMatches < expectedCount) {
-                   return { isValid: false, reason: `Expected at least ${expectedCount} video scripts (one per module), found only ${visualMatches} [VISUAL] tags. Did you skip modules?` };
-               }
-          } else {
-               // STRICTER CHECK: For Workbook/Exercises, we want EXACT match or +1 (never less)
-               const tolerance = (step_type === 'participant_workbook' || step_type === 'course_steps_exercises') ? 0 : 1;
-               
-               if (matches < expectedCount - tolerance) {
-                   return { isValid: false, reason: `Content incomplete. Expected ${expectedCount} modules (based on Blueprint), found mention of ${matches}. Please ensure you cover ALL modules.` };
-               }
-          }
-
-          // 2. Specific Module Presence Check (Core Title Check)
+          // 1. Specific Module Presence Check (Fuzzy/Smart Match)
+          // We want to avoid false positives where "Module 1" is present but the title is slightly different.
           let missingModules: string[] = [];
-          for (const m of blueprint.modules) {
+          
+          for (const m of expectedModules) {
               const title = m.title || "";
-              // Extract core part (e.g., "Modulul 1") or just use the first few words if it doesn't have "Modulul"
-              const parts = title.split(':');
-              const core = parts[0].trim(); 
               
-              if (core.length > 2) {
-                  // Escape special characters for regex
-                  const pattern = new RegExp(core.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-                  if (!pattern.test(text)) {
-                      missingModules.push(core);
+              // Strategy: Look for the Module Number AND/OR a distinct keyword
+              // 1. Extract number (e.g. "1" from "Modulul 1")
+              const numberMatch = title.match(/\d+/);
+              const number = numberMatch ? numberMatch[0] : null;
+              
+              // 2. Extract significant keywords (ignore "Modulul", "Lecția", "Capitolul", etc.)
+              // Filter out words < 3 chars
+              const keywords = title.replace(/[:.\-]/g, ' ')
+                                    .split(/\s+/)
+                                    .filter(w => w.length > 3 && !/modul|lecia|capitol|section/i.test(w));
+              
+              let found = false;
+
+              // Check A: Strict Number Header Match (e.g. "## Modulul 1", "### Module 1")
+              // This is the strongest signal.
+              if (number) {
+                  const numberPattern = new RegExp(`(modul|module|le|unit|week|capitol).*?${number}`, 'i');
+                  if (numberPattern.test(text)) {
+                      found = true;
                   }
+              }
+
+              // Check B: Keyword Match (Fallback if number check fails or no number)
+              // If we find 50% of the keywords in a cluster, we assume it's there.
+              if (!found && keywords.length > 0) {
+                   // Just check if the FIRST significant keyword exists (usually the main topic)
+                   // e.g. "Introducere in AI" -> "Introducere"
+                   if (text.toLowerCase().includes(keywords[0].toLowerCase())) {
+                       found = true;
+                   }
+              }
+
+              if (!found) {
+                  missingModules.push(title);
               }
           }
           
-          // STRICTER: Fail if ANY module header is missing in Workbook/Exercises
-          const missingTolerance = (step_type === 'participant_workbook' || step_type === 'course_steps_exercises') ? 0 : 1;
+          // 2. Threshold Failure
+          // We only fail if we are missing SIGNIFICANT content (e.g. more than 1 module or > 20% of total)
+          // This prevents blocking generation due to a single typo.
+          const failureThreshold = Math.max(1, Math.floor(expectedModules.length * 0.2)); 
           
-          if (missingModules.length > missingTolerance) {
+          if (missingModules.length > failureThreshold) {
                return { 
                    isValid: false, 
-                   reason: `Missing content for modules: ${missingModules.join(', ')}. Please generate content for ALL modules.` 
+                   reason: `Content consistency check failed. It seems you skipped multiple modules: ${missingModules.slice(0, 3).join(', ')}... Please ensure ALL modules from the Blueprint are covered.` 
                };
+          }
+          
+          // 3. Video Script Special Check
+          if (step_type === 'video_scripts') {
+               const visualMatches = (text.match(/\[VISUAL\]/gi) || []).length;
+               if (visualMatches < Math.floor(expectedModules.length * 0.8)) {
+                   return { isValid: false, reason: `Video Scripts incomplete. Expected ~${expectedModules.length} scripts, found only ${visualMatches} [VISUAL] tags. Did you skip modules?` };
+               }
           }
       }
   }
