@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 // Mock Deno global
 (globalThis as any).Deno = {
   env: {
-    get: (key: string) => 'test-key'
+    get: (_key: string) => 'test-key'
   }
 };
 
