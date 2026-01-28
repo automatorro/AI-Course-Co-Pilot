@@ -17,7 +17,7 @@ const AppCatchAll = () => {
         <Head>
             <meta name="robots" content="noindex" />
         </Head>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AppContent />
         </BrowserRouter>
     </>

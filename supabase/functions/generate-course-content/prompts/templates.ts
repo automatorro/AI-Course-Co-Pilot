@@ -1,8 +1,21 @@
 
-export const getDepthSpecs = (language: string) => {
+export const getDepthSpecs = (language: string, type: 'live' | 'online' = 'live', practicePercent: number = 80) => {
   // PS-1: Universal Depth Specs with Dynamic Language Injection
-  // We removed hardcoded Romanian strings to prevent language leakage.
-  // The prompt engine will inject the correct language instructions.
+  // PS-11: Environment Adaptation (Live vs Online)
+  
+  const envSpecs = type === 'online' 
+    ? `
+    **ENVIRONMENT: ONLINE (VIRTUAL CLASSROOM - ZOOM/TEAMS)**
+    - **INTERACTION**: Must use "Breakout Rooms", "Chat Polls", "Miro Board links", "Screen Share".
+    - **CONSTRAINTS**: Max 10 min monologues (Zoom Fatigue). Frequent "Type in chat" prompts.
+    - **MATERIALS**: PDFs, Digital Workbooks, Online Quizzes.
+    ` 
+    : `
+    **ENVIRONMENT: LIVE (IN-PERSON WORKSHOP)**
+    - **INTERACTION**: "Turn to your neighbor", "Physical Flipcharts", "Room Movement", "Gallery Walk".
+    - **CONSTRAINTS**: Standard attention spans. Physical handouts allowed.
+    - **MATERIALS**: Printed Workbooks, Sticky Notes, Markers.
+    `;
 
   return {
     workbook: `
@@ -19,6 +32,7 @@ export const getDepthSpecs = (language: string) => {
       *   **Exercises**: Every exercise must have: Objective, Instructions, Formatted answer space (tables/boxes).
     - **FORMATTING**: Markdown headers, Blockquotes for takeaways, Bold for emphasis.
     - **LANGUAGE**: All content must be in **${language}**.
+    ${envSpecs}
   `,
     slides: `
     **DEPTH SPECIFICATIONS (Slides):**
@@ -26,6 +40,39 @@ export const getDepthSpecs = (language: string) => {
     - **STORYTELLING FLOW**:
       *   Slide 1: The Hook (Problem/Story).
       *   Slide 2: The Solution (Concept).
+      *   Slide 3: The Framework (Visual Model).
+      *   Slide 4: Practical Application.
+    - **VISUALS**: Describe specific imagery (e.g., "Photo of a frustrated manager looking at a clock").
+    - **LANGUAGE**: All content must be in **${language}**.
+    ${envSpecs}
+  `,
+    exercises: `
+    **DEPTH SPECIFICATIONS (Exercises):**
+    - **QUANTITY**: Ensure approximately **${practicePercent}%** of the course time is practical (based on User's Blueprint).
+    - **REALITY CHECK**:
+      *   **Scenario-Based**: Never ask "What is X?". Ask "Client Y is yelling. What do you say?".
+      *   **Red Flags**: Always include "What could go wrong?" sections.
+    - **DETAIL**:
+      *   **Timing**: Specify exact duration.
+      *   **Facilitator Instructions**: Step-by-step guide.
+      *   **Debriefing**: 3-5 specific questions (Factual, Analytical, Applicative).
+    - **LANGUAGE**: All content must be in **${language}**.
+    ${envSpecs}
+  `,
+    manual: `
+    **DEPTH SPECIFICATIONS (Trainer Manual):**
+    - **FLOW TABLE**: Minute-by-minute agenda.
+    - **SCRIPTS**: Full conversational scripts. NO "Say hello to participants". WRITE exactly what to say.
+    - **STORYTELLING**: The trainer is a storyteller. Scripts must include personal anecdotes placeholders.
+    - **METHODOLOGY**:
+      *   **Feedback**: SBI Model only.
+      *   **Problem Solving**: Ishikawa / 5 Whys.
+    - **STRUCTURĂ**: ONE coherent manual.
+    - **LANGUAGE**: All content must be in **${language}**.
+    ${envSpecs}
+  `
+  };
+};
       *   Slide 3: The Example (Real world application).
       *   Slide 4: The Action (Exercise/Steps).
     - **FORMAT**: Use the exact XML template below.
@@ -82,7 +129,7 @@ export const getPromptTemplates = (language: string) => {
     [Intro paragraph explaining importance. Hook the reader with a relatable problem.]
 
     ### [Section Title]
-    #### [Translate to ${language}: "Core Concept"] (300-500 words)
+    #### Core Concept (300-500 words)
     [Full explanation. Define terms, provide context. NO academic tone - use "buddy-to-buddy" tone.]
 
     **[Translate to ${language}: "Real World Example"]:** (200-300 words)

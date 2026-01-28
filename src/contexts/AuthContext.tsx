@@ -34,14 +34,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setUser(null);
           } else {
             const rawPlan = profile?.plan;
-            // Validate that the plan from DB actually exists in our Plan enum
-            const isValidPlan = Object.values(Plan).includes(rawPlan as Plan);
             
-            if (!isValidPlan && rawPlan) {
-                console.warn(`[AuthContext] Invalid plan found in profile: "${rawPlan}". Falling back to ${Plan.Trial}.`);
+            // Handle legacy 'agency' plan by mapping it to Pro internally
+            // This prevents fallback to Trial while respecting the user's DB state
+            let effectivePlan = rawPlan;
+            if (rawPlan === 'agency') {
+                effectivePlan = Plan.Pro;
             }
 
-            const userPlan = isValidPlan ? (rawPlan as Plan) : Plan.Trial;
+            // Validate that the plan from DB actually exists in our Plan enum
+            const isValidPlan = Object.values(Plan).includes(effectivePlan as Plan);
+            
+            if (!isValidPlan && effectivePlan) {
+                console.warn(`[AuthContext] Invalid plan found in profile: "${effectivePlan}". Falling back to ${Plan.Trial}.`);
+            }
+
+            const userPlan = isValidPlan ? (effectivePlan as Plan) : Plan.Trial;
             const userRole = (profile?.role as 'admin' | 'user') || 'user';
             const fullUser: User = {
               ...session.user,

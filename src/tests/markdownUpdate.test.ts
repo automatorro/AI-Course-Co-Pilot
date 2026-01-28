@@ -11,13 +11,9 @@ describe('Markdown Update Logic', () => {
 
 This is the intro.
 
----
-
 # Slide 2: Details
 
 Some details here.
-
----
 
 # Slide 3: Conclusion
 
@@ -29,7 +25,7 @@ End.
 
         console.log("Updated Markdown:\n", updatedMarkdown);
 
-        expect(updatedMarkdown).toContain('data-slide-layout="imageLeft"');
+        expect(updatedMarkdown).toContain('<!-- slide-layout: IMAGE_LEFT -->');
     });
 
     it('should correctly parse the added layout', () => {
@@ -38,15 +34,11 @@ End.
 
 This is the intro.
 
----
-
 # Slide 2: Details
 
-<div data-slide-layout="imageLeft" style="display:none;"></div>
+<!-- slide-layout: IMAGE_LEFT -->
 
 Some details here.
-
----
 
 # Slide 3: Conclusion
 
@@ -64,15 +56,11 @@ End.
 
 This is the intro.
 
----
-
 # Slide 2: Details
 
-<div data-slide-layout="imageLeft" style="display:none;"></div>
+<!-- slide-layout: IMAGE_LEFT -->
 
 Some details here.
-
----
 
 # Slide 3: Conclusion
 
@@ -80,8 +68,8 @@ End.
 `;
         const updatedMarkdown = updateSlideLayoutInMarkdown(markdown, 1, 'LAYOUT_TITLE' as SlideLayoutId, "Details");
         
-        expect(updatedMarkdown).toContain('data-slide-layout="title"');
-        expect(updatedMarkdown).not.toContain('data-slide-layout="imageLeft"');
+        expect(updatedMarkdown).toContain('<!-- slide-layout: TITLE -->');
+        expect(updatedMarkdown).not.toContain('<!-- slide-layout: IMAGE_LEFT -->');
     });
     
     it('should handle slide numbers with brackets', () => {
@@ -97,7 +85,7 @@ Text.
         const layoutId: SlideLayoutId = 'LAYOUT_IMAGE_LEFT';
         const updatedMarkdown = updateSlideLayoutInMarkdown(markdown, 1, layoutId, "Content");
         
-        expect(updatedMarkdown).toContain('data-slide-layout="imageLeft"');
+        expect(updatedMarkdown).toContain('<!-- slide-layout: IMAGE_LEFT -->');
         
         const slides = parseSlidesFromMarkdown(updatedMarkdown);
         expect(slides[1].layoutId).toBe('LAYOUT_IMAGE_LEFT');

@@ -401,6 +401,11 @@ const CourseWorkspacePage: React.FC = () => {
       .eq('user_id', user.id)
       .single();
     if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows found - this is expected if ID is invalid or course deleted
+        console.warn('Course not found (PGRST116):', id);
+        return null; 
+      }
       console.error('Error fetching course data:', error);
       showToast('Failed to load course data.', 'error');
       return null;
@@ -1528,10 +1533,9 @@ const CourseWorkspacePage: React.FC = () => {
               <li key={step.id || `${index}-${step.title_key}`}>
                 <button
                   onClick={() => { setActiveStepIndex(index); userHasInteractedRef.current = true; }}
-                  disabled={index > 0 && !((course.steps ?? [])[index - 1]?.is_completed)}
                   className={`w-full text-left p-3 my-1 rounded-lg flex items-center gap-3 transition-colors ${activeStepIndex === index
                     ? 'bg-primary-50 dark:bg-primary-900/20 border border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-                    : 'border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/20 disabled:opacity-50 disabled:cursor-not-allowed'
+                    : 'border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/20'
                     }`}
                 >
                   {step.is_completed ? <CheckCircle className="text-green-500" size={20} /> : <Circle className="text-gray-400" size={20} />}
@@ -1695,7 +1699,8 @@ const CourseWorkspacePage: React.FC = () => {
                 </div>
               )}
 
-              {isCourseComplete && (
+              {/* Always show Export button regardless of completion status */}
+              {(
                 <button
                   onClick={handleDownload}
                   disabled={isExporting}
@@ -2150,10 +2155,9 @@ const CourseWorkspacePage: React.FC = () => {
                     <li key={step.id || `${index}-${step.title_key}`}>
                       <button
                         onClick={() => { setActiveStepIndex(index); setIsSidebarOpen(false); }}
-                        disabled={index > 0 && !((course?.steps ?? [])[index - 1]?.is_completed)}
                         className={`w-full text-left p-4 my-1 rounded-lg flex items-center gap-3 transition-colors ${activeStepIndex === index
                           ? 'bg-primary-50 dark:bg-primary-900/20 border border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
-                          : 'border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/20 disabled:opacity-50 disabled:cursor-not-allowed'
+                          : 'border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/20'
                           }`}
                       >
                         {step.is_completed ? <CheckCircle className="text-green-500" size={20} /> : <Circle className="text-gray-400" size={20} />}

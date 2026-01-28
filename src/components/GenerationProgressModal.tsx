@@ -642,8 +642,8 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                 [TrainerStepType.FacilitatorNotes]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
                 [TrainerStepType.Slides]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ExamplesAndStories],
                 [TrainerStepType.FacilitatorManual]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.TimingAndFlow, TrainerStepType.FacilitatorNotes, TrainerStepType.Exercises],
-                [TrainerStepType.ParticipantWorkbook]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
-                [TrainerStepType.VideoScripts]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
+                [TrainerStepType.ParticipantWorkbook]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises, TrainerStepType.ExamplesAndStories],
+                [TrainerStepType.VideoScripts]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ExamplesAndStories, TrainerStepType.ParticipantWorkbook],
                 [TrainerStepType.CheatSheets]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ParticipantWorkbook],
                 [TrainerStepType.Projects]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
                 [TrainerStepType.Tests]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.CourseObjectives]

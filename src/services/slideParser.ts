@@ -131,7 +131,7 @@ const applyLayoutHeuristics = (state: SlideState, section: any) => {
       }
       break;
 
-    case 'LAYOUT_BIG_NUMBER':
+    case 'LAYOUT_BIG_NUMBER': {
       // Try to find a number in the first bullet
       if (bullets.length > 0) {
         const match = bullets[0].match(/^([\d%.,]+)\s*(.*)$/);
@@ -143,9 +143,10 @@ const applyLayoutHeuristics = (state: SlideState, section: any) => {
         }
       }
       break;
+    }
 
     case 'LAYOUT_COMPARISON':
-    case 'LAYOUT_DO_DONT':
+    case 'LAYOUT_DO_DONT': {
       // Split bullets into two columns if possible
       const half = Math.ceil(bullets.length / 2);
       state.content.columns = [
@@ -153,8 +154,9 @@ const applyLayoutHeuristics = (state: SlideState, section: any) => {
         { header: 'Column 2', content: bullets.slice(half), type: 'negative' }
       ];
       break;
+    }
       
-    case 'LAYOUT_THREE_COL':
+    case 'LAYOUT_THREE_COL': {
        // Split bullets into three columns
        const third = Math.ceil(bullets.length / 3);
        state.content.columns = [
@@ -163,5 +165,6 @@ const applyLayoutHeuristics = (state: SlideState, section: any) => {
         { header: 'Col 3', content: bullets.slice(third * 2) }
        ];
        break;
+    }
   }
 };

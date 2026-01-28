@@ -54,7 +54,7 @@ export const updateSlideLayoutInMarkdown = (
                 }
 
                 const token = layoutId.replace('LAYOUT_', '');
-                const metaTag = `<div data-slide-layout="${token}" style="display:none;"></div>`;
+                const metaTag = `<!-- slide-layout: ${token} -->`;
                 
                 if (metaIdx !== -1) {
                     newLines[metaIdx] = metaTag;
@@ -102,7 +102,7 @@ export const updateSlideLayoutInMarkdown = (
                     }
 
                     const token = layoutId.replace('LAYOUT_', '');
-                    const metaTag = `<div data-slide-layout="${token}" style="display:none;"></div>`;
+                    const metaTag = `<!-- slide-layout: ${token} -->`;
                     
                     if (metaIdx !== -1) {
                         newLines[metaIdx] = metaTag;
@@ -175,7 +175,7 @@ export const serializeSlideStateToMarkdown = (
     // 2. Layout Meta
     if (slide.layoutId) {
         const token = slide.layoutId.replace('LAYOUT_', '');
-        md += `<div data-slide-layout="${token}" style="display:none;"></div>\n\n`;
+        md += `<!-- slide-layout: ${token} -->\n\n`;
     }
 
     // 3. Media (Image) or Visual Suggestion

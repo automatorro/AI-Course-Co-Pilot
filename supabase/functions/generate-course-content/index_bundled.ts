@@ -6,520 +6,406 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const GOLDEN_SAMPLES = {
   objectives: `
-# Curs: Leadership Situațional pentru Manageri de Linie
-**Durată totală:** 8 ore (1 zi intensivă)
-**Target:** Manageri cu experiență 1-3 ani, echipe 5-15 persoane
+# Curs: Leadership SituaÈ›ional pentru Manageri de Linie
+**DuratÄƒ totalÄƒ:** 8 ore (1 zi intensivÄƒ)
+**Target:** Manageri cu experienÈ›Äƒ 1-3 ani, echipe 5-15 persoane
 **Format:** Live Workshop
 
 ---
 
-## 🎯 OBIECTIVE GENERALE DE ÎNVĂȚARE
+## ðŸŽ¯ OBIECTIVE GENERALE DE ÃŽNVÄ‚ÈšARE
 
-La finalul acestui curs, participanții vor fi capabili să:
+La finalul acestui curs, participanÈ›ii vor fi capabili sÄƒ:
 
 ### 1. **ANALIZEZE** (Bloom: Analyze)
-Să identifice nivelul de maturitate al fiecărui membru din echipă folosind matricea Competență-Angajament și să justifice clasificarea cu exemple concrete din ultimele 30 de zile.
+SÄƒ identifice nivelul de maturitate al fiecÄƒrui membru din echipÄƒ folosind matricea CompetenÈ›Äƒ-Angajament È™i sÄƒ justifice clasificarea cu exemple concrete din ultimele 30 de zile.
 
 **Criterii de succes:** 
-- Clasifică corect 80% din membrii echipei (verificat prin quiz final)
-- Oferă minim 2 dovezi comportamentale pentru fiecare clasificare
+- ClasificÄƒ corect 80% din membrii echipei (verificat prin quiz final)
+- OferÄƒ minim 2 dovezi comportamentale pentru fiecare clasificare
 
 ---
 
 ### 2. **APLICE** (Bloom: Apply)
-Să adapteze stilul de conducere (Directing, Coaching, Supporting, Delegating) în funcție de situația specifă, folosind decizia în 3 pași învățată în modul 2.
+SÄƒ adapteze stilul de conducere (Directing, Coaching, Supporting, Delegating) Ã®n funcÈ›ie de situaÈ›ia specifÄƒ, folosind decizia Ã®n 3 paÈ™i Ã®nvÄƒÈ›atÄƒ Ã®n modul 2.
 
 **Criterii de succes:**
-- Rezolvă corect 4/5 scenarii practice din Exercițiul 2.3
-- Dezvoltă un plan de acțiune pentru o situație reală din propria echipă
+- RezolvÄƒ corect 4/5 scenarii practice din ExerciÈ›iul 2.3
+- DezvoltÄƒ un plan de acÈ›iune pentru o situaÈ›ie realÄƒ din propria echipÄƒ
 
 ---
 
 ### 3. **CREEZE** (Bloom: Create)
-Să dezvolte un plan de dezvoltare personalizat pentru minimum 2 membri din echipă, cu obiective SMART și checkpointuri de evaluare la 30/60/90 zile.
+SÄƒ dezvolte un plan de dezvoltare personalizat pentru minimum 2 membri din echipÄƒ, cu obiective SMART È™i checkpointuri de evaluare la 30/60/90 zile.
 
 **Criterii de succes:**
-- Planul conține acțiuni concrete (nu "îmbunătățire comunicare" ci "întâlnire 1-on-1 de 20 min în fiecare luni, 10:00")
-- Planul e aprobat de facilitator în timpul exercițiului final
+- Planul conÈ›ine acÈ›iuni concrete (nu "Ã®mbunÄƒtÄƒÈ›ire comunicare" ci "Ã®ntÃ¢lnire 1-on-1 de 20 min Ã®n fiecare luni, 10:00")
+- Planul e aprobat de facilitator Ã®n timpul exerciÈ›iului final
 
 ---
 
 ### 4. **EVALUEZE** (Bloom: Evaluate)
-Să judece eficacitatea propriilor decizii de management din ultimele 3 luni și să identifice minimum 2 situații unde au aplicat stilul greșit, explicând impactul și alternativa corectă.
+SÄƒ judece eficacitatea propriilor decizii de management din ultimele 3 luni È™i sÄƒ identifice minimum 2 situaÈ›ii unde au aplicat stilul greÈ™it, explicÃ¢nd impactul È™i alternativa corectÄƒ.
 
 **Criterii de succes:**
-- Oferă auto-critică sinceră (nu "totul e ok")
-- Propune soluții alternative concrete, nu vagi
+- OferÄƒ auto-criticÄƒ sincerÄƒ (nu "totul e ok")
+- Propune soluÈ›ii alternative concrete, nu vagi
 
 ---
 
 ### 5. **COMUNICE** (Bloom: Apply + Create)
-Să ofere feedback corectiv și recunoaștere folosind modelul SBI (Situation-Behavior-Impact) în maxim 90 de secunde, adaptat la stilul de învățare al angajatului.
+SÄƒ ofere feedback corectiv È™i recunoaÈ™tere folosind modelul SBI (Situation-Behavior-Impact) Ã®n maxim 90 de secunde, adaptat la stilul de Ã®nvÄƒÈ›are al angajatului.
 
 **Criterii de succes:**
-- Practică în roleplay cu minimum 3 colegi
-- Primește rating minim 7/10 de la peer pentru claritate și empatie
+- PracticÄƒ Ã®n roleplay cu minimum 3 colegi
+- PrimeÈ™te rating minim 7/10 de la peer pentru claritate È™i empatie
 `,
   structure_live: `
-# Structura Detaliată: Leadership Situațional
+# Structura DetaliatÄƒ: Leadership SituaÈ›ional
 **Total:** 8 ore (09:00 - 17:00, cu pauze)
 
 ---
 
-## 📚 MODUL 1: Fundamentele Leadership-ului Situațional
-**Durată totală:** 2 ore (09:00 - 11:00)
-**Obiectiv:** Să înțeleagă că nu există stil "universal" de conducere
+## ðŸ“š MODUL 1: Fundamentele Leadership-ului SituaÈ›ional
+**DuratÄƒ totalÄƒ:** 2 ore (09:00 - 11:00)
+**Obiectiv:** SÄƒ Ã®nÈ›eleagÄƒ cÄƒ nu existÄƒ stil "universal" de conducere
 
 ---
 
-### Lecția 1.1: Mitul "Stilului Natural" (45 min)
+### LecÈ›ia 1.1: Mitul "Stilului Natural" (45 min)
 
-**Obiective de învățare:**
-- Să **analizeze** (Bloom) propriul stil dominant de management și să identifice situațiile în care acesta eșuează
-- Să **definească** (Bloom) cele 4 stiluri de leadership (Directing, Coaching, Supporting, Delegating) cu exemple concrete
-- Să **evalueze** (Bloom) impactul unui stil rigid asupra performanței echipei
+**Obiective de Ã®nvÄƒÈ›are:**
+- SÄƒ **analizeze** (Bloom) propriul stil dominant de management È™i sÄƒ identifice situaÈ›iile Ã®n care acesta eÈ™ueazÄƒ
+- SÄƒ **defineascÄƒ** (Bloom) cele 4 stiluri de leadership (Directing, Coaching, Supporting, Delegating) cu exemple concrete
+- SÄƒ **evalueze** (Bloom) impactul unui stil rigid asupra performanÈ›ei echipei
 
-**Conținut:**
+**ConÈ›inut:**
 
 #### A. Deschidere (10 min)
 **Poveste intro:**
-"Anul trecut, un manager din Brașov m-a sunat disperat. Îmi spune: 'Am echipa perfectă: toți motivați, toți cu experiență. Dar am pierdut 3 oameni buni în 6 luni. Ce fac greșit?'
+"Anul trecut, un manager din BraÈ™ov m-a sunat disperat. ÃŽmi spune: 'Am echipa perfectÄƒ: toÈ›i motivaÈ›i, toÈ›i cu experienÈ›Äƒ. Dar am pierdut 3 oameni buni Ã®n 6 luni. Ce fac greÈ™it?'
 
-Am stat cu el o zi întreagă. Și am descoperit: Era un manager fantastic... pentru beginneri. Explica tot în detaliu, oferea guidance constant, era mereu disponibil. 
+Am stat cu el o zi Ã®ntreagÄƒ. È˜i am descoperit: Era un manager fantastic... pentru beginneri. Explica tot Ã®n detaliu, oferea guidance constant, era mereu disponibil. 
 
-Problema? Echipa lui nu mai era beginneri. Erau seniori care voiau autonomie. Ei interpretau micro-managementul lui ca lipsă de încredere. Așa că au plecat.
+Problema? Echipa lui nu mai era beginneri. Erau seniori care voiau autonomie. Ei interpretau micro-managementul lui ca lipsÄƒ de Ã®ncredere. AÈ™a cÄƒ au plecat.
 
-Asta e tema zilei de azi: Stilul tău nu e greșit. E doar aplicat la persoana greșită, în momentul greșit."
+Asta e tema zilei de azi: Stilul tÄƒu nu e greÈ™it. E doar aplicat la persoana greÈ™itÄƒ, Ã®n momentul greÈ™it."
 
-**Întrebare retorică:** "Câți dintre voi conduceți diferit un stagiar față de un senior?" (Lasă-i să ridice mâna, fă o glumă dacă nimeni nu ridică)
+**ÃŽntrebare retoricÄƒ:** "CÃ¢È›i dintre voi conduceÈ›i diferit un stagiar faÈ›Äƒ de un senior?" (LasÄƒ-i sÄƒ ridice mÃ¢na, fÄƒ o glumÄƒ dacÄƒ nimeni nu ridicÄƒ)
 
 ---
 
 #### B. Teoria (15 min) - SLIDE 1-3
 
 **SLIDE 1:** Matricea Stiluri de Leadership (vizual: 2x2 grid)
-- Axa X: Comportament Directiv (Low → High)
-- Axa Y: Comportament Supportiv (Low → High)
+- Axa X: Comportament Directiv (Low â†’ High)
+- Axa Y: Comportament Supportiv (Low â†’ High)
 - Cele 4 cadrane: S1 (Directing), S2 (Coaching), S3 (Supporting), S4 (Delegating)
 
-**SLIDE 2:** Când folosești fiecare stil?
-- S1 (Directing): "Noul angajat - ziua 1" → Task-uri claire, deadlines, check-in-uri frecvente
-- S2 (Coaching): "Junior ambițios dar nesigur" → Întrebări deschise, validare, challenge controlat
-- S3 (Supporting): "Mid-level care a dat greș recent" → Empatie, re-încredere, mai puțin control
-- S4 (Delegating): "Senior care știe mai bine ca tine" → Obiective clare, autonomie totală, trust
+**SLIDE 2:** CÃ¢nd foloseÈ™ti fiecare stil?
+- S1 (Directing): "Noul angajat - ziua 1" â†’ Task-uri claire, deadlines, check-in-uri frecvente
+- S2 (Coaching): "Junior ambiÈ›ios dar nesigur" â†’ ÃŽntrebÄƒri deschise, validare, challenge controlat
+- S3 (Supporting): "Mid-level care a dat greÈ™ recent" â†’ Empatie, re-Ã®ncredere, mai puÈ›in control
+- S4 (Delegating): "Senior care È™tie mai bine ca tine" â†’ Obiective clare, autonomie totalÄƒ, trust
 
-**SLIDE 3:** Red Flags - Când aplici greșit
+**SLIDE 3:** Red Flags - CÃ¢nd aplici greÈ™it
 - S1 la un Senior = "Nu am nevoie de babysitter, demisionez"
-- S4 la un Junior = "M-ai aruncat în apă să înot singur, mă înec"
+- S4 la un Junior = "M-ai aruncat Ã®n apÄƒ sÄƒ Ã®not singur, mÄƒ Ã®nec"
 
 ---
 
-#### C. Exercițiu Reflexiv Individual (15 min)
+#### C. ExerciÈ›iu Reflexiv Individual (15 min)
 
-**Instrucțiuni:**
-"Deschideți workbook-ul la pagina 3. O să vedeți un tabel cu 5 scenarii. Pentru fiecare, identificați:
-1. Ce stil ați folosit ultima dată când v-ați confruntat cu asta?
-2. A funcționat? (Da/Nu/Parțial)
-3. Ce stil ar fi fost mai potrivit acum când știți teoria?"
+**InstrucÈ›iuni:**
+"DeschideÈ›i workbook-ul la pagina 3. O sÄƒ vedeÈ›i un tabel cu 5 scenarii. Pentru fiecare, identificaÈ›i:
+1. Ce stil aÈ›i folosit ultima datÄƒ cÃ¢nd v-aÈ›i confruntat cu asta?
+2. A funcÈ›ionat? (Da/Nu/ParÈ›ial)
+3. Ce stil ar fi fost mai potrivit acum cÃ¢nd È™tiÈ›i teoria?"
 
 **Scenariile:**
-1. Un angajat nou (2 săptămâni) face aceeași greșeală a 3-a oară
-2. Un membru senior al echipei refuză să împărtășească cunoștințe cu juniorii
-3. Un mid-level cere mai multe responsabilități dar nu livrează la timp taskurile actuale
-4. Toată echipa e demotivată după ce un proiect major a fost anulat
-5. Un angajat excelent cere să lucreze remote 100% dar politica companiei e hibrid
+1. Un angajat nou (2 sÄƒptÄƒmÃ¢ni) face aceeaÈ™i greÈ™ealÄƒ a 3-a oarÄƒ
+2. Un membru senior al echipei refuzÄƒ sÄƒ Ã®mpÄƒrtÄƒÈ™eascÄƒ cunoÈ™tinÈ›e cu juniorii
+3. Un mid-level cere mai multe responsabilitÄƒÈ›i dar nu livreazÄƒ la timp taskurile actuale
+4. ToatÄƒ echipa e demotivatÄƒ dupÄƒ ce un proiect major a fost anulat
+5. Un angajat excelent cere sÄƒ lucreze remote 100% dar politica companiei e hibrid
 
-**Timp:** 10 min individual, 5 min share în perechi
+**Timp:** 10 min individual, 5 min share Ã®n perechi
 
 ---
 
 #### D. Debrief Colectiv (5 min)
 
-**Întrebări facilitator:**
-- "Cine a descoperit că aplică același stil la toată lumea?" (Validare: "E normal, asta facem automat")
-- "Cine și-a dat seama că evită un anumit stil?" (Insight: "De obicei evităm S1 sau S3 - ori ne temem să fim 'șefi răi' ori să parem 'slabi'")
+**ÃŽntrebÄƒri facilitator:**
+- "Cine a descoperit cÄƒ aplicÄƒ acelaÈ™i stil la toatÄƒ lumea?" (Validare: "E normal, asta facem automat")
+- "Cine È™i-a dat seama cÄƒ evitÄƒ un anumit stil?" (Insight: "De obicei evitÄƒm S1 sau S3 - ori ne temem sÄƒ fim 'È™efi rÄƒi' ori sÄƒ parem 'slabi'")
 
 ---
 
-### Lecția 1.2: Diagnoza Maturității Echipei (30 min)
+### LecÈ›ia 1.2: Diagnoza MaturitÄƒÈ›ii Echipei (30 min)
 
 **Obiective:**
-- Să **clasifice** (Bloom) membrii echipei în D1-D4 (Development Levels)
-- Să **distingă** (Bloom) între Competență și Angajament
-- Să **aplice** (Bloom) instrumentul de diagnoză pe 2 membri reali din echipa lor
+- SÄƒ **clasifice** (Bloom) membrii echipei Ã®n D1-D4 (Development Levels)
+- SÄƒ **distingÄƒ** (Bloom) Ã®ntre CompetenÈ›Äƒ È™i Angajament
+- SÄƒ **aplice** (Bloom) instrumentul de diagnozÄƒ pe 2 membri reali din echipa lor
 
 ---
 
-### 🎯 CHECKPOINT MODUL 1 (Self-Assessment)
+### ðŸŽ¯ CHECKPOINT MODUL 1 (Self-Assessment)
 
-Participanții bifează în workbook:
-- [ ] Pot numi cele 4 stiluri de leadership și pot da câte un exemplu pentru fiecare
+ParticipanÈ›ii bifeazÄƒ Ã®n workbook:
+- [ ] Pot numi cele 4 stiluri de leadership È™i pot da cÃ¢te un exemplu pentru fiecare
 - [ ] Pot identifica stilul meu dominant
 - [ ] Am plasat corect minim 3 membri ai echipei pe matricea D1-D4
 
 ---
 
-## 📊 TABELUL OBLIGATORIU: AGENDĂ COMPLETĂ
+## ðŸ“Š TABELUL OBLIGATORIU: AGENDÄ‚ COMPLETÄ‚
 
-| Timp | Modul | Subiect | Slide | Metodă | Activitate | Durată (min) |
+| Timp | Modul | Subiect | Slide | MetodÄƒ | Activitate | DuratÄƒ (min) |
 |------|-------|---------|-------|---------|-----------|-------------|
 | 09:00 | Intro | Welcome & Icebreaker | - | Energizer | "2 Truths 1 Lie" (profesional) | 15 |
-| 09:15 | 1 | Mitul Stilului Natural | 1-3 | Lecție + Poveste | Prezentare Matricea Stiluri | 25 |
-| 09:40 | 1 | Exercițiu Reflexiv | - | Individual + Perechi | Analiza scenarii (Workbook p.3) | 15 |
-| 09:55 | 1 | Diagnoza Maturității | 4-5 | Lecție interactivă | Întrebări retorice | 10 |
-| 10:05 | 1 | Exercițiu Grid D1-D4 | - | Practic individual | Plasarea echipei pe matrice | 15 |
-| 10:20 | 1 | Debrief Modul 1 | - | Discuție facilitată | Sharing insights (voluntar) | 10 |
-| 10:30 | - | **PAUZĂ CAFEA** | - | - | - | 15 |
-| 10:45 | 2 | Stilul Directing în acțiune | 6-7 | Demo + Roleplay | Facilitator arată greșit vs corect | 20 |
-| 11:05 | 2 | Stilul Coaching | 8-9 | Lecție + Video clip | Exemplu real 3 min (TED style) | 15 |
-| 11:20 | 2 | Exercițiu Roleplay Triadic | - | Grupuri de 3 | Manager-Angajat-Observator | 30 |
-| 11:50 | 2 | Debrief Roleplay | - | Plenară | Ce a funcționat? Ce nu? | 15 |
-| 12:05 | 2 | Stilul Supporting + Delegating | 10-12 | Lecție rapidă | Comparație tabel (când/cum) | 15 |
-| 12:20 | 2 | Mini-quiz Kahoot | - | Gamification | 10 întrebări rapide (competiție) | 10 |
-| 12:30 | - | **PAUZĂ PRÂNZ** | - | - | - | 60 |
-| 13:30 | 3 | Feedback Model SBI | 13-14 | Lecție + Demo | Situation-Behavior-Impact | 20 |
-| 13:50 | 3 | Exercițiu Feedback | - | Perechi | Scriere + Roleplay feedback real | 25 |
-| 14:15 | 3 | Cazuri Dificile | 15-16 | Studiu de caz | 3 scenarii "Coșmar" (rezolvare grup) | 30 |
+| 09:15 | 1 | Mitul Stilului Natural | 1-3 | LecÈ›ie + Poveste | Prezentare Matricea Stiluri | 25 |
+| 09:40 | 1 | ExerciÈ›iu Reflexiv | - | Individual + Perechi | Analiza scenarii (Workbook p.3) | 15 |
+| 09:55 | 1 | Diagnoza MaturitÄƒÈ›ii | 4-5 | LecÈ›ie interactivÄƒ | ÃŽntrebÄƒri retorice | 10 |
+| 10:05 | 1 | ExerciÈ›iu Grid D1-D4 | - | Practic individual | Plasarea echipei pe matrice | 15 |
+| 10:20 | 1 | Debrief Modul 1 | - | DiscuÈ›ie facilitatÄƒ | Sharing insights (voluntar) | 10 |
+| 10:30 | - | **PAUZÄ‚ CAFEA** | - | - | - | 15 |
+| 10:45 | 2 | Stilul Directing Ã®n acÈ›iune | 6-7 | Demo + Roleplay | Facilitator aratÄƒ greÈ™it vs corect | 20 |
+| 11:05 | 2 | Stilul Coaching | 8-9 | LecÈ›ie + Video clip | Exemplu real 3 min (TED style) | 15 |
+| 11:20 | 2 | ExerciÈ›iu Roleplay Triadic | - | Grupuri de 3 | Manager-Angajat-Observator | 30 |
+| 11:50 | 2 | Debrief Roleplay | - | PlenarÄƒ | Ce a funcÈ›ionat? Ce nu? | 15 |
+| 12:05 | 2 | Stilul Supporting + Delegating | 10-12 | LecÈ›ie rapidÄƒ | ComparaÈ›ie tabel (cÃ¢nd/cum) | 15 |
+| 12:20 | 2 | Mini-quiz Kahoot | - | Gamification | 10 Ã®ntrebÄƒri rapide (competiÈ›ie) | 10 |
+| 12:30 | - | **PAUZÄ‚ PRÃ‚NZ** | - | - | - | 60 |
+| 13:30 | 3 | Feedback Model SBI | 13-14 | LecÈ›ie + Demo | Situation-Behavior-Impact | 20 |
+| 13:50 | 3 | ExerciÈ›iu Feedback | - | Perechi | Scriere + Roleplay feedback real | 25 |
+| 14:15 | 3 | Cazuri Dificile | 15-16 | Studiu de caz | 3 scenarii "CoÈ™mar" (rezolvare grup) | 30 |
 | 14:45 | 3 | Debrief Cazuri | - | Facilitator-led | Extragere pattern-uri comune | 15 |
-| 15:00 | - | **PAUZĂ CAFEA** | - | - | - | 15 |
-| 15:15 | 4 | Plan 30/60/90 Zile | 17-18 | Lecție + Template | Ce înseamnă plan bun vs rău | 15 |
-| 15:30 | 4 | Exercițiu Plan Personal | - | Individual + Peer Review | Fiecare scrie pentru 2 membri echipă | 40 |
-| 16:10 | 4 | Prezentări Voluntare | - | Sharing | 3-4 participanți prezintă (3 min each) | 15 |
-| 16:25 | 5 | Commitment to Action | - | Ritual de încheiere | "Ce voi face LUNI?" (toți spun 1 lucru) | 20 |
-| 16:45 | 5 | Q&A Final + Evaluare | - | Open discussion | Întrebări nesolicitate + Formular | 15 |
-| 17:00 | - | **ÎNCHEIERE** | - | - | - | - |
+| 15:00 | - | **PAUZÄ‚ CAFEA** | - | - | - | 15 |
+| 15:15 | 4 | Plan 30/60/90 Zile | 17-18 | LecÈ›ie + Template | Ce Ã®nseamnÄƒ plan bun vs rÄƒu | 15 |
+| 15:30 | 4 | ExerciÈ›iu Plan Personal | - | Individual + Peer Review | Fiecare scrie pentru 2 membri echipÄƒ | 40 |
+| 16:10 | 4 | PrezentÄƒri Voluntare | - | Sharing | 3-4 participanÈ›i prezintÄƒ (3 min each) | 15 |
+| 16:25 | 5 | Commitment to Action | - | Ritual de Ã®ncheiere | "Ce voi face LUNI?" (toÈ›i spun 1 lucru) | 20 |
+| 16:45 | 5 | Q&A Final + Evaluare | - | Open discussion | ÃŽntrebÄƒri nesolicitate + Formular | 15 |
+| 17:00 | - | **ÃŽNCHEIERE** | - | - | - | - |
 
 **TOTAL TEORIE:** 115 min (24%)
-**TOTAL PRACTICĂ:** 230 min (48%)
+**TOTAL PRACTICÄ‚:** 230 min (48%)
 **TOTAL PAUZE:** 90 min (19%)
 **TOTAL ADMIN/Q&A:** 45 min (9%)
   `,
   structure_online: `
-# Structura Detaliată: Leadership Situațional (Online Course)
+# Structura DetaliatÄƒ: Leadership SituaÈ›ional (Online Course)
 **Total:** 2-3 ore video + 2 ore studiu individual
 **Format:** Online Video Course (Self-paced)
 
 ---
 
-## 📚 MODUL 1: Fundamentele Leadership-ului Situațional
-**Durată video:** 25 min
-**Obiectiv:** Să înțeleagă că nu există stil "universal" de conducere
+## ðŸ“š MODUL 1: Fundamentele Leadership-ului SituaÈ›ional
+**DuratÄƒ video:** 25 min
+**Obiectiv:** SÄƒ Ã®nÈ›eleagÄƒ cÄƒ nu existÄƒ stil "universal" de conducere
 
 ---
 
-### Lecția 1.1: Mitul "Stilului Natural" (Video 8 min)
+### LecÈ›ia 1.1: Mitul "Stilului Natural" (Video 8 min)
 
-**Obiective de învățare:**
-- Să **analizeze** (Bloom) propriul stil dominant de management
-- Să **definească** (Bloom) cele 4 stiluri de leadership (Directing, Coaching, Supporting, Delegating)
+**Obiective de Ã®nvÄƒÈ›are:**
+- SÄƒ **analizeze** (Bloom) propriul stil dominant de management
+- SÄƒ **defineascÄƒ** (Bloom) cele 4 stiluri de leadership (Directing, Coaching, Supporting, Delegating)
 
-**Conținut:**
+**ConÈ›inut:**
 
 #### A. Hook (Video)
-**Narativ:** "Anul trecut, un manager m-a sunat disperat..." (Povestea introductivă adaptată pentru cameră, focus pe durerea privitorului)
+**Narativ:** "Anul trecut, un manager m-a sunat disperat..." (Povestea introductivÄƒ adaptatÄƒ pentru camerÄƒ, focus pe durerea privitorului)
 
-#### B. Teoria (Video + Animații)
+#### B. Teoria (Video + AnimaÈ›ii)
 - **SLIDE 1:** Matricea Stiluri de Leadership (vizual: 2x2 grid animat)
-- **SLIDE 2:** Când folosești fiecare stil? (Exemple vizuale clare)
+- **SLIDE 2:** CÃ¢nd foloseÈ™ti fiecare stil? (Exemple vizuale clare)
 - **SLIDE 3:** Red Flags (Avertismente vizuale pe ecran)
 
-#### C. Exercițiu Reflexiv (Pauză Video)
-**Instrucțiuni pe ecran:**
-"Pune pauză la video acum. Deschide workbook-ul digital la pagina 3. Identifică scenariile..."
+#### C. ExerciÈ›iu Reflexiv (PauzÄƒ Video)
+**InstrucÈ›iuni pe ecran:**
+"Pune pauzÄƒ la video acum. Deschide workbook-ul digital la pagina 3. IdentificÄƒ scenariile..."
 (Timp estimat de lucru individual: 10 min)
 
 ---
 
-### Lecția 1.2: Diagnoza Maturității Echipei (Video 12 min)
+### LecÈ›ia 1.2: Diagnoza MaturitÄƒÈ›ii Echipei (Video 12 min)
 
 **Obiective:**
-- Să **clasifice** (Bloom) membrii echipei în D1-D4
-- Să **aplice** (Bloom) instrumentul de diagnoză pe 2 membri reali
+- SÄƒ **clasifice** (Bloom) membrii echipei Ã®n D1-D4
+- SÄƒ **aplice** (Bloom) instrumentul de diagnozÄƒ pe 2 membri reali
 
-**Conținut:**
-- Explicație detaliată D1-D4 cu exemple video (roleplay pre-înregistrat)
-- Quiz interactiv (pop-up în player-ul video dacă e posibil, sau link)
+**ConÈ›inut:**
+- ExplicaÈ›ie detaliatÄƒ D1-D4 cu exemple video (roleplay pre-Ã®nregistrat)
+- Quiz interactiv (pop-up Ã®n player-ul video dacÄƒ e posibil, sau link)
 
 ---
 
-## 📊 TABELUL OBLIGATORIU: AGENDĂ CURS ONLINE
-| Modul | Subiect | Format | Durată Video | Activitate Individuală |
+## ðŸ“Š TABELUL OBLIGATORIU: AGENDÄ‚ CURS ONLINE
+| Modul | Subiect | Format | DuratÄƒ Video | Activitate IndividualÄƒ |
 |-------|---------|--------|--------------|------------------------|
 | Intro | Welcome & Context | Video | 5 min | Setare obiective personale |
-| 1.1 | Mitul Stilului Natural | Video | 8 min | Exercițiu Workbook (10 min) |
-| 1.2 | Diagnoza Maturității | Video | 12 min | Analiză Echipă (15 min) |
-| 1.3 | Quiz Modul 1 | Interactiv | - | Test Grilă 10 întrebări |
+| 1.1 | Mitul Stilului Natural | Video | 8 min | ExerciÈ›iu Workbook (10 min) |
+| 1.2 | Diagnoza MaturitÄƒÈ›ii | Video | 12 min | AnalizÄƒ EchipÄƒ (15 min) |
+| 1.3 | Quiz Modul 1 | Interactiv | - | Test GrilÄƒ 10 Ã®ntrebÄƒri |
 | 2.1 | Stilul Directing | Video | 10 min | Studiu de Caz (10 min) |
 | ... | ... | ... | ... | ... |
 
 **TOTAL VIDEO:** ~120 min
-**TOTAL PRACTICĂ INDIVIDUALĂ:** ~120 min
+**TOTAL PRACTICÄ‚ INDIVIDUALÄ‚:** ~120 min
   `,
   slides_live: `
-<SLIDE_E id="7">
-<TITLE>De ce eșuează delegarea? 
-(Matematica ascunsă a "Fac eu mai repede")</TITLE>
+<SLIDE_BEGIN id="[N]">
+<TITLE>[Engaging Question or Strong Statement?]</TITLE>
 <!-- slide-layout: EXPLAINER -->
-<VISUAL>
-Flat illustration, 2-panel comparison:
-LEFT PANEL: A stressed manager with 10 tasks floating around their head (represented as small colored boxes with icons: email, report, meeting). Manager's face shows exhaustion (red face, sweat drops). Clock shows "18:00" with sun setting.
-RIGHT PANEL: Same manager, but now holding only 3 tasks, smiling. Team of 3 people in background, each holding 2-3 tasks, working collaboratively. Clock shows "17:00" with sun still up.
-Color palette: Blues (#2E5C8A primary), oranges (#F4A261 accent), grays (#E5E5E5 background). Simple line art, no gradients. Max 7 visual elements total.
-Designer note: This should be drawable in PowerPoint with basic shapes - no custom illustrations needed.
-</VISUAL>
+<VISUAL>[Description of visual: Diagram/Chart/Metaphor]</VISUAL>
 <CONTENT>
-- **Capcană 1:** "Dacă explic, pierd 30 min. Dacă fac eu, termin în 5 min."
-- **Realitatea:** Funcționează o singură dată. Task-ul se repetă → Pierzi 5 min × 20 repetări = 100 min pierdute în 3 luni.
-- **Capcană 2:** Echipa învață că "șeful face totul" → Devin pasivi.
-- **Soluția:** Investește 30 min AZI pentru delegare → Economisești 90 min în următoarele 60 zile.
+- **[Key Point 1]:** [Brief explanation]
+- **[Key Point 2]:** [Brief explanation]
+- **[Key Point 3]:** [Brief explanation]
 </CONTENT>
-<SPEAKER_NOTES>
-Hai să vorbim despre cea mai toxică frază din managementul modern: "Lasă că fac eu, că până îi explic lui Andrei, mai bine termin singur."
-
-Știu, am fost și eu acolo. Ești expert. Poți face taskul cu ochii închiși. Andrei e junior, o să facă greșeli, o să te întrebe de 10 ori, o să trebuiască să revizuiești. Matematica e simplă: 30 de minute vs 5 minute. Tu alegi 5.
-
-Problema? Matematica asta funcționează o singură dată. Dar task-ul ăsta nu dispare. Revine săptămâna viitoare. Și peste 2 săptămâni. Și iar, și iar.
-
-Hai să facem calculul real: Dacă task-ul ăsta se repetă de 2 ori pe săptămână, în 3 luni faci 24 de repetări × 5 minute = 120 de minute aruncate pe fereastră. Aproape 2 ore din viața ta în care puteai să faci work strategic, nu operațional.
-
-Dar e mai rău decât atât. Ce mesaj îi trimiți lui Andrei? Că nu ai încredere în el. Că e mai simplu pentru tine să faci singur. Așa că data viitoare când are o problemă, nu mai încearcă să o rezolve. Vine direct la tine. Pentru că a învățat: "Șeful rezolvă."
-
-Și acum ai creat un bottleneck. Tu. Toată echipa depinde de tine. Dacă ești în concediu, echipa e paralizată. Dacă ești bolnav, totul se oprește.
-
-Iată ce vreau să reții azi: Delegarea nu e despre "a scăpa de muncă". E despre multiplicare. Investești 30 de minute azi să-l înveți pe Andrei. Peste o lună, Andrei poate să-l învețe pe George. Și brusc, ai 2 oameni care pot face treaba aia. Tu te poți concentra pe următorul nivel.
-
-E ca și cum ai planta un pom. Primele luni ceri apă, îngrijire, răbdare. Dar după 2 ani, pomul dă fructe singur. Delegarea funcționează la fel.
-
-Următorul slide o să vă arăt exact cum să delegați fără să deveniți micro-manageri. Stay with me.
-</SPEAKER_NOTES>
-<SLIDE_END id="7">
+<NOTES>
+**Hook:** Ask the audience: "[Question]?"
+**Explanation:** Explain that [Concept] is not about [Misconception], but about [Truth].
+**Story:** Share the story of [Protagonist] who [Scenario].
+**Interaction:** Ask for a show of hands for [Condition].
+</NOTES>
+<SLIDE_END id="[N]">
   `,
   slides_online: `
-<SLIDE_E id="7">
-<TITLE>De ce eșuează delegarea? (Matematica "Fac eu")</TITLE>
+<SLIDE_BEGIN id="[N]">
+<TITLE>[Short, Catchy Title]</TITLE>
 <!-- slide-layout: VISUAL_EXPLAINER -->
 <VISUAL>
 Animated Split Screen:
-LEFT: Manager drowning in tasks (Red zone). Tasks piling up.
-RIGHT: Manager calm, team working (Green zone). Tasks distributed.
-Overlays: "30 min investment" vs "100 min lost"
+LEFT: [Negative Scenario/Problem]
+RIGHT: [Positive Scenario/Solution]
+Overlays: "[Key Stat/Quote]"
 </VISUAL>
 <CONTENT>
-- **Capcană:** "Dacă explic, pierd 30 min."
-- **Realitate:** Task-ul se repetă x20.
-- **Soluție:** Investiția inițială aduce ROI în 2 săptămâni.
+- **[Problem]:** [Description]
+- **[Solution]:** [Description]
+- **[Benefit]:** [Description]
 </CONTENT>
 <VOICE_OVER_SCRIPT>
-[Tone: Urgent but analytical]
-Hai să vorbim despre matematică. Uită-te în stânga ecranului. Ăsta ești tu când spui "Fac eu mai repede".
-Pare eficient pe moment. 5 minute vs 30 minute.
-Dar uită-te la graficul din dreapta. Alea 5 minute se adună. În 3 luni, ai pierdut 2 ore.
-Delegarea nu e despre timp pierdut. E despre timp investit.
-Vreau să te gândești la un task pe care l-ai făcut ieri și pe care puteai să-l delegi.
+[Tone: Conversational but authoritative]
+[Protagonist Name], let's look at the numbers.
+[Explain the concept clearly using the visual].
+[Call to Action/Reflection].
 </VOICE_OVER_SCRIPT>
-<SLIDE_END id="7">
+<SLIDE_END id="[N]">
   `,
   workbook_live: `
-## Modulul 3: Gestionarea Conflictelor în Echipă (2 ore)
+## Module [N]: [Module Title] (Live Workshop Edition)
 
-### De ce contează acest modul? (The Hook)
+### 1. Group Discussion Starter
+**Question:** "[Provocative Question about Topic]?"
+**Activity:** Turn to your neighbor (2 min) and discuss.
 
-Conflictele sunt ca o durere de dinți. Dacă le ignori, nu dispar de la sine — se transformă în abcese. Într-o echipă, un conflict nerezolvat distruge încrederea construită în ani. Dar, gestionat corect, conflictul devine motorul inovației.
+### 2. Core Framework: [Concept Name]
+[Visual Diagram Placeholder]
+- **[Component A]:** [Description]
+- **[Component B]:** [Description]
 
-Hai să fiu sincer: majoritatea managerilor EVITĂ conflictele. Zic "o să treacă de la sine" sau "nu vreau să par autoritar". Rezultatul? Tensiunea crește sub suprafață, până când explodează într-o demisie sau un scandal public.
+### 3. The "Aha!" Moment
+> **Key Takeaway:** [The most important insight of the module]
 
-**Statistică care doare:** Studiile arată că un manager petrece în medie **18% din timp** gestionând conflicte. Dacă lucrezi 40 ore pe săptămână, asta înseamnă 7 ore pe săptămână. O zi întreagă.
+### 4. Group Activity [N].1: [Activity Name]
+**Format:** Groups of [X]
+**Time:** [Y] minutes
+**Instructions:**
+1. Select a [Role/Scenario].
+2. Practice [Technique].
+3. Debrief with the group.
 
-Întrebarea nu e "Cum evit conflictele?" ci "Cum le transform în oportunități?"
-
----
-
-### Anatomia unui conflict
-
-#### Conceptul de bază: Sursa Reală vs Sursa Aparentă
-
-Majoritatea oamenilor cred că conflictele apar din cauza "personalităților dificile". Greșit. 
-
-**Realitatea:**
-- **80% din conflicte** = Probleme STRUCTURALE (roluri neclare, resurse limitate, procese proaste)
-- **20% din conflicte** = Probleme INTERPERSONALE (valori diferite, stiluri de comunicare)
-
-De ce contează? Pentru că atacăm problema greșită. Ne certăm cu omul, în loc să reparăm procesul.
-
----
-
-**Exemplu concret: Conflictul "Vânzări vs Producție"**
-
-**Contextul:**
-La o fabrică din Cluj (componente auto, 150 angajați), departamentul de Vânzări promitea clienților livrare în **2 zile**. Departamentul de Producție avea nevoie de **5 zile** pentru fabricație.
-
-**Ce s-a întâmplat:**
-- Vânzătorii: "Producția e leneșă, nu vor să muncească weekend."
-- Producția: "Vânzătorii mint clienții, ne pun în situații imposibile."
-- Tensiune crescândă: Oameni care nu mai vorbeau între ei. Email-uri pasiv-agresive. 2 demisii în 3 luni.
-
-**Ce au încercat (și a eșuat):**
-1. **Teambuilding la munte** (2 zile) → Toată lumea s-a relaxat, dar la birou, conflictul reapărea în 48h
-2. **Manager nou** (să medieze) → A fost prins la mijloc, burnout în 4 luni, el însuși a demisionat
-3. **Avertismente scrise** → Oamenii s-au speriat, dar nu s-a schimbat nimic structural
-
-**De ce au eșuat acestea?**
-- Teambuilding-ul = Paracetamol pentru infecție (simptom tratat, nu boala)
-- Manager nou = Al 3-lea jucător într-un joc defect
-- Avertismente = Intimidare fără soluție
-
-**Ce a funcționat:**
-Un consultant extern a venit și a pus o întrebare simplă: "Care e capacitatea reală a liniei de producție?"
-
-Răspuns: **3 zile** (nu 5) dacă materialele sunt în stoc. Dar uneori materialele întârziu 2 zile pentru că Vânzările nu anunță Producția din timp.
-
-**Soluția implementată:**
-- Sistem comun de stocuri vizibil LIVE (Google Sheet simplu, updatat de ambele departamente)
-- Vânzările văd stocul ÎNAINTE să promită deadline
-- Dacă e în stoc → Livrare în 3 zile (garantat)
-- Dacă NU e în stoc → Livrare în 7 zile (honest cu clientul)
-- **Cost:** 40 ore consultanță + 2 ore training = €3.000
-
-**Rezultat (3 luni mai târziu):**
-- Conflictul a dispărut în 2 săptămâni
-- Satisfacția clienților a crescut cu 15% (pentru că acum primeau promisiuni realiste, nu dezamăgiri)
-- 0 demisii în următoarele 12 luni
-- Vânzările au crescut cu 8% (clienții au apreciat onestitatea)
-
-**Lecția:**
-Conflictul nu era despre "oameni răi". Era despre un proces prost. Odată ce procesul s-a reparat, oamenii au devenit colaborativi instant.
-
-**De ce funcționează această abordare?**
-
-**Brain science simplu:**
-Când atacăm o persoană ("Tu ești problema"), creierul intră în modul defensiv. Cortexul prefrontal (partea rațională) se închide. Amigdala (fight-or-flight) preia controlul.
-
-Când atacăm un proces ("Procesul ăsta nu funcționează"), creierul rămâne în modul rezolvare-problemă. Colaborăm, nu ne certăm.
-
----
-
-### 🎯 EXERCIȚIU PRACTIC 3.1: "Cele 5 De Ce-uri"
-
-**Obiectiv:** Să ajungi la cauza rădăcină a unui conflict recurent din echipa ta.
-
-**Durată:** 20 min (15 min individual + 5 min share cu un coleg)
-
-**Context:**
-Tehnica "5 De Ce-uri" vine de la Toyota Production System. Ideea: Nu te opri la primul răspuns. Sapă mai adânc. De obicei, cauza reală apare la al 3-lea sau 4-lea "De ce?"
-
----
-
-**Instrucțiuni pas-cu-pas:**
-
-1. **Identifică conflictul** (2 min)
-   Gândește-te la o problemă recentă din echipa ta care REVINE des (nu e one-off).
-   
-   Exemplu: "Echipa livrează proiectele întârziat"
-
-2. **Întreabă "De ce?" de 5 ori** (10 min)
-   După fiecare răspuns, întreabă din nou "Dar DE CE se întâmplă asta?"
-
-> "Ok, homework pentru tine: Du-te în Workbook-ul de la pagina 12. O să găsești un exercițiu: 'Team Maturity Matrix'. Clasifică fiecare membru al echipei tale ca D1, D2, D3 sau D4. Apoi identifică ce stil folosești acum la fiecare.
->
-> Dacă vezi mismatch-uri (de exemplu, aplici Directing la un D4), scrie UNUL lucru pe care îl vei schimba LUNI când ajungi la birou.
->
-> În următorul video, o să vorbim despre cum să treci de la un stil la altul FĂRĂ să pară că ai personalitate multiplă. Ne vedem acolo. Hai că poți!"
-
-**[VISUAL FINAL]**
-- Fade to end screen:
-  - Titlul video-ului următor: "Cum schimbi stilul fără să confunzi echipa"
-  - Buton: "NEXT VIDEO →"
-  - Social links (LinkedIn/Website)
-
-**[NOTE PRODUCȚIE]**
-- 👋 Gesture: Salut prietenos (wave hand) la final
-- 🎵 Outro music: Upbeat, 5 secunde fade out
-
----
+**Debrief Questions:**
+- What was difficult?
+- What surprised you?
 `,
   facilitator_guide: `
-# MODULUL 2: COMUNICAREA EFICIENTĂ (90 min)
+# MODULUL 2: COMUNICAREA EFICIENTÄ‚ (90 min)
 
-## 🕒 FLOW TABLE (Desfășurător Minut-cu-Minut)
+## ðŸ•’ FLOW TABLE (DesfÄƒÈ™urÄƒtor Minut-cu-Minut)
 
 | Timp | Activitate | Format | Obiectiv |
 |------|------------|--------|----------|
-| 00:00-00:10 | Intro & Check-in | Plenar | Conectare și setare context |
-| 00:10-00:25 | Teoria SBAR | Prezentare | Înțelegerea structurii |
-| 00:25-00:50 | Exercițiu: Telefonul Defect | Grupuri mici | Experimentarea pierderii informației |
-| 00:50-01:05 | Debrief & Analiză | Discuție facilitată | Extragerea lecțiilor (Ishikawa) |
-| 01:05-01:20 | Feedback Model SBI | Roleplay | Practică deliberată |
-| 01:20-01:30 | Concluzii & Action Plan | Individual | Transfer în practică |
+| 00:00-00:10 | Intro & Check-in | Plenar | Conectare È™i setare context |
+| 00:10-00:25 | Teoria SBAR | Prezentare | ÃŽnÈ›elegerea structurii |
+| 00:25-00:50 | ExerciÈ›iu: Telefonul Defect | Grupuri mici | Experimentarea pierderii informaÈ›iei |
+| 00:50-01:05 | Debrief & AnalizÄƒ | DiscuÈ›ie facilitatÄƒ | Extragerea lecÈ›iilor (Ishikawa) |
+| 01:05-01:20 | Feedback Model SBI | Roleplay | PracticÄƒ deliberatÄƒ |
+| 01:20-01:30 | Concluzii & Action Plan | Individual | Transfer Ã®n practicÄƒ |
 
 ---
 
-## 🛠️ EXERCIȚIU CENTRAL: Jocul Telefonului Defect (Corporatist)
+## ðŸ› ï¸ EXERCIÈšIU CENTRAL: Jocul Telefonului Defect (Corporatist)
 
-**Obiectiv:** Să experimentezi cum se pierde informația când nu folosești structuri clare
-**Durată totală:** 25 min (Setup 3' + Joc 10' + Debrief 12')
+**Obiectiv:** SÄƒ experimentezi cum se pierde informaÈ›ia cÃ¢nd nu foloseÈ™ti structuri clare
+**DuratÄƒ totalÄƒ:** 25 min (Setup 3' + Joc 10' + Debrief 12')
 **Materiale:** 4 plicuri, foi A4, Timer.
 
-### INSTRUCȚIUNI PENTRU FACILITATOR:
+### INSTRUCÈšIUNI PENTRU FACILITATOR:
 
-**Pregătire:**
-1. Scrie "mesajele inițiale" pe bilețele (complexe, cu cifre și nume).
-2. Pregătește întrebările de debrief pe flipchart.
+**PregÄƒtire:**
+1. Scrie "mesajele iniÈ›iale" pe bileÈ›ele (complexe, cu cifre È™i nume).
+2. PregÄƒteÈ™te Ã®ntrebÄƒrile de debrief pe flipchart.
 
 **PASUL 1: Start (3 min)**
-> "Împărțiți-vă în 4 grupuri. Fiecare grup în linie. Primul e Clientul, ultimul e Șoferul. Mesajul trebuie să ajungă de la Client la Șofer prin șoptire. Șoferul scrie rezultatul."
+> "ÃŽmpÄƒrÈ›iÈ›i-vÄƒ Ã®n 4 grupuri. Fiecare grup Ã®n linie. Primul e Clientul, ultimul e È˜oferul. Mesajul trebuie sÄƒ ajungÄƒ de la Client la È˜ofer prin È™optire. È˜oferul scrie rezultatul."
 
 **PASUL 2: Jocul (10 min)**
-- Nu interveni. Lasă haosul să se întâmple.
-- Observă cine ia notițe (ilegal în joc, dar interesant de discutat).
+- Nu interveni. LasÄƒ haosul sÄƒ se Ã®ntÃ¢mple.
+- ObservÄƒ cine ia notiÈ›e (ilegal Ã®n joc, dar interesant de discutat).
 
 **PASUL 3: Debrief (12 min)**
-Citește mesajul final vs original. Râsete garantate.
+CiteÈ™te mesajul final vs original. RÃ¢sete garantate.
 
-**Întrebări de facilitare (CRITICE):**
+**ÃŽntrebÄƒri de facilitare (CRITICE):**
 1. "Ce s-a pierdut primul?" (De obicei: cifrele/detaliile exacte)
-2. "Ce s-a schimbat?" (De obicei: interpretări subiective)
-3. "Dacă asta era o comandă reală, care era costul?"
+2. "Ce s-a schimbat?" (De obicei: interpretÄƒri subiective)
+3. "DacÄƒ asta era o comandÄƒ realÄƒ, care era costul?"
 
-### 🗣️ SCRIPT PENTRU FACILITATOR (Key Learning Points)
+### ðŸ—£ï¸ SCRIPT PENTRU FACILITATOR (Key Learning Points)
 
-**Dacă participanții râd de greșeli:**
-> "E amuzant acum, în sala de curs. Dar hai să ne imaginăm că asta era o comandă de 50.000 EUR. Cine râde la final? Clientul? Noi? Nimeni. De asta avem nevoie de structură."
+**DacÄƒ participanÈ›ii rÃ¢d de greÈ™eli:**
+> "E amuzant acum, Ã®n sala de curs. Dar hai sÄƒ ne imaginÄƒm cÄƒ asta era o comandÄƒ de 50.000 EUR. Cine rÃ¢de la final? Clientul? Noi? Nimeni. De asta avem nevoie de structurÄƒ."
 
-**Dacă dau vina pe 'Șofer' (ultima persoană):**
-> "E ușor să dăm vina pe om. Dar amintiți-vă **Ishikawa (Fishbone)**. Problema nu e omul, ci procesul. Ce anume din PROCES a permis eroarea? Faptul că nu s-a scris? Faptul că nu s-a verificat?"
+**DacÄƒ dau vina pe 'È˜ofer' (ultima persoanÄƒ):**
+> "E uÈ™or sÄƒ dÄƒm vina pe om. Dar amintiÈ›i-vÄƒ **Ishikawa (Fishbone)**. Problema nu e omul, ci procesul. Ce anume din PROCES a permis eroarea? Faptul cÄƒ nu s-a scris? Faptul cÄƒ nu s-a verificat?"
 
 ---
 
-## 🔧 TROUBLESHOOTING (Ce faci dacă...)
+## ðŸ”§ TROUBLESHOOTING (Ce faci dacÄƒ...)
 
-| Situație | Intervenție Recomandată |
+| SituaÈ›ie | IntervenÈ›ie RecomandatÄƒ |
 |----------|-------------------------|
-| **Grupul e pasiv/timid** | Fă tu primul exemplu, exagerat de greșit. Râsul deblochează atmosfera. |
-| **Cineva domină discuția** | Folosește tehnica "Mulțumesc, Andrei. Hai să auzim și o opinie din partea cealaltă a mesei. Maria?" |
-| **Sceptici ("La noi nu merge")** | Validează, nu contrazice. "Ai dreptate, e greu. Dar care e costul dacă NU facem nimic? Hai să testăm modelul SBI o săptămână." |
+| **Grupul e pasiv/timid** | FÄƒ tu primul exemplu, exagerat de greÈ™it. RÃ¢sul deblocheazÄƒ atmosfera. |
+| **Cineva dominÄƒ discuÈ›ia** | FoloseÈ™te tehnica "MulÈ›umesc, [Nume]. Hai sÄƒ auzim È™i o opinie din partea cealaltÄƒ a mesei. [Alt Nume]?" |
+| **Sceptici ("La noi nu merge")** | ValideazÄƒ, nu contrazice. "Ai dreptate, e greu. Dar care e costul dacÄƒ NU facem nimic? Hai sÄƒ testÄƒm modelul SBI o sÄƒptÄƒmÃ¢nÄƒ." |
 
 ---
 
-## 📝 MODEL DE FEEDBACK (SBI - Situation, Behavior, Impact)
+## ðŸ“ MODEL DE FEEDBACK (SBI - Situation, Behavior, Impact)
 
-**IMPORTANT:** Nu folosim "Sandwich" (Laudă-Critică-Laudă). Diluează mesajul și scade încrederea. Folosim **SBI**.
+**IMPORTANT:** Nu folosim "Sandwich" (LaudÄƒ-CriticÄƒ-LaudÄƒ). DilueazÄƒ mesajul È™i scade Ã®ncrederea. Folosim **SBI**.
 
 **Exemplu Script SBI:**
-> "Maria (**Situation**), ieri în ședința de producție, când ai întrerupt prezentarea lui Ion (**Behavior**), el s-a oprit și nu a mai împărtășit restul ideilor (**Impact**). Am pierdut input valoros. Te rog ca data viitoare să notezi întrebările și să le pui la final."
+> "[Nume] (**Situation**), ieri Ã®n È™edinÈ›a de [Tip È˜edinÈ›Äƒ], cÃ¢nd ai Ã®ntrerupt prezentarea lui [Alt Nume] (**Behavior**), el s-a oprit È™i nu a mai Ã®mpÄƒrtÄƒÈ™it restul ideilor (**Impact**). Am pierdut input valoros. Te rog ca data viitoare sÄƒ notezi Ã®ntrebÄƒrile È™i sÄƒ le pui la final."
 `,
   quiz: `
-STRUCTURA COMPLETĂ QUIZ FINAL
-markdown# EVALUARE FINALĂ: Leadership Situațional
-**Durată:** 25 minute
+STRUCTURA COMPLETÄ‚ QUIZ FINAL
+markdown# EVALUARE FINALÄ‚: Leadership SituaÈ›ional
+**DuratÄƒ:** 25 minute
 **Format:** Online (Google Forms / Typeform) sau Printabil (PDF)
 **Scoring:** 100 puncte total
 **Passing Grade:** 75/100 (75%)
 
 ---
 
-## 📊 STRUCTURA PUNCTAJULUI
+## ðŸ“Š STRUCTURA PUNCTAJULUI
 
-| Secțiune | Tipul Întrebărilor | Număr | Puncte/Întrebare | Total | % |
+| SecÈ›iune | Tipul ÃŽntrebÄƒrilor | NumÄƒr | Puncte/ÃŽntrebare | Total | % |
 |----------|-------------------|-------|------------------|-------|---|
 | **Partea 1** | Knowledge Check (MCQ) | 10 | 4 | 40 | 40% |
 | **Partea 2** | Scenario Application | 5 | 8 | 40 | 40% |
@@ -530,123 +416,123 @@ markdown# EVALUARE FINALĂ: Leadership Situațional
 
 ## PARTEA 1: KNOWLEDGE CHECK (40 puncte)
 
-### ❓ ÎNTREBAREA 1: Stiluri de Leadership
+### â“ ÃŽNTREBAREA 1: Stiluri de Leadership
 
-**Ce caracterizează stilul S2 (Coaching)?**
+**Ce caracterizeazÄƒ stilul S2 (Coaching)?**
 
 A) High Directive, Low Supportive  
 B) Low Directive, High Supportive  
-C) High Directive, High Supportive ✅ (CORECT)  
+C) High Directive, High Supportive âœ… (CORECT)  
 D) Low Directive, Low Supportive  
 
-**Răspuns corect:** C
+**RÄƒspuns corect:** C
 
-**Feedback dacă GREȘIT:**
-> "S2 (Coaching) combină HIGH Directive (dai instrucțiuni clare) cu HIGH Supportive (asculți, validezi, încurajezi). E stilul perfect pentru D2 - Discipoli Deziluzionați. Revizuiește Modulul 1."
+**Feedback dacÄƒ GREÈ˜IT:**
+> "S2 (Coaching) combinÄƒ HIGH Directive (dai instrucÈ›iuni clare) cu HIGH Supportive (asculÈ›i, validezi, Ã®ncurajezi). E stilul perfect pentru D2 - Discipoli DeziluzionaÈ›i. RevizuieÈ™te Modulul 1."
 
-**Feedback dacă CORECT:**
-> "Exact! S2 = Coaching combină direcția clară cu suportul emoțional. E stilul cel mai complex."
+**Feedback dacÄƒ CORECT:**
+> "Exact! S2 = Coaching combinÄƒ direcÈ›ia clarÄƒ cu suportul emoÈ›ional. E stilul cel mai complex."
 
 ---
 
-### ❓ ÎNTREBAREA 2: Diagnoza Maturității
+### â“ ÃŽNTREBAREA 2: Diagnoza MaturitÄƒÈ›ii
 
-**Un angajat are Competență HIGH dar Angajament VARIABLE. În ce nivel se încadrează?**
+**Un angajat are CompetenÈ›Äƒ HIGH dar Angajament VARIABLE. ÃŽn ce nivel se Ã®ncadreazÄƒ?**
 
 A) D1 - Beginner Entuziast  
 B) D2 - Discipol Deziluzionat  
-C) D3 - Performer Capabil dar Prudent ✅ (CORECT)  
+C) D3 - Performer Capabil dar Prudent âœ… (CORECT)  
 D) D4 - Expert Autonom  
 
-**Răspuns corect:** C
+**RÄƒspuns corect:** C
 
-**Feedback dacă GREȘIT:**
-> "D3 = Competență HIGH + Angajament VARIABLE. Știe să facă jobul, dar e nesigur dacă VREA mai multă responsabilitate. Revizuiește Matricea D1-D4."
+**Feedback dacÄƒ GREÈ˜IT:**
+> "D3 = CompetenÈ›Äƒ HIGH + Angajament VARIABLE. È˜tie sÄƒ facÄƒ jobul, dar e nesigur dacÄƒ VREA mai multÄƒ responsabilitate. RevizuieÈ™te Matricea D1-D4."
 
 ---
 
-[... continuă cu 8 întrebări similare ...]
+[... continuÄƒ cu 8 Ã®ntrebÄƒri similare ...]
 
 ---
 
 ## PARTEA 2: SCENARIO APPLICATION (40 puncte)
 
-### 🎭 SCENARIUL 1: Angajatul Nou Entuziast (8 puncte)
+### ðŸŽ­ SCENARIUL 1: Angajatul Nou Entuziast (8 puncte)
 
 **CONTEXT:**
-Andrei (3 zile în echipă) e super entuziast: "Șefu', dă-mi orice task!"
-Următoarea sarcină e complexă (asamblare 15 pași, marjă eroare 0.1mm).
+[Nume Angajat] (3 zile Ã®n echipÄƒ) e super entuziast: "È˜efu', dÄƒ-mi orice task!"
+UrmÄƒtoarea sarcinÄƒ e complexÄƒ (asamblare 15 paÈ™i, marjÄƒ eroare 0.1mm).
 
 **CE FACI?**
 
-A) "Perfect! Iată diagrama. Încearcă singur." (S4)
+A) "Perfect! IatÄƒ diagrama. ÃŽncearcÄƒ singur." (S4)
 
-B) "Hai să lucrăm împreună. Eu fac primul, tu observi. Apoi tu faci sub supravegherea mea. După 10 corecte, poți continua cu check-in hourly." (S1) ✅
+B) "Hai sÄƒ lucrÄƒm Ã®mpreunÄƒ. Eu fac primul, tu observi. Apoi tu faci sub supravegherea mea. DupÄƒ 10 corecte, poÈ›i continua cu check-in hourly." (S1) âœ…
 
 C) "Tu ce crezi, cum ai aborda?" (S3)
 
-D) "Citește pașii, încearcă, apoi discutăm." (S2)
+D) "CiteÈ™te paÈ™ii, Ã®ncearcÄƒ, apoi discutÄƒm." (S2)
 
-**Răspuns corect:** B
+**RÄƒspuns corect:** B
 
 **Justificare:**
-Andrei = D1 (Competență LOW + Angajament HIGH) → Necesită S1 (Directing)
+[Nume Angajat] = D1 (CompetenÈ›Äƒ LOW + Angajament HIGH) â†’ NecesitÄƒ S1 (Directing)
 
-**Feedback dacă GREȘIT:**
-> "Andrei e ziua 3 - clasic D1. Entuziasmul te poate păcăli. Are nevoie de S1: tu arăți, el urmărește, apoi el face sub supraveghere. Nu sări peste etape!"
+**Feedback dacÄƒ GREÈ˜IT:**
+> "[Nume Angajat] e ziua 3 - clasic D1. Entuziasmul te poate pÄƒcÄƒli. Are nevoie de S1: tu arÄƒÈ›i, el urmÄƒreÈ™te, apoi el face sub supraveghere. Nu sÄƒri peste etape!"
 
 ---
 
-[... continuă cu 4 scenarii similare ...]
+[... continuÄƒ cu 4 scenarii similare ...]
 
 ---
 
 ## PARTEA 3: SELF-ASSESSMENT (20 puncte)
 
-### 🔍 ÎNTREBAREA 11: Stilul Dominant (5 puncte)
+### ðŸ” ÃŽNTREBAREA 11: Stilul Dominant (5 puncte)
 
-**Care e stilul tău DOMINANT din ultimele 30 zile? Explică cu exemplu concret.**
+**Care e stilul tÄƒu DOMINANT din ultimele 30 zile? ExplicÄƒ cu exemplu concret.**
 
-**Opțiuni:**
+**OpÈ›iuni:**
 - [ ] S1 - Directing
 - [ ] S2 - Coaching  
 - [ ] S3 - Supporting
 - [ ] S4 - Delegating
 
-**Explică (minim 50 cuvinte):**
+**ExplicÄƒ (minim 50 cuvinte):**
 _____________________________________________________________________________
 
 **Criterii punctaj:**
 - Ales un stil (1p)
 - Minim 50 cuvinte (1p)
 - Exemplu concret din ultimele 30 zile (2p)
-- Recunoaște DE CE gravitează spre el (1p)
+- RecunoaÈ™te DE CE graviteazÄƒ spre el (1p)
 
 ---
 
-### 🔍 ÎNTREBAREA 12: Identificarea Mismatch-ului (5 puncte)
+### ðŸ” ÃŽNTREBAREA 12: Identificarea Mismatch-ului (5 puncte)
 
-**Identifică UN membru la care aplici STILUL GREȘIT:**
+**IdentificÄƒ UN membru la care aplici STILUL GREÈ˜IT:**
 
-**Inițiale:** _______
+**IniÈ›iale:** _______
 **Nivel real (D1-D4):** _______
 **Stil actual (S1-S4):** _______
-**Manifestare problemă:** _____________________________________________________________________________
+**Manifestare problemÄƒ:** _____________________________________________________________________________
 **Stil corect:** _______
-**Acțiune concretă în 7 zile:** _____________________________________________________________________________
+**AcÈ›iune concretÄƒ Ã®n 7 zile:** _____________________________________________________________________________
 
 **Criterii punctaj:**
 - Identificat membru (0.5p)
 - Diagnosticat corect nivelul D (1p)
 - Explicat manifestarea (1p)
 - Identificat stil corect (0.5p)
-- Acțiune SMART cu deadline (1.5p)
+- AcÈ›iune SMART cu deadline (1.5p)
 
 ---
 
-### 🔍 ÎNTREBAREA 13: Biggest Learning (5 puncte)
+### ðŸ” ÃŽNTREBAREA 13: Biggest Learning (5 puncte)
 
-**Care a fost cel mai ȘOCANT lucru învățat? (minim 100 cuvinte)**
+**Care a fost cel mai È˜OCANT lucru Ã®nvÄƒÈ›at? (minim 100 cuvinte)**
 
 _____________________________________________________________________________
 _____________________________________________________________________________
@@ -654,52 +540,52 @@ _____________________________________________________________________________
 **Criterii punctaj:**
 - Minim 100 cuvinte (1p)
 - Learning specific (nu vag) (1p)
-- Explicat DE CE șocant (1p)
-- Conectat la experiență personală (1p)
-- Implicații pentru viitor (1p)
+- Explicat DE CE È™ocant (1p)
+- Conectat la experienÈ›Äƒ personalÄƒ (1p)
+- ImplicaÈ›ii pentru viitor (1p)
 
 ---
 
-### 🔍 ÎNTREBAREA 14: Commitment to Action (5 puncte)
+### ðŸ” ÃŽNTREBAREA 14: Commitment to Action (5 puncte)
 
-**LUNI DIMINEAȚĂ, ce vei face DIFERIT?**
+**LUNI DIMINEAÈšÄ‚, ce vei face DIFERIT?**
 
 **Ce:** _____________________________________________________________________________
 **Cu cine:** _______________________
-**La ce oră:** _______________________
-**Cum măsori succesul (1 săptămână):** _____________________________________________________________________________
+**La ce orÄƒ:** _______________________
+**Cum mÄƒsori succesul (1 sÄƒptÄƒmÃ¢nÄƒ):** _____________________________________________________________________________
 **Obstacole + Plan B:** _____________________________________________________________________________
 
 **Criterii punctaj:**
-- Acțiune SPECIFICĂ (1p)
-- Include Cine + Când (1p)
+- AcÈ›iune SPECIFICÄ‚ (1p)
+- Include Cine + CÃ¢nd (1p)
 - Metric clar (1p)
 - Anticipat obstacole + plan B (1p)
-- Relevant pentru problemă identificată (1p)
+- Relevant pentru problemÄƒ identificatÄƒ (1p)
 
 ---
 
-## 📊 SCORING & GRADING
+## ðŸ“Š SCORING & GRADING
 
 | Punctaj | Grade | Interpretare |
 |---------|-------|--------------|
-| 90-100 | A - Excellent | Stăpânește + aplică corect. Ready! |
-| 75-89 | B - Good | Înțelege teoria, mici gaps aplicare |
-| 60-74 | C - Passing | Bază OK, lipsă aplicare. Review! |
+| 90-100 | A - Excellent | StÄƒpÃ¢neÈ™te + aplicÄƒ corect. Ready! |
+| 75-89 | B - Good | ÃŽnÈ›elege teoria, mici gaps aplicare |
+| 60-74 | C - Passing | BazÄƒ OK, lipsÄƒ aplicare. Review! |
 | <60 | D - Needs Improvement | Gaps semnificative. Repeat! |
 
 ---
 
-## 🎯 POST-QUIZ ACTION PLAN
+## ðŸŽ¯ POST-QUIZ ACTION PLAN
 
 **Grade A-B (75+):**
-1. Săptămâna 1: Implementează Commitment
-2. Săptămâna 2-4: Aplică la tot team-ul
+1. SÄƒptÄƒmÃ¢na 1: ImplementeazÄƒ Commitment
+2. SÄƒptÄƒmÃ¢na 2-4: AplicÄƒ la tot team-ul
 3. Luna 2: Devii peer coach
 
 **Grade C (60-74):**
-1. Re-watch module-le greșite
-2. Practice 1 stil nou pe 1 persoană
+1. Re-watch module-le greÈ™ite
+2. Practice 1 stil nou pe 1 persoanÄƒ
 3. Re-ia Partea 2 (Scenarios)
 
 **Grade D (<60):**
@@ -709,23 +595,23 @@ _____________________________________________________________________________
 
 ---
 
-## 💡 TIPS FACILITATOR
+## ðŸ’¡ TIPS FACILITATOR
 
-**Timing:** A doua zi după curs (fresh mind)
+**Timing:** A doua zi dupÄƒ curs (fresh mind)
 
 **Format:** Digital (auto-scoring) > Printabil
 
 **Comunicare:** "Nu e pass/fail. E oglinda ta."
 
 **Follow-up:** 
-- Rezultate în 48h
+- Rezultate Ã®n 48h
 - Grade D = 15 min call 1-on-1
 - Grade A = Advanced track
   `,
   video_script_live: `
 # VIDEO SCRIPT: Mesaj de Bun Venit (Pre-Workshop)
-**Target:** Participanții la Workshop-ul LIVE
-**Canal:** Email / WhatsApp (trimis cu 3 zile înainte)
+**Target:** ParticipanÈ›ii la Workshop-ul LIVE
+**Canal:** Email / WhatsApp (trimis cu 3 zile Ã®nainte)
 **Durata:** 60 secunde
 
 ---
@@ -733,22 +619,22 @@ _____________________________________________________________________________
 **[VISUAL]**
 - Tu (Facilitatorul) filmat simplu cu telefonul (selfie mode)
 - Fundal: Sala de curs sau un birou luminos
-- Zâmbet, energie relaxată
+- ZÃ¢mbet, energie relaxatÄƒ
 
 **[AUDIO]**
-"Salutare tuturor! Sunt [Numele Tău] și abia aștept să ne vedem marți la workshop-ul de Leadership Situațional.
+"Salutare tuturor! Sunt [Numele TÄƒu] È™i abia aÈ™tept sÄƒ ne vedem marÈ›i la workshop-ul de Leadership SituaÈ›ional.
 
-Știu că sunteți ocupați, așa că promisiunea mea e simplă:
-Nu o să fie o zi de teorie plictisitoare.
-Nu o să stăm să citim slide-uri.
+È˜tiu cÄƒ sunteÈ›i ocupaÈ›i, aÈ™a cÄƒ promisiunea mea e simplÄƒ:
+Nu o sÄƒ fie o zi de teorie plictisitoare.
+Nu o sÄƒ stÄƒm sÄƒ citim slide-uri.
 
-O să lucrăm pe cazurile VOASTRE reale. O să rezolvăm problemele cu care vă confruntați ACUM în echipă.
+O sÄƒ lucrÄƒm pe cazurile VOASTRE reale. O sÄƒ rezolvÄƒm problemele cu care vÄƒ confruntaÈ›i ACUM Ã®n echipÄƒ.
 
-Așa că, o singură rugăminte am la voi:
-Gândiți-vă la un om din echipa voastră care vă dă bătăi de cap.
-Aduceți acel 'caz' în minte la curs. Îl vom rezolva împreună.
+AÈ™a cÄƒ, o singurÄƒ rugÄƒminte am la voi:
+GÃ¢ndiÈ›i-vÄƒ la un om din echipa voastrÄƒ care vÄƒ dÄƒ bÄƒtÄƒi de cap.
+AduceÈ›i acel 'caz' Ã®n minte la curs. ÃŽl vom rezolva Ã®mpreunÄƒ.
 
-Ne vedem marți la 9:00. Cafeaua e pe mine!
+Ne vedem marÈ›i la 9:00. Cafeaua e pe mine!
 Ciao!"
 
 ---
@@ -756,47 +642,47 @@ Ciao!"
   video_script_online: `
 # VIDEO SCRIPT: Modulul 2.1 - Stilul Directing (Exemplu)
 **Format:** Talking Head + B-Roll + Screen Capture
-**Durată:** 3-5 minute
+**DuratÄƒ:** 3-5 minute
 **Ton:** Clar, Empatic, dar Direct
 
 ---
 
 **[SCENE 1: Talking Head - Hook]**
-**(Visual: Tu în prim plan, fundal blurat, lumină caldă)**
+**(Visual: Tu Ã®n prim plan, fundal blurat, luminÄƒ caldÄƒ)**
 
-"Ți s-a întâmplat vreodată să delegi un task unui om nou, să-l lași în pace ca să nu fii 'micromanager', și când te întorci peste 2 zile să găsești un dezastru?
+"Èši s-a Ã®ntÃ¢mplat vreodatÄƒ sÄƒ delegi un task unui om nou, sÄƒ-l laÈ™i Ã®n pace ca sÄƒ nu fii 'micromanager', È™i cÃ¢nd te Ã®ntorci peste 2 zile sÄƒ gÄƒseÈ™ti un dezastru?
 
-(Pauză scurtă)
+(PauzÄƒ scurtÄƒ)
 
-Și probabil ți-ai zis: 'Nu se mai găsesc oameni buni azi.'
+È˜i probabil È›i-ai zis: 'Nu se mai gÄƒsesc oameni buni azi.'
 
-Dar dacă ți-aș spune că greșeala nu a fost a lor? A fost a ta. Pentru că ai folosit stilul greșit."
+Dar dacÄƒ È›i-aÈ™ spune cÄƒ greÈ™eala nu a fost a lor? A fost a ta. Pentru cÄƒ ai folosit stilul greÈ™it."
 
 ---
 
 **[SCENE 2: Concept Explain - Animation/Slide]**
 **(Visual: Graficul Matricei, zoom pe cadranul S1 - Directing)**
 
-"Astăzi vorbim despre Stilul 1: Directing.
-Mulți manageri fug de el. Li se pare că e 'Bossy'. Că e 'Comunist'.
+"AstÄƒzi vorbim despre Stilul 1: Directing.
+MulÈ›i manageri fug de el. Li se pare cÄƒ e 'Bossy'. CÄƒ e 'Comunist'.
 
-Dar hai să ne uităm la realitate. Când un om e nou (D1 - Enthusiastic Beginner), el NU are nevoie de 'spațiu'. Are nevoie de CLARITATE.
+Dar hai sÄƒ ne uitÄƒm la realitate. CÃ¢nd un om e nou (D1 - Enthusiastic Beginner), el NU are nevoie de 'spaÈ›iu'. Are nevoie de CLARITATE.
 
-Stilul Directing înseamnă 3 lucruri:
-1. Definești CE trebuie făcut (Standardul)
-2. Definești CUM trebuie făcut (Procesul)
-3. Definești PÂNĂ CÂND (Deadline-ul)
+Stilul Directing Ã®nseamnÄƒ 3 lucruri:
+1. DefineÈ™ti CE trebuie fÄƒcut (Standardul)
+2. DefineÈ™ti CUM trebuie fÄƒcut (Procesul)
+3. DefineÈ™ti PÃ‚NÄ‚ CÃ‚ND (Deadline-ul)
 
-Nu e răutate. E bunătate. Îi dai omului harta exactă ca să poată câștiga."
+Nu e rÄƒutate. E bunÄƒtate. ÃŽi dai omului harta exactÄƒ ca sÄƒ poatÄƒ cÃ¢È™tiga."
 
 ---
 
 **[SCENE 3: Roleplay - Split Screen]**
-**(Visual: Stânga - Manager, Dreapta - Angajat Nou)**
+**(Visual: StÃ¢nga - Manager, Dreapta - Angajat Nou)**
 
-**Manager:** "Salut Andrei. Pentru raportul de mâine, vreau să folosești template-ul din drive. Uită-te la coloana B și C. Vreau să fie completate exact ca în exemplul de luna trecută. Hai să facem primele 3 rânduri împreună acum."
+**Manager:** "Salut [Nume Angajat]. Pentru raportul de mÃ¢ine, vreau sÄƒ foloseÈ™ti template-ul din drive. UitÄƒ-te la coloana B È™i C. Vreau sÄƒ fie completate exact ca Ã®n exemplul de luna trecutÄƒ. Hai sÄƒ facem primele 3 rÃ¢nduri Ã®mpreunÄƒ acum."
 
-**Angajat:** "Super, mersi! Chiar nu știam de unde să încep."
+**Angajat:** "Super, mersi! Chiar nu È™tiam de unde sÄƒ Ã®ncep."
 
 **(Visual: Text Overlay - "Direction is NOT Micromanagement")**
 
@@ -806,56 +692,92 @@ Nu e răutate. E bunătate. Îi dai omului harta exactă ca să poată câștiga
 **(Visual: Tu din nou)**
 
 "Provocarea ta pentru azi:
-Identifică un om din echipa ta care e la început pe un task nou.
-Nu-l întreba 'Cum te simți?'.
-Du-te la el și clarifică CE, CUM și CÂND.
-Apoi dă-mi un reply și spune-mi cum a reacționat.
+IdentificÄƒ un om din echipa ta care e la Ã®nceput pe un task nou.
+Nu-l Ã®ntreba 'Cum te simÈ›i?'.
+Du-te la el È™i clarificÄƒ CE, CUM È™i CÃ‚ND.
+Apoi dÄƒ-mi un reply È™i spune-mi cum a reacÈ›ionat.
 
-Ne vedem în lecția următoare."
+Ne vedem Ã®n lecÈ›ia urmÄƒtoare."
   `,
   exercises_live: `
-### Exercițiu: Roleplay Triadic (30 min)
+### ExerciÈ›iu: Roleplay Triadic (30 min)
 
 **Format:** Grupuri de 3 (Manager, Angajat, Observator)
 **Obiectiv:** Practicarea stilului Coaching (S2)
 
-**Instrucțiuni:**
+**InstrucÈ›iuni:**
 1. **Runda 1 (10 min):**
    - A este Manager, B este Angajat, C este Observator.
-   - Scenariu: Angajatul e demotivat după un refuz. Managerul trebuie să asculte și să ghideze.
-2. **Debrief (5 min):** Observatorul oferă feedback folosind SBI.
-3. **Rotire:** Schimbați rolurile.
+   - Scenariu: Angajatul e demotivat dupÄƒ un refuz. Managerul trebuie sÄƒ asculte È™i sÄƒ ghideze.
+2. **Debrief (5 min):** Observatorul oferÄƒ feedback folosind SBI.
+3. **Rotire:** SchimbaÈ›i rolurile.
 
-**Fișă Observator:**
-- [ ] A ascultat fără să întrerupă?
-- [ ] A pus întrebări deschise?
-- [ ] A validat emoția?
+**FiÈ™Äƒ Observator:**
+- [ ] A ascultat fÄƒrÄƒ sÄƒ Ã®ntrerupÄƒ?
+- [ ] A pus Ã®ntrebÄƒri deschise?
+- [ ] A validat emoÈ›ia?
 `,
   exercises_online: `
-### Exercițiu Individual: "Cele 5 De Ce-uri" (15 min)
+### ExerciÈ›iu Individual: "Cele 5 De Ce-uri" (15 min)
 
 **Format:** Individual (Workbook Digital / PDF)
-**Obiectiv:** Identificarea cauzei rădăcină a unei probleme.
+**Obiectiv:** Identificarea cauzei rÄƒdÄƒcinÄƒ a unei probleme.
 
-**Instrucțiuni:**
-1. **Identifică o problemă recurentă** din echipa ta.
-2. **Întreabă "De ce?" de 5 ori** succesiv pentru a săpa la rădăcină.
-3. **Completează tabelul** de mai jos.
+**InstrucÈ›iuni:**
+1. **IdentificÄƒ o problemÄƒ recurentÄƒ** din echipa ta.
+2. **ÃŽntreabÄƒ "De ce?" de 5 ori** succesiv pentru a sÄƒpa la rÄƒdÄƒcinÄƒ.
+3. **CompleteazÄƒ tabelul** de mai jos.
 
 **Template:**
-| Nivel | Întrebare | Răspunsul tău |
+| Nivel | ÃŽntrebare | RÄƒspunsul tÄƒu |
 |-------|-----------|---------------|
-| 1 | De ce a apărut problema? | [Scrie aici] |
-| 2 | De ce [Răspuns 1]? | [Scrie aici] |
+| 1 | De ce a apÄƒrut problema? | [Scrie aici] |
+| 2 | De ce [RÄƒspuns 1]? | [Scrie aici] |
 | ... | ... | ... |
 `
 };
 
 
-const getDepthSpecs = (language: string) => {
+const calculatePracticePercentage = (dna: any): number => {
+  if (!dna || !dna.masterTimeline || !dna.masterTimeline.modules) return 80; // Default
+
+  let totalDuration = 0;
+  let practiceDuration = 0;
+
+  if (Array.isArray(dna.masterTimeline.modules)) {
+      dna.masterTimeline.modules.forEach((mod: any) => {
+        if (mod.activities && Array.isArray(mod.activities)) {
+          mod.activities.forEach((act: any) => {
+            totalDuration += act.duration || 0;
+            if (act.type === 'exercise' || act.type === 'debrief') {
+              practiceDuration += act.duration || 0;
+            }
+          });
+        }
+      });
+  }
+
+  if (totalDuration === 0) return 80;
+  return Math.round((practiceDuration / totalDuration) * 100);
+};
+
+const getDepthSpecs = (language: string, type: 'live' | 'online' = 'live', practicePercent: number = 80) => {
   // PS-1: Universal Depth Specs with Dynamic Language Injection
-  // We removed hardcoded Romanian strings to prevent language leakage.
-  // The prompt engine will inject the correct language instructions.
+  // PS-11: Environment Adaptation (Live vs Online)
+  
+  const envSpecs = type === 'online' 
+    ? `
+    **ENVIRONMENT: ONLINE (VIRTUAL CLASSROOM - ZOOM/TEAMS)**
+    - **INTERACTION**: Must use "Breakout Rooms", "Chat Polls", "Miro Board links", "Screen Share".
+    - **CONSTRAINTS**: Max 10 min monologues (Zoom Fatigue). Frequent "Type in chat" prompts.
+    - **MATERIALS**: PDFs, Digital Workbooks, Online Quizzes.
+    ` 
+    : `
+    **ENVIRONMENT: LIVE (IN-PERSON WORKSHOP)**
+    - **INTERACTION**: "Turn to your neighbor", "Physical Flipcharts", "Room Movement", "Gallery Walk".
+    - **CONSTRAINTS**: Standard attention spans. Physical handouts allowed.
+    - **MATERIALS**: Printed Workbooks, Sticky Notes, Markers.
+    `;
 
   return {
     workbook: `
@@ -872,6 +794,7 @@ const getDepthSpecs = (language: string) => {
       *   **Exercises**: Every exercise must have: Objective, Instructions, Formatted answer space (tables/boxes).
     - **FORMATTING**: Markdown headers, Blockquotes for takeaways, Bold for emphasis.
     - **LANGUAGE**: All content must be in **${language}**.
+    ${envSpecs}
   `,
     slides: `
     **DEPTH SPECIFICATIONS (Slides):**
@@ -896,10 +819,11 @@ const getDepthSpecs = (language: string) => {
     </CONTENT>
      <NOTES>[MANDATORY: 100-150 words. The EXACT script the speaker says. Conversational, warm tone. NO "In this slide we see...". Language: ${language}]</NOTES>
      <SLIDE_END id="1">
+    ${envSpecs}
   `,
     exercises: `
     **DEPTH SPECIFICATIONS (Exercises):**
-    - **QUANTITY**: Ensure 80% of the course time is practical.
+    - **QUANTITY**: Ensure approximately **${practicePercent}%** of the course time is practical (based on User's Blueprint).
     - **REALITY CHECK**:
       *   **Scenario-Based**: Never ask "What is X?". Ask "Client Y is yelling. What do you say?".
       *   **Red Flags**: Always include "What could go wrong?" sections.
@@ -908,6 +832,7 @@ const getDepthSpecs = (language: string) => {
       *   **Facilitator Instructions**: Step-by-step guide.
       *   **Debriefing**: 3-5 specific questions (Factual, Analytical, Applicative).
     - **LANGUAGE**: All content must be in **${language}**.
+    ${envSpecs}
   `,
     manual: `
     **DEPTH SPECIFICATIONS (Trainer Manual):**
@@ -917,8 +842,9 @@ const getDepthSpecs = (language: string) => {
     - **METHODOLOGY**:
       *   **Feedback**: SBI Model only.
       *   **Problem Solving**: Ishikawa / 5 Whys.
-    - **STRUCTURĂ**: ONE coherent manual.
+    - **STRUCTURÄ‚**: ONE coherent manual.
     - **LANGUAGE**: All content must be in **${language}**.
+    ${envSpecs}
   `
   };
 };
@@ -942,7 +868,7 @@ const getPromptTemplates = (language: string) => {
     [Story. Context -> Challenge -> Action -> Result]
 
     ---
-    🎯 **[Translate to ${language}: "Practical Exercise"] [N]**
+    ðŸŽ¯ **[Translate to ${language}: "Practical Exercise"] [N]**
     **[Translate to ${language}: "Objective"]:** [What specific skill will be practiced]
     **[Translate to ${language}: "Duration"]:** [Time] min
 
@@ -1006,8 +932,8 @@ export function validateModule(moduleContent: string): ValidationResult {
 
   // Check 3: Practical Exercise (Crucial for our pedagogy)
   // Look for the target emoji or "Exercise" keyword if emoji fails (but emoji is standard now)
-  if (!moduleContent.includes('🎯')) {
-    warnings.push('Module missing Practical Exercise (🎯).');
+  if (!moduleContent.includes('ðŸŽ¯')) {
+    warnings.push('Module missing Practical Exercise (ðŸŽ¯).');
   }
 
   return {
@@ -1044,9 +970,9 @@ export function validateWorkbook(workbook: string, blueprint: any): ValidationRe
   }
   
   // Check 3: Exercises present
-  // The template uses "🎯 **[Translate: "Practical Exercise"]" or similar.
-  // We should look for the emoji 🎯 which is consistent.
-  const exerciseCount = (workbook.match(/🎯/g) || []).length;
+  // The template uses "ðŸŽ¯ **[Translate: "Practical Exercise"]" or similar.
+  // We should look for the emoji ðŸŽ¯ which is consistent.
+  const exerciseCount = (workbook.match(/ðŸŽ¯/g) || []).length;
   if (exerciseCount < 2) {
     warnings.push(`Low exercise count: found ${exerciseCount}. Expected at least 1 per module.`);
   }
@@ -1113,51 +1039,95 @@ const getToneInstructions = (course: Course) => {
   
   // 1. BASELINE QUALITY STANDARDS (Non-Negotiable)
   const BASELINE_RULES = `
-CRITICAL PEDAGOGICAL RULES (ALWAYS APPLY):
-1. ⛔ NO ACADEMIC INTROS (ZERO TOLERANCE):
-   - NEVER start with: "In this module we will explore...", "This section covers...".
-   - ALWAYS start with a HOOK: A question, a shocking stat, or a story.
-
-2. ⛔ BANNED WORDS (WOOD LANGUAGE):
-   - Avoid: "reprezintă", "facilitează", "componentă esențială", "în contextul".
-   - Use: "ajută", "face", "este", "la noi".
-
-3. 📢 ACTIONABLE vs THEORETICAL:
-   - BAD: "Communication is important."
-   - GOOD: "Look them in the eye and say Hello."
-   - RULE: Convert concepts into physical actions.
-
-4. 🧠 ADMIT REALITY:
-   - Acknowledge when things are boring or difficult ("Știu, sună greu...").
+    CRITICAL PEDAGOGICAL RULES (ALWAYS APPLY):
+    1. ⛔ NO ACADEMIC INTROS (ZERO TOLERANCE):
+       - NEVER start with: "In this module we will explore...", "This section covers...".
+       - ALWAYS start with a HOOK: A question, a shocking stat, or a story.
+    
+    2. ⛔ BANNED WORDS (WOOD LANGUAGE):
+       - Avoid: "reprezintă", "facilitează", "componentă esențială", "în contextul".
+       - Use: "ajută", "face", "este", "la noi".
+    
+    3. 📣 ACTIONABLE vs THEORETICAL:
+       - BAD: "Communication is important."
+       - GOOD: "Look them in the eye and say Hello."
+       - RULE: Convert concepts into physical actions.
+    
+    4. 🧠 ADMIT REALITY:
+       - Acknowledge when things are boring or difficult ("Știu, sună greu...").
   `;
 
-  // 2. DYNAMIC VOICE (DNA-Driven)
+  // 2. DYNAMIC VOICE (DNA-Driven or Default Archetypes)
   let VOICE_INSTRUCTIONS = "";
   
+  // Define Archetypes
+  const ARCHETYPES = {
+    professional: `
+      **ARCHETYPE**: "The Mentor" (Professional & Warm)
+      - **Tone**: Authoritative but accessible. Like a senior colleague mentoring a junior.
+      - **Style**: Clear, structured, encouraging. Uses analogies.
+      - **Forbidden**: Slang, emojis (unless specified), academic jargon.
+    `,
+    energetic: `
+      **ARCHETYPE**: "The Coach" (Energetic & Motivational)
+      - **Tone**: High energy, punchy, action-oriented. "Let's do this!"
+      - **Style**: Short sentences, strong verbs, calls to action.
+      - **Forbidden**: Passive voice, long paragraphs, hesitation.
+    `,
+    casual: `
+      **ARCHETYPE**: "The Buddy" (Relaxed & Direct)
+      - **Tone**: Informal, peer-to-peer. "Hey guys, look at this."
+      - **Style**: Contractions ("n-am", "hai să"), humor, direct address ("tu").
+      - **Forbidden**: "Sir/Madam", stiff corporate speak.
+    `
+  };
+
   if (dna && dna.voiceProfile) {
-    // DNA EXISTS: Use specific persona
+    // DNA EXISTS: Use specific persona + Archetype mapping
+    const protagonistName = dna.narrativeUniverse?.protagonists?.[0]?.name;
+    const protagonistRole = dna.narrativeUniverse?.protagonists?.[0]?.role;
+    const protagonistContext = protagonistName 
+        ? `\n**PROTAGONIST RULE (CRITICAL)**: You MUST use **${protagonistName}** (${protagonistRole || 'Protagonist'}) as the main character. \n- IGNORE any other names (e.g. "Elena", "Andrei") found in the examples.\n- REPLACE them with ${protagonistName}.` 
+        : "";
+
+    // Map formality to archetype
+    let archetype = ARCHETYPES.professional; // Default
+    const formality = dna.voiceProfile.formality?.toLowerCase() || '';
+    if (formality.includes('casual') || formality.includes('fun')) archetype = ARCHETYPES.casual;
+    if (formality.includes('energetic') || formality.includes('motivational')) archetype = ARCHETYPES.energetic;
+
     VOICE_INSTRUCTIONS = `
-=== VOICE & PERSONALITY (FROM DNA) ===
-**FORMALITY**: ${dna.voiceProfile.formality || 'Conversational'}
-**HUMOR LEVEL**: ${dna.voiceProfile.humorLevel || 'Light'}
-**SIGNATURE PHRASES**: Use these often: "${dna.voiceProfile.signaturePhrases?.join('", "') || ''}"
-**FORBIDDEN PHRASES**: NEVER use these: "${dna.voiceProfile.forbiddenPhrases?.join('", "') || ''}"
+    === VOICE & PERSONALITY (FROM DNA) ===
+    ${archetype}
+    **CUSTOM FORMALITY**: ${dna.voiceProfile.formality || 'Conversational'}
+    **HUMOR LEVEL**: ${dna.voiceProfile.humorLevel || 'Light'}
+    **SIGNATURE PHRASES**: Use these often: "${dna.voiceProfile.signaturePhrases?.join('", "') || ''}"
+    **FORBIDDEN PHRASES**: NEVER use these: "${dna.voiceProfile.forbiddenPhrases?.join('", "') || ''}"
+    ${protagonistContext}
     `;
   } else {
-    // DNA MISSING: Fallback to "World Class" default
+    // DNA MISSING: Fallback to "The Mentor" (Safe Professional)
     VOICE_INSTRUCTIONS = `
-=== VOICE & PERSONALITY (DEFAULT) ===
-**TONE**: Conversational, Buddy-to-Buddy.
-**GOLDEN RULE**: Write as if you are talking to a colleague over coffee. Relaxed, direct, helpful.
-**STYLE**: Use contractions ("n-am", "o să"), direct address ("tu"), and short sentences.
+    === VOICE & PERSONALITY (DEFAULT) ===
+    ${ARCHETYPES.professional}
+    **GOLDEN RULE**: Write as if you are talking to a colleague over coffee. Relaxed, direct, helpful.
     `;
   }
 
-  return `
-=== TONE & STYLE INSTRUCTIONS ===
-${VOICE_INSTRUCTIONS}
+  // 3. ANTI-SCHIZOPHRENIA RULES (Consistency Enforcers)
+  const CONSISTENCY_RULES = `
+    **⛔ TONE CONSISTENCY RULES (ANTI-SCHIZOPHRENIA)**:
+    1. **NO CHILDISH LANGUAGE**: Do NOT use "Salut aventurierule!", "Wow!", "Super!" unless explicitly asked. Stay professional.
+    2. **NO ACADEMIC DRYNESS**: Do NOT use "It can be observed that...", "Therefore, we conclude...". Stay human.
+    3. **UNIFIED VOICE**: The Workbook, Manual, and Slides MUST sound like the SAME PERSON wrote them.
+  `;
 
-${BASELINE_RULES}
+  return `
+    === TONE & STYLE INSTRUCTIONS ===
+    ${VOICE_INSTRUCTIONS}
+    ${CONSISTENCY_RULES}
+    ${BASELINE_RULES}
+    ${getI18nGlossary(course.language)}
   `;
 };
 
@@ -1371,9 +1341,9 @@ const getChatOnboardingPrompt = (course: Course, history: string, fileContext: s
 
   3. **Logic**:
      - If **Objectives** are missing: Suggest 3-5 objectives based on the title/subject and ask if they look good or if the user wants to add others.
-     - If **Level** is missing: Ask "Care este nivelul participanților?"
-     - If **Duration** is missing: Ask "Care este durata dorită a cursului?"
-     - If **Ratio** is missing: Ask "Ce raport Teorie vs Practică preferi?"
+     - If **Level** is missing: Ask "Care este nivelul participanÈ›ilor?"
+     - If **Duration** is missing: Ask "Care este durata doritÄƒ a cursului?"
+     - If **Ratio** is missing: Ask "Ce raport Teorie vs PracticÄƒ preferi?"
      
      **RULE**: You can combine 2 questions if natural, but DO NOT skip any.
      **RULE**: DO NOT generate the blueprint until ALL 4 items are defined (or user explicitly says "skip").
@@ -1381,7 +1351,7 @@ const getChatOnboardingPrompt = (course: Course, history: string, fileContext: s
   4. **Generate Blueprint (ONLY when [x] is checked for all 4)**:
      - **Duration**: Use the user's duration to constrain the module count.
      - **Practice**: If High Practice, use more 'exercise' sections.
-     - **Confirmation**: "Am pregătit planul. Iată propunerea:"
+     - **Confirmation**: "Am pregÄƒtit planul. IatÄƒ propunerea:"
 
   **OUTPUT FORMAT**:
   You must output a VALID JSON object.
@@ -1407,7 +1377,7 @@ const getChatOnboardingPrompt = (course: Course, history: string, fileContext: s
   }
 
   **BLUEPRINT RULES**:
-  - "content_type" ∈ {'slides','video_script','exercise','reading','quiz'}.
+  - "content_type" âˆˆ {'slides','video_script','exercise','reading','quiz'}.
   - Logical flow that builds complexity.
   - **LiveWorkshop**: emphasize slides and exercises.
   - **OnlineCourse**: emphasize video_script and reading.
@@ -1512,7 +1482,7 @@ const getLegacyPrompt = (
         break;
       case 'course.steps.slides':
         specificInstructions = `
-          ${getDepthSpecs(course.language).slides}
+          ${getDepthSpecs(course.language, course.environment === 'OnlineCourse' ? 'online' : 'live', calculatePracticePercentage(course.dna)).slides}
           ${getToneInstructions(course)}
           Use this template for each slide:
           ${getPromptTemplates(course.language).slide}
@@ -1532,7 +1502,7 @@ const getLegacyPrompt = (
       case 'course.steps.exercises':
       case 'course.steps.projects':
         specificInstructions = `
-          ${getDepthSpecs(course.language).exercises}
+          ${getDepthSpecs(course.language, course.environment === 'OnlineCourse' ? 'online' : 'live', calculatePracticePercentage(course.dna)).exercises}
           ${getToneInstructions(course)}
           - **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
             You must emulate the structure, timing, and debriefing of this EXACT example below:
@@ -1542,7 +1512,7 @@ const getLegacyPrompt = (
       case 'course.steps.manual':
         if (course.environment === 'LiveWorkshop') {
           specificInstructions = `
-          ${getDepthSpecs(course.language).manual}
+          ${getDepthSpecs(course.language, course.environment === 'OnlineCourse' ? 'online' : 'live', calculatePracticePercentage(course.dna)).manual}
           ${getToneInstructions(course)}
           - **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
             You must emulate the structure (Flow Table, Scripts, Troubleshooting) of this EXACT example below:
@@ -1550,7 +1520,7 @@ const getLegacyPrompt = (
           `;
         } else {
           specificInstructions = `
-          ${getDepthSpecs(course.language).workbook}
+          ${getDepthSpecs(course.language, course.environment === 'OnlineCourse' ? 'online' : 'live', calculatePracticePercentage(course.dna)).workbook}
           ${getToneInstructions(course)}
           
           **CRITICAL: DURATION CONSISTENCY**
@@ -1642,7 +1612,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         **INSTRUCTIONS**:
         - Use Bloom's Taxonomy (Action Verbs).
         - Focus on observable behaviors.
-        - 6–8 items maximum, in the specified **LANGUAGE**.
+        - 6â€“8 items maximum, in the specified **LANGUAGE**.
         - Headings and labels must be in the specified **LANGUAGE** (no English words like "High-Level", "Welcome").
         - Format as a bulleted list.
       `;
@@ -1662,7 +1632,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         **GOAL**: Create a Table of Contents (TOC), NOT the detailed content.
         
         ${explicitModuleList ? `
-        **💎 OFFICIAL BLUEPRINT (SUPREME SOURCE OF TRUTH)**:
+        **ðŸ’Ž OFFICIAL BLUEPRINT (SUPREME SOURCE OF TRUTH)**:
         The user has approved the following structure. You MUST follow this EXACT list of modules. 
         DO NOT ADD, REMOVE, OR REORDER MODULES.
         DO NOT CHANGE THE TITLES.
@@ -1675,7 +1645,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         - Module titles and total durations
         - Lesson/Section titles and durations
         - Learning objectives (1 sentence per module)
-        - Logical flow markers (e.g., "Simple → Complex")
+        - Logical flow markers (e.g., "Simple â†’ Complex")
         
         **CRITICAL: REALISTIC TIMING RULES:**
         - When assigning durations (e.g. "30 min"), assume ONLY 60-70% is content delivery.
@@ -1683,23 +1653,23 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         - DO NOT overstuff modules. Less is more.
         
         **WHAT TO EXCLUDE (CRITICAL - DO NOT INCLUDE):**
-        ❌ Icebreaker activities or specific exercise names
-        ❌ Step-by-step facilitator instructions
-        ❌ Slide references (e.g., "SLIDE 1-2", "vizual: grafic")
-        ❌ Detailed timing breakdowns within lessons (e.g., "5 min discussion, 5 min share")
-        ❌ Facilitator questions or scripts
-        ❌ Activity descriptions or handout details
+        âŒ Icebreaker activities or specific exercise names
+        âŒ Step-by-step facilitator instructions
+        âŒ Slide references (e.g., "SLIDE 1-2", "vizual: grafic")
+        âŒ Detailed timing breakdowns within lessons (e.g., "5 min discussion, 5 min share")
+        âŒ Facilitator questions or scripts
+        âŒ Activity descriptions or handout details
         
         **LEVEL OF ABSTRACTION:**
         Think of this as a BOOK'S TABLE OF CONTENTS, not the book chapters.
         You are designing the SKELETON, not the FLESH.
         
         **FORMAT EXAMPLE:**
-        MODUL 1: Introducere în Comunicarea Interdepartamentală (1.5 ore)
-        Obiectiv: Înțelegerea importanței comunicării și identificarea barierelor
-        ├── Lecția 1.1: Importanța Comunicării (30 min)
-        ├── Lecția 1.2: Barierele Comune (30 min)
-        └── Lecția 1.3: Studiu de Caz (30 min)
+        MODUL 1: Introducere Ã®n Comunicarea InterdepartamentalÄƒ (1.5 ore)
+        Obiectiv: ÃŽnÈ›elegerea importanÈ›ei comunicÄƒrii È™i identificarea barierelor
+        â”œâ”€â”€ LecÈ›ia 1.1: ImportanÈ›a ComunicÄƒrii (30 min)
+        â”œâ”€â”€ LecÈ›ia 1.2: Barierele Comune (30 min)
+        â””â”€â”€ LecÈ›ia 1.3: Studiu de Caz (30 min)
         
         **DURATION CONSTRAINT**: Total must equal ${blueprintDuration} EXACTLY.
       `;
@@ -1738,7 +1708,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         **LANGUAGE**: ${course.language}.
 
         **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
-        You must emulate the "TABELUL OBLIGATORIU: AGENDĂ COMPLETĂ" section from this EXACT example below:
+        You must emulate the "TABELUL OBLIGATORIU: AGENDÄ‚ COMPLETÄ‚" section from this EXACT example below:
 
         ${GOLDEN_SAMPLES[`structure_${envSuffix}`] || GOLDEN_SAMPLES.structure_live}
       `;
@@ -1746,7 +1716,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
       return `
         **TASK**: Design Practical Exercises (Deep Content).
         **GOAL**: Create detailed, actionable instructions for hands-on activities that reinforce learning.
-        ${getDepthSpecs(course.language).exercises}
+        ${getDepthSpecs(course.language, course.environment === 'OnlineCourse' ? 'online' : 'live', calculatePracticePercentage(course.dna)).exercises}
         ${getToneInstructions(course)}
         **LANGUAGE**: The content MUST be in **${course.language}**. Do NOT use English headers.
         **CRITICAL INSTRUCTION**: Refer to the MASTER STRUCTURE above. You MUST generate exercises for EVERY module listed there.
@@ -1793,7 +1763,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
       return `
         **TASK**: Write Facilitator Notes (Deep Content).
         **GOAL**: Guide the trainer on HOW to deliver the content effectively.
-        ${getDepthSpecs(course.language).manual}
+        ${getDepthSpecs(course.language, course.environment === 'OnlineCourse' ? 'online' : 'live', calculatePracticePercentage(course.dna)).manual}
         ${getToneInstructions(course)}
         **SCOPE**: Write notes for EVERY module in the MASTER STRUCTURE.
         **LANGUAGE**: The content MUST be in **${course.language}**.
@@ -1828,7 +1798,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         - Do NOT wrap the output in markdown code blocks (like \`\`\`xml). Output ONLY the raw XML string.
         - **NEVER** output "Here are the slides..." or "Here is the XML...". START IMMEDIATELY WITH <SLIDE_BEGIN id="1">.
         
-        ${getDepthSpecs(course.language).slides}
+        ${getDepthSpecs(course.language, course.environment === 'OnlineCourse' ? 'online' : 'live', calculatePracticePercentage(course.dna)).slides}
 
         **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
         You must emulate the structure and XML format of this EXACT example below:
@@ -1839,7 +1809,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
       return `
         **TASK**: Compile Facilitator Manual.
         **GOAL**: A comprehensive, step-by-step guide for the trainer.
-        ${getDepthSpecs(course.language).manual}
+        ${getDepthSpecs(course.language, course.environment === 'OnlineCourse' ? 'online' : 'live', calculatePracticePercentage(course.dna)).manual}
         ${getToneInstructions(course)}
         **SCOPE**: Cover EVERY module in the MASTER STRUCTURE.
         **CRITICAL STRUCTURAL RULE**: Generate a SINGLE, cohesive version of the manual. Do NOT generate "Version 1" and then "Version 2". Do NOT repeat modules.
@@ -1853,7 +1823,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
       return `
         **TASK**: Create Participant Workbook.
         **GOAL**: A comprehensive resource for learners to use during the course.
-        ${getDepthSpecs(course.language).workbook}
+        ${getDepthSpecs(course.language, course.environment === 'OnlineCourse' ? 'online' : 'live', calculatePracticePercentage(course.dna)).workbook}
         ${getToneInstructions(course)}
         **CRITICAL INSTRUCTION**:
         - You MUST generate content for EVERY module defined in the **MASTER STRUCTURE** above.
@@ -2002,19 +1972,19 @@ const formatDNAToMarkdown = (dna: any, language: string) => {
   
   if (isRo) {
     return `
-# 🧬 Course DNA (Blueprint & Standards)
+# ðŸ§¬ Course DNA (Blueprint & Standards)
 
-> **Rolul acestui document:** Acesta este "Contractul de Consistență" pentru întregul curs. AI-ul va respecta strict aceste definiții în toate modulele, slide-urile și manualele.
+> **Rolul acestui document:** Acesta este "Contractul de ConsistenÈ›Äƒ" pentru Ã®ntregul curs. AI-ul va respecta strict aceste definiÈ›ii Ã®n toate modulele, slide-urile È™i manualele.
 
 ---
 
-## 1. 🗣️ Dicționar & Terminologie
-Vom folosi acești termeni **peste tot**, fără excepție:
+## 1. ðŸ—£ï¸ DicÈ›ionar & Terminologie
+Vom folosi aceÈ™ti termeni **peste tot**, fÄƒrÄƒ excepÈ›ie:
 
-| Concept | Termen Oficial | Definiție Scurtă |
+| Concept | Termen Oficial | DefiniÈ›ie ScurtÄƒ |
 |:---|:---|:---|
-| **Audiența** | **${dna.terminology?.participant || 'Participant'}** | Cel care învață. |
-| **Tu (Trainerul)** | **${dna.terminology?.trainer || 'Facilitator'}** | Cel care livrează cursul. |
+| **AudienÈ›a** | **${dna.terminology?.participant || 'Participant'}** | Cel care Ã®nvaÈ›Äƒ. |
+| **Tu (Trainerul)** | **${dna.terminology?.trainer || 'Facilitator'}** | Cel care livreazÄƒ cursul. |
 | **Practica** | **${dna.terminology?.exercise || 'Activitate'}** | Momentele practice. |
 
 **Termeni Cheie Obligatorii:**
@@ -2022,31 +1992,31 @@ ${Object.values(dna.terminology?.mandatoryTerms || {}).map((t: any) => `- **${t.
 
 ---
 
-## 2. 🎭 Universul Narativ (Povestea Cursului)
-Pentru a lega modulele între ele, vom urmări povestea acestui personaj:
+## 2. ðŸŽ­ Universul Narativ (Povestea Cursului)
+Pentru a lega modulele Ã®ntre ele, vom urmÄƒri povestea acestui personaj:
 
-### 👤 Protagonist: **${p?.name || 'N/A'}**
+### ðŸ‘¤ Protagonist: **${p?.name || 'N/A'}**
 *   **Rol:** ${p?.role || 'N/A'}
 *   **Personalitate:** ${p?.personality || 'N/A'}
-*   **Misiunea (Arc):** ${Array.isArray(p?.arc) ? p.arc.map((a: any) => `Modul ${a.module_index}: ${a.challenge} → ${a.transformation}`).join('; ') : (p?.arc || 'N/A')}
+*   **Misiunea (Arc):** ${Array.isArray(p?.arc) ? p.arc.map((a: any) => `Modul ${a.module_index}: ${a.challenge} â†’ ${a.transformation}`).join('; ') : (p?.arc || 'N/A')}
 
-*Acest personaj va apărea în studiile de caz și exerciții în fiecare modul.*
+*Acest personaj va apÄƒrea Ã®n studiile de caz È™i exerciÈ›ii Ã®n fiecare modul.*
 
 ---
 
-## 3. 🎙️ Vocea și Tonul
+## 3. ðŸŽ™ï¸ Vocea È™i Tonul
 *   **Stil:** ${dna.voiceProfile?.formality || 'Professional'}
 *   **Nivel Umor:** ${dna.voiceProfile?.humorLevel || 'Light'}
-*   **Expresii Semnătură:** "${dna.voiceProfile?.signaturePhrases?.join('", "') || ''}"
-*   **⛔ INTERZIS:** "${dna.voiceProfile?.forbiddenPhrases?.join('", "') || ''}"
+*   **Expresii SemnÄƒturÄƒ:** "${dna.voiceProfile?.signaturePhrases?.join('", "') || ''}"
+*   **â›” INTERZIS:** "${dna.voiceProfile?.forbiddenPhrases?.join('", "') || ''}"
 
 ---
 
-## 4. ⏱️ Master Timeline (Structura Temporală)
-**Durata Totală:** ${dna.masterTimeline?.totalDuration} minute
+## 4. â±ï¸ Master Timeline (Structura TemporalÄƒ)
+**Durata TotalÄƒ:** ${dna.masterTimeline?.totalDuration} minute
 
 ${dna.masterTimeline?.modules?.map((m: any) => `
-### 🔹 ${m.title} (${m.duration} min)
+### ðŸ”¹ ${m.title} (${m.duration} min)
 ${m.activities?.map((a: any) => `- **${a.duration} min** [${a.type.toUpperCase()}] ${a.description}`).join('\n')}
 `).join('\n')}
   `.trim();
@@ -2054,13 +2024,13 @@ ${m.activities?.map((a: any) => `- **${a.duration} min** [${a.type.toUpperCase()
 
   // English Version (Default)
   return `
-# 🧬 Course DNA (Blueprint & Standards)
+# ðŸ§¬ Course DNA (Blueprint & Standards)
 
 > **Role of this document:** This is the "Consistency Contract" for the entire course. The AI will strictly adhere to these definitions across all modules, slides, and manuals.
 
 ---
 
-## 1. 🗣️ Dictionary & Terminology
+## 1. ðŸ—£ï¸ Dictionary & Terminology
 We will use these terms **everywhere**, without exception:
 
 | Concept | Official Term | Short Definition |
@@ -2074,31 +2044,31 @@ ${Object.values(dna.terminology?.mandatoryTerms || {}).map((t: any) => `- **${t.
 
 ---
 
-## 2. 🎭 Narrative Universe (The Course Story)
+## 2. ðŸŽ­ Narrative Universe (The Course Story)
 To link modules together, we will follow the story of this character:
 
-### 👤 Protagonist: **${p?.name || 'N/A'}**
+### ðŸ‘¤ Protagonist: **${p?.name || 'N/A'}**
 *   **Role:** ${p?.role || 'N/A'}
 *   **Personality:** ${p?.personality || 'N/A'}
-*   **Mission (Arc):** ${Array.isArray(p?.arc) ? p.arc.map((a: any) => `Module ${a.module_index}: ${a.challenge} → ${a.transformation}`).join('; ') : (p?.arc || 'N/A')}
+*   **Mission (Arc):** ${Array.isArray(p?.arc) ? p.arc.map((a: any) => `Module ${a.module_index}: ${a.challenge} â†’ ${a.transformation}`).join('; ') : (p?.arc || 'N/A')}
 
 *This character will appear in case studies and exercises in every module.*
 
 ---
 
-## 3. 🎙️ Voice and Tone
+## 3. ðŸŽ™ï¸ Voice and Tone
 *   **Style:** ${dna.voiceProfile?.formality || 'Professional'}
 *   **Humor Level:** ${dna.voiceProfile?.humorLevel || 'Light'}
 *   **Signature Phrases:** "${dna.voiceProfile?.signaturePhrases?.join('", "') || ''}"
-*   **⛔ FORBIDDEN:** "${dna.voiceProfile?.forbiddenPhrases?.join('", "') || ''}"
+*   **â›” FORBIDDEN:** "${dna.voiceProfile?.forbiddenPhrases?.join('", "') || ''}"
 
 ---
 
-## 4. ⏱️ Master Timeline (Time Structure)
+## 4. â±ï¸ Master Timeline (Time Structure)
 **Total Duration:** ${dna.masterTimeline?.totalDuration} minutes
 
 ${dna.masterTimeline?.modules?.map((m: any) => `
-### 🔹 ${m.title} (${m.duration} min)
+### ðŸ”¹ ${m.title} (${m.duration} min)
 ${m.activities?.map((a: any) => `- **${a.duration} min** [${a.type.toUpperCase()}] ${a.description}`).join('\n')}
 `).join('\n')}
   `.trim();
@@ -2122,7 +2092,7 @@ const getMainPrompt = (
   if (course.dna) {
     const dna = course.dna;
     dnaContext = `
-    **🧬 COURSE DNA (STRICT CONSISTENCY RULES)**:
+    **ðŸ§¬ COURSE DNA (STRICT CONSISTENCY RULES)**:
     - **TERMINOLOGY**: Use "${dna.terminology.participant}" (learner), "${dna.terminology.trainer}" (you), "${dna.terminology.exercise}" (practice).
     - **MANDATORY TERMS**: ${Object.values(dna.terminology.mandatoryTerms || {}).map((t: any) => `${t.term} (${t.definition})`).join(', ')}.
     - **TONE**: ${dna.voiceProfile.formality}, Humor: ${dna.voiceProfile.humorLevel}.
@@ -2155,7 +2125,7 @@ const getMainPrompt = (
 
     ${fileContext ? `**REFERENCE MATERIALS**:\n${fileContext}\n` : ''}
 
-    ${explicitModuleList ? `\n**💎 OFFICIAL BLUEPRINT (SUPREME SOURCE OF TRUTH)**:\nThe user has approved the following structure. You MUST follow this EXACT list of modules. If the "Historical Context" below differs, IGNORE IT and follow this list:\n${explicitModuleList}\n` : ''}
+    ${explicitModuleList ? `\n**ðŸ’Ž OFFICIAL BLUEPRINT (SUPREME SOURCE OF TRUTH)**:\nThe user has approved the following structure. You MUST follow this EXACT list of modules. If the "Historical Context" below differs, IGNORE IT and follow this list:\n${explicitModuleList}\n` : ''}
 
     ${fullStructureContext ? `\n**HISTORICAL CONTEXT (Previous Structure)**:\n${fullStructureContext}\n\n**WARNING**: This context might be outdated (user may have edited the blueprint). Use it for content inspiration/depth, but NOT for module structure/ordering.\n` : ''}
 
@@ -2185,7 +2155,7 @@ function getFullDNAContext(dna: any): string {
   const protagonist = dna.narrativeUniverse?.protagonists?.[0];
 
   return `
-    **🧬 COURSE DNA (SUPREME SOURCE OF TRUTH)**:
+    **ðŸ§¬ COURSE DNA (SUPREME SOURCE OF TRUTH)**:
     The following DNA settings OVERRIDE any generic tone instructions below:
     
     1. **VOICE & TONE**: 
@@ -2200,7 +2170,7 @@ function getFullDNAContext(dna: any): string {
        - **MANDATORY TERMS**: ${terms}
        
     3. **FORBIDDEN PHRASES**: 
-       - ⛔ DO NOT USE: ${forbidden}
+       - â›” DO NOT USE: ${forbidden}
     
     4. **NARRATIVE UNIVERSE (Protagonist)**:
        - **Name**: ${protagonist?.name || 'N/A'}
@@ -2211,15 +2181,45 @@ function getFullDNAContext(dna: any): string {
     `;
 }
 
+// --- HELPER: i18n Glossary for Technical Pedagogical Terms (PS-2) ---
+function getI18nGlossary(language: string): string {
+  const lang = (language || '').toLowerCase();
+  if (!lang || lang === 'english' || lang === 'en') return '';
+  
+  if (lang.includes('romanian') || lang === 'ro') {
+    const map: { [en: string]: string } = {
+      "Bloom's Taxonomy": "Taxonomia Bloom",
+      "Red Flags": "Semnale de alarmă",
+      "Troubleshooting": "Diagnosticare/Remediere",
+      "Framework": "Cadru",
+      "Checklist": "Listă de verificare",
+      "Case Study": "Studiu de caz",
+      "Learning Objectives": "Obiective de învățare",
+      "Debrief": "Debriefing/Concluzii",
+      "Speaker Notes": "Note pentru vorbitor",
+      "Key Takeaways": "Concluzii cheie",
+      "Hook": "Introducere captivantă",
+      "Module": "Modul",
+      "Lesson": "Lecție",
+      "Exercise": "Exercițiu",
+      "Quiz": "Test"
+    };
+    const lines = Object.entries(map).map(([en, tr]) => `- ${en} -> ${tr}`).join('\n');
+    return `\n=== TECHNICAL TERMS DICTIONARY (Translate EXACTLY) ===\n${lines}\n- Preserve brand names (e.g., "Excel", "Python").\n`;
+  }
+  
+  return '';
+}
+
 // --- ITERATIVE GENERATION HELPERS ---
 
 function getWorkbookModulePrompt(
   course: Course,
   module: any,
   moduleIndex: number,
-  fileContext: string
+  fileContext: string,
+  previousContext: string
 ): string {
-  
   const dnaContext = getFullDNAContext(course.dna);
 
   return `
@@ -2231,7 +2231,12 @@ function getWorkbookModulePrompt(
 
     ${getToneInstructions(course)}
 
-    ${getDepthSpecs(course.language).workbook}
+    ${getDepthSpecs(course.language, course.environment === 'OnlineCourse' ? 'online' : 'live', calculatePracticePercentage(course.dna)).workbook}
+
+    **PREVIOUS STEPS CONTEXT (CONSISTENCY CHECK)**:
+    Use the following summary of previous steps (Structure, Slides, etc.) to ensure narrative consistency.
+    If a Case Study or Example was defined in the Slides/Scripts for this module, you MUST reuse it here.
+    ${previousContext}
 
     **MODULE DETAILS**:
     - Module Number: ${moduleIndex + 1}
@@ -2252,9 +2257,9 @@ function getWorkbookModulePrompt(
 
     **[Translate: "Real World Example"] (NARRATIVE ARC):** (200-300 words)
     [Continue the story of **${course.dna?.narrativeUniverse?.protagonists?.[0]?.name || 'the protagonist'}**. Show how they face a challenge related to this module's concept and how they apply the solution.]
-
+    
     ---
-    🎯 **[Translate: "Practical Exercise"] ${moduleIndex + 1}.1**
+    ðŸŽ¯ **[Translate: "Practical Exercise"] ${moduleIndex + 1}.1**
     **[Translate: "Objective"]:** [What specific skill will be practiced]
     **[Translate: "Duration"]:** [Time] min
     
@@ -2292,7 +2297,8 @@ async function generateWorkbookIteratively(
   fileContext: string,
   genAI: any,
   supabase?: any,
-  userId?: string
+  userId?: string,
+  previousContext: string = ""
 ): Promise<string> {
   const sections: string[] = [];
   
@@ -2302,6 +2308,9 @@ async function generateWorkbookIteratively(
     **COURSE**: ${course.title}
     **TARGET AUDIENCE**: ${course.target_audience}
     **LANGUAGE**: ${course.language}
+    
+    **PREVIOUS CONTEXT**:
+    ${previousContext}
     
     **CONTENT**:
     - Welcome message
@@ -2326,7 +2335,7 @@ async function generateWorkbookIteratively(
           
           const batchResults = await Promise.all(batch.map(async (module, index) => {
               const globalIndex = i + index;
-              const modulePrompt = getWorkbookModulePrompt(course, module, globalIndex, fileContext);
+              const modulePrompt = getWorkbookModulePrompt(course, module, globalIndex, fileContext, previousContext);
               try {
                   let content = await generateContent(modulePrompt, false, genAI, supabase, userId, `workbook_module_${globalIndex+1}`);
                   
@@ -2339,7 +2348,7 @@ async function generateWorkbookIteratively(
                       const feedback = validation.errors.concat(validation.warnings).join('; ');
                       console.warn(`[Iterative] Retrying Module ${globalIndex+1} due to: ${feedback}`);
                       
-                      const retryPrompt = `${modulePrompt}\n\n**SYSTEM NOTICE**: Your previous output was rejected. Reason: ${feedback}. \n\nPLEASE CORRRECT THIS. Ensure the content is comprehensive (1500+ words) and includes a Practical Exercise (Target emoji 🎯).`;
+                      const retryPrompt = `${modulePrompt}\n\n**SYSTEM NOTICE**: Your previous output was rejected. Reason: ${feedback}. \n\nPLEASE CORRRECT THIS. Ensure the content is comprehensive (1500+ words) and includes a Practical Exercise (Target emoji ðŸŽ¯).`;
                       content = await generateContent(retryPrompt, false, genAI, supabase, userId, `workbook_module_${globalIndex+1}_retry`);
                   }
                   return content;
@@ -2390,10 +2399,12 @@ function getSlideModulePrompt(
   course: Course,
   module: any,
   moduleIndex: number,
-  fileContext: string
+  fileContext: string,
+  previousContext: string = ""
 ): string {
   const envSuffix = course.environment === 'OnlineCourse' ? 'online' : 'live';
   const dnaContext = getFullDNAContext(course.dna);
+  const protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name || '';
   
   return `
     **TASK**: Generate Slide Content for **ONE MODULE ONLY**.
@@ -2404,7 +2415,30 @@ function getSlideModulePrompt(
     
     ${dnaContext}
 
+    ${previousContext ? `**PRIMARY SOURCE CONTEXT (TRAINER MANUAL + OTHER MATERIALS)**:\n${previousContext}\nYou MUST treat the TRAINER MANUAL sections as the ONLY source of truth for slide content and flow. Do NOT invent new modules, exercises or case studies that are not present in the manual.\n` : ''}
+
+    ${protagonistName ? `**PROTAGONIST RULE (NAME ONLY):**\n- The main character for all stories and case studies MUST be "${protagonistName}".\n- If the manual uses a different main character name, IGNORE it and REPLACE it with "${protagonistName}".\n- The role/job title from DNA is optional; if it is generic (e.g. "angajat", "membru echipă") you can keep it or adapt it, but the NAME must stay exactly "${protagonistName}".\n` : ''}
+
     ${getToneInstructions(course)}
+
+    **SLIDE GENERATION LOGIC (V2.0)**:
+    1) DATA SOURCES:
+       - Protagonist name: ALWAYS from Course DNA (as above), never from the manual.
+       - Content and structure: Extract ONLY from the TRAINER MANUAL text in the context above.
+    2) WHEN TO CREATE A NEW SLIDE (TRIGGERS):
+       - When you detect the start of a Module/Lesson in the manual -> create a Title Slide.
+       - When a key Concept/Model is defined -> create a slide focused on that concept (diagram/definition).
+       - When a Practical Activity/Exercise is described -> create an Instruction Slide (Title + Time + Short Task).
+       - When a Conclusion/Debrief/Key Takeaways section appears -> create an Impact/Recap Slide.
+       - If a paragraph is only additional explanation for the same concept, DO NOT create a new slide; put that text into SPEAKER NOTES of the current slide.
+    3) SLIDE DESIGN:
+       - If it is a story/case study -> use a visual/imagery-focused slide with very few words.
+       - If it is a definition -> use Big Text, large font, single key sentence.
+       - If it is a process or list of steps -> use a visual schema (phases, arrows, numbered steps).
+       - Aim for MAX 7–10 words on the main visible slide text. Put all extra explanations into SPEAKER NOTES.
+    4) SPEAKER NOTES:
+       - In SPEAKER NOTES you have NO length limitation.
+       - Copy or synthesize from the manual everything the trainer must say for that slide, so the trainer can read the notes as a script.
 
     **STRUCTURE ALIGNMENT (CRITICAL)**:
     Your slides MUST mirror the flow of the Participant Workbook for this module:
@@ -2422,7 +2456,7 @@ function getSlideModulePrompt(
     - Do not wrap in markdown code blocks.
     - Use the exact XML template provided below.
     
-    ${getDepthSpecs(course.language).slides}
+    ${getDepthSpecs(course.language, course.environment === 'OnlineCourse' ? 'online' : 'live', calculatePracticePercentage(course.dna)).slides}
     
     **THE GOLDEN STANDARD**:
     ${GOLDEN_SAMPLES[`slides_${envSuffix}`] || GOLDEN_SAMPLES.slides_live}
@@ -2433,9 +2467,18 @@ function getExerciseModulePrompt(
   course: Course,
   module: any,
   moduleIndex: number,
-  fileContext: string
+  fileContext: string,
+  previousContext: string
 ): string {
   const dnaContext = getFullDNAContext(course.dna);
+  
+  // PS-19: Detect Technical Modules
+  const isTechnicalModule = /excel|code|coding|python|java|script|software|tool|app|application|install|config|setup|server|cloud|api|database|sql|vba|macro/i.test(module.title);
+  
+  const technicalRequirements = isTechnicalModule ? `
+    8. **[Translate: "Technical Prerequisites"]**: List of software/tools needed installed BEFORE the exercise.
+    9. **[Translate: "Step-by-Step Guide"]**: Detailed click-path or code snippets for the participants.
+  ` : "";
 
   return `
     **TASK**: Design One Practical Exercise (Deep Content) for Module ${moduleIndex + 1}.
@@ -2445,8 +2488,12 @@ function getExerciseModulePrompt(
     
     ${dnaContext}
 
-    ${getDepthSpecs(course.language).exercises}
+    ${getDepthSpecs(course.language, course.environment === 'OnlineCourse' ? 'online' : 'live', calculatePracticePercentage(course.dna)).exercises}
     ${getToneInstructions(course)}
+
+    **PREVIOUS STEPS CONTEXT (PRIMARY SOURCE = TRAINER MANUAL)**:
+    Use the following summary of previous steps (especially the Trainer Manual for this module) as the ONLY source of truth for scenario, timing and flow. Do not invent new case studies that contradict the manual.
+    ${previousContext}
 
     **EXERCISE DEPTH ENGINE (MANDATORY STRUCTURE)**:
     (Replace [Translate: "Text"] with the actual translation in ${course.language}. Do NOT output the brackets or "Translate:" tag.)
@@ -2460,6 +2507,7 @@ function getExerciseModulePrompt(
     5. **[Translate: "Linkage"]**: Backward link (what concept it builds on) and Forward link (where the result is used).
     6. **[Translate: "Troubleshooting"]**: 3 specific scenarios (e.g., "Group is silent", "Time running out").
     7. **[Translate: "Validation Criteria"]**: How the trainer knows it worked.
+    ${technicalRequirements}
     
     **OUTPUT FORMAT**:
     Use Markdown. Start with "### Exercise Module ${moduleIndex + 1}: [Title]"
@@ -2472,7 +2520,8 @@ async function generateExercisesIteratively(
   fileContext: string,
   genAI: any,
   supabase?: any,
-  userId?: string
+  userId?: string,
+  previousContext: string = ""
 ): Promise<string> {
   const sections: string[] = [];
   
@@ -2486,12 +2535,54 @@ async function generateExercisesIteratively(
           
           const batchResults = await Promise.all(batch.map(async (module, index) => {
               const globalIndex = i + index;
-              const modulePrompt = getExerciseModulePrompt(course, module, globalIndex, fileContext);
+              const modulePrompt = getExerciseModulePrompt(course, module, globalIndex, fileContext, previousContext);
               try {
+                  await saveGenerationLog(supabase, userId, { step_type: 'course_steps_exercises', module_index: globalIndex + 1, status: 'start' });
                   let content = await generateContent(modulePrompt, false, genAI, supabase, userId, `exercises_module_${globalIndex+1}`);
+                  
+                  // Basic cleanup for accidental code fences
+                  content = content.replace(/```markdown/gi, '').replace(/```/g, '').trim();
+                  
+                  // Validate and targeted retries (PS-8)
+                  let attempts = 0;
+                  const maxAttempts = 2;
+                  let validation = validateGeneratedContent(content, 'course_steps_exercises', blueprint, course);
+                  while (!validation.isValid && attempts < maxAttempts) {
+                      attempts++;
+                      let errorCode: 'language' | 'protagonist' | 'missing_module' | 'short' | 'format' | 'unknown' = 'unknown';
+                      const reason = (validation.reason || '').toLowerCase();
+                      if (reason.includes('language mismatch')) errorCode = 'language';
+                      else if (reason.includes('missing protagonist')) errorCode = 'protagonist';
+                      else if (reason.includes('skipped multiple modules')) errorCode = 'missing_module';
+                      else if (reason.includes('short')) errorCode = 'short';
+                      else if (reason.includes('format')) errorCode = 'format';
+                      
+                      await saveGenerationLog(supabase, userId, { step_type: 'course_steps_exercises', module_index: globalIndex + 1, status: 'validate_fail', message: validation.reason, error_code: errorCode });
+                      
+                      let retryPrompt = modulePrompt;
+                      if (errorCode === 'language') {
+                          retryPrompt = `${modulePrompt}\n\n**SYSTEM NOTICE**: Your previous output was NOT in ${course.language}. Rewrite ALL content naturally in ${course.language}. Translate headers and technical terms appropriately.`;
+                      } else if (errorCode === 'short') {
+                          retryPrompt = `${modulePrompt}\n\n**SYSTEM NOTICE**: The content was too short. Expand to at least 1500 words, include concrete scenarios and detailed timing breakdown.`;
+                      } else if (errorCode === 'protagonist') {
+                          const protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name || '';
+                          retryPrompt = `${modulePrompt}\n\n**SYSTEM NOTICE**: You MUST use the protagonist "${protagonistName}" from Course DNA consistently in the story/examples. Replace any other names.`;
+                      }
+                      
+                      content = await generateContent(retryPrompt, false, genAI, supabase, userId, `exercises_module_${globalIndex+1}_retry_${attempts}`);
+                      validation = validateGeneratedContent(content, 'course_steps_exercises', blueprint, course);
+                  }
+                  
+                  await saveGenerationLog(supabase, userId, { step_type: 'course_steps_exercises', module_index: globalIndex + 1, status: validation.isValid ? 'success' : 'error', message: validation.reason, error_code: validation.isValid ? undefined : 'unknown' });
+                  
+                  // Update previous context only on success
+                  if (validation.isValid) {
+                     previousContext += `\n\n[EXERCISE MODULE ${globalIndex + 1}]:\n${content.slice(0, 800)}...\n`;
+                  }
                   return content;
               } catch (err) {
                   console.error(`Error generating exercise for module ${module.title}:`, err);
+                  await saveGenerationLog(supabase, userId, { step_type: 'course_steps_exercises', module_index: globalIndex + 1, status: 'error', message: String(err) });
                   return `### Module ${globalIndex+1}: ${module.title}\n\n(Exercise generation failed.)`;
               }
           }));
@@ -2513,7 +2604,8 @@ async function generateSlidesIteratively(
   fileContext: string,
   genAI: any,
   supabase?: any,
-  userId?: string
+  userId?: string,
+  previousContext: string = ""
 ): Promise<string> {
   const sections: string[] = [];
   
@@ -2528,19 +2620,70 @@ async function generateSlidesIteratively(
           
           const batchResults = await Promise.all(batch.map(async (module, index) => {
               const globalIndex = i + index;
-              const modulePrompt = getSlideModulePrompt(course, module, globalIndex, fileContext);
+              const modulePrompt = getSlideModulePrompt(course, module, globalIndex, fileContext, previousContext);
               try {
+                  await saveGenerationLog(supabase, userId, { step_type: 'slides', module_index: globalIndex + 1, status: 'start' });
                   let content = await generateContent(modulePrompt, false, genAI, supabase, userId, `slides_module_${globalIndex+1}`);
                   
-                  // Cleanup markdown if present
-                   content = content.replace(/```xml/gi, '')
-                            .replace(/```markdown/gi, '')
-                            .replace(/```/g, '')
-                            .trim();
+                  content = content.replace(/```xml/gi, '')
+                                   .replace(/```markdown/gi, '')
+                                   .replace(/```/g, '')
+                                   .trim();
+
+                  // Validation + targeted retries (PS-8)
+                  let attempts = 0;
+                  const maxAttempts = 2;
+                  let validation = validateGeneratedContent(content, 'slides', blueprint, course);
+                  
+                  // Specific protagonist retry first (if needed)
+                  const protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name;
+                  if (protagonistName && protagonistName.trim().length > 0 && !content.toLowerCase().includes(protagonistName.trim().toLowerCase())) {
+                      const retryPrompt = `${modulePrompt}\n\n**SYSTEM NOTICE**: You did not use the protagonist name "${protagonistName}" from the COURSE DNA. Regenerate the slides and ensure this exact name appears in the story and examples. Do not introduce any different main character.`;
+                      let retryContent = await generateContent(retryPrompt, false, genAI, supabase, userId, `slides_module_${globalIndex+1}_retry_protagonist`);
+                      retryContent = retryContent.replace(/```xml/gi, '')
+                                                 .replace(/```markdown/gi, '')
+                                                 .replace(/```/g, '')
+                                                 .trim();
+                      if (retryContent.toLowerCase().includes(protagonistName.trim().toLowerCase())) {
+                          content = retryContent;
+                          validation = validateGeneratedContent(content, 'slides', blueprint, course);
+                      }
+                  }
+                  
+                  while (!validation.isValid && attempts < maxAttempts) {
+                      attempts++;
+                      const reason = (validation.reason || '').toLowerCase();
+                      let errorCode: 'language' | 'protagonist' | 'missing_module' | 'short' | 'format' | 'unknown' = 'unknown';
+                      if (reason.includes('language mismatch')) errorCode = 'language';
+                      else if (reason.includes('missing protagonist')) errorCode = 'protagonist';
+                      else if (reason.includes('skipped multiple modules')) errorCode = 'missing_module';
+                      else if (reason.includes('short')) errorCode = 'short';
+                      else if (reason.includes('format')) errorCode = 'format';
+                      
+                      await saveGenerationLog(supabase, userId, { step_type: 'slides', module_index: globalIndex + 1, status: 'validate_fail', message: validation.reason, error_code: errorCode });
+                      
+                      let retryPrompt = modulePrompt;
+                      if (errorCode === 'language') {
+                          retryPrompt = `${modulePrompt}\n\n**SYSTEM NOTICE**: Your previous output was NOT in ${course.language}. Rewrite ALL text naturally in ${course.language}. Translate headers and technical terms.`;
+                      } else if (errorCode === 'short') {
+                          retryPrompt = `${modulePrompt}\n\n**SYSTEM NOTICE**: The content is too short. Generate complete slides (5–6 per module) with rich SPEAKER NOTES copied from the manual.`;
+                      }
+                      
+                      content = await generateContent(retryPrompt, false, genAI, supabase, userId, `slides_module_${globalIndex+1}_retry_${attempts}`);
+                      content = content.replace(/```xml/gi, '').replace(/```markdown/gi, '').replace(/```/g, '').trim();
+                      validation = validateGeneratedContent(content, 'slides', blueprint, course);
+                  }
+
+                  await saveGenerationLog(supabase, userId, { step_type: 'slides', module_index: globalIndex + 1, status: validation.isValid ? 'success' : 'error', message: validation.reason, error_code: validation.isValid ? undefined : 'unknown' });
+
+                  if (validation.isValid) {
+                    previousContext += `\n\n[SLIDES MODULE ${globalIndex + 1}]:\n${content.slice(0, 800)}...\n`;
+                  }
 
                   return content;
               } catch (err) {
                   console.error(`Error generating slides for module ${module.title}:`, err);
+                  await saveGenerationLog(supabase, userId, { step_type: 'slides', module_index: globalIndex + 1, status: 'error', message: String(err) });
                   return `<!-- Error generating slides for Module ${globalIndex+1} -->`;
               }
           }));
@@ -2589,6 +2732,44 @@ async function saveTokenUsage(
     }
   } catch (err) {
     console.warn(`[Usage] Failed to save usage:`, err);
+  }
+}
+
+// --- OBSERVABILITY: Generation Logs (PS-12) ---
+async function saveGenerationLog(
+  supabase: any,
+  userId: string | undefined,
+  payload: {
+    step_type: string;
+    module_index?: number;
+    status: 'start' | 'success' | 'retry' | 'error' | 'validate_fail';
+    message?: string;
+    error_code?: 'language' | 'protagonist' | 'missing_module' | 'short' | 'format' | 'unknown';
+    provider?: 'gemini' | 'moonshot' | 'kimi' | 'unknown';
+    model?: string;
+    tokens?: number;
+  }
+) {
+  try {
+    if (!supabase || !userId) {
+      console.warn(`[GenLog] Skipping save: supabase=${!!supabase}, userId=${userId}`);
+      return;
+    }
+    const { error } = await supabase.from('generation_logs').insert({
+      user_id: userId,
+      step_type: payload.step_type,
+      module_index: payload.module_index ?? null,
+      status: payload.status,
+      message: payload.message || '',
+      error_code: payload.error_code || null,
+      provider: payload.provider || 'unknown',
+      model: payload.model || 'unknown',
+      tokens: payload.tokens ?? null,
+      created_at: new Date().toISOString()
+    });
+    if (error) console.warn('[GenLog] Insert error:', error);
+  } catch (e) {
+    console.warn('[GenLog] Failed to save log:', e);
   }
 }
 
@@ -2668,6 +2849,11 @@ async function generateContent(
   userId?: string,
   actionContext?: string
 ): Promise<string> {
+  // Test hook: allow vitest to override generation
+  const override = (globalThis as any).__TEST_GENERATE_CONTENT__;
+  if (typeof override === 'function') {
+    return await override(prompt, isJsonMode, genAI, supabase, userId, actionContext);
+  }
   // 1. Try Google Gemini (Flash Lite -> Flash -> Pro/Standard)
   if (genAI) {
     const modelsToTry = [
@@ -2718,8 +2904,71 @@ async function generateContent(
 }
 
 // --- VALIDATION HELPER ---
-function validateGeneratedContent(text: string, step_type: string, blueprint: any): { isValid: boolean; reason?: string } {
+function validateLanguageDetection(text: string, expectedLanguage: string): { isValid: boolean; reason?: string } {
+  if (!expectedLanguage || expectedLanguage.toLowerCase() === 'english') return { isValid: true };
+  
+  // Heuristics for Romanian (PS-3)
+  if (expectedLanguage.toLowerCase() === 'romanian' || expectedLanguage.toLowerCase() === 'ro') {
+     const roCommonWords = ['si', 'de', 'la', 'in', 'cu', 'sa', 'pentru', 'este', 'sunt', 'care', 'nu', 'o', 'un', 'din'];
+     const lowerText = text.toLowerCase();
+     
+     // Check for English common words (negative check)
+     const enCommonWords = ['the', 'and', 'to', 'of', 'in', 'is', 'for', 'that', 'with', 'as'];
+     let enHitCount = 0;
+     for (const word of enCommonWords) {
+        if (lowerText.includes(` ${word} `)) enHitCount++;
+     }
+
+     // Simple ratio check if text is long enough
+     if (text.length > 500 && enHitCount > 5) {
+        let roHitCount = 0;
+        for (const word of roCommonWords) {
+            if (lowerText.includes(` ${word} `)) roHitCount++;
+        }
+        
+        // If we have significantly more English words than Romanian words, it's likely English
+        // But be careful about code snippets or technical terms.
+        if (enHitCount > roHitCount * 3) {
+            return { isValid: false, reason: `Language Mismatch Detected (PS-3). Expected ${expectedLanguage}, but content appears to be English (Found ${enHitCount} common EN words vs ${roHitCount} RO words).` };
+        }
+     }
+  }
+  
+  return { isValid: true };
+}
+
+function validateGeneratedContent(text: string, step_type: string, blueprint: any, course?: Course): { isValid: boolean; reason?: string } {
   if (!text || text.length < 100) return { isValid: false, reason: "Content too short" };
+
+  const language = course?.language;
+  if (language) {
+      const langCheck = validateLanguageDetection(text, language);
+      if (!langCheck.isValid) return langCheck;
+      
+      // PS-2: Check for untranslated technical terms when language is not English
+      const langLower = language.toLowerCase();
+      if (langLower !== 'english' && langLower !== 'en') {
+         const untranslatedTerms = [
+           "Bloom's Taxonomy", "Red Flags", "Troubleshooting", "Framework",
+           "Checklist", "Case Study", "Learning Objectives", "Debrief",
+           "Speaker Notes", "Key Takeaways"
+         ];
+         const count = untranslatedTerms.reduce((acc, term) => acc + ((text.match(new RegExp(term, 'gi')) || []).length), 0);
+         if ((langLower === 'romanian' || langLower === 'ro') && count > 3) {
+            return { isValid: false, reason: "Untranslated technical terms present (PS-2). Translate pedagogical headers/terms into the target language." };
+         }
+      }
+  }
+
+  const protagonistName = course?.dna?.narrativeUniverse?.protagonists?.[0]?.name;
+  const normalizedStep = step_type.toLowerCase();
+  const requiresProtagonist = ['participant_workbook', 'manual', 'slides', 'course_steps_exercises', 'video_scripts'];
+  if (protagonistName && protagonistName.trim().length > 0 && requiresProtagonist.includes(normalizedStep)) {
+      const nameLower = protagonistName.trim().toLowerCase();
+      if (!text.toLowerCase().includes(nameLower)) {
+          return { isValid: false, reason: `Missing protagonist name "${protagonistName}" from Course DNA in ${normalizedStep} content.` };
+      }
+  }
 
   // Validation for specific steps
   if (step_type === 'structure' || step_type === 'timing_and_flow') {
@@ -2759,7 +3008,7 @@ function validateGeneratedContent(text: string, step_type: string, blueprint: an
               const numberMatch = title.match(/\d+/);
               const number = numberMatch ? numberMatch[0] : null;
               
-              // 2. Extract significant keywords (ignore "Modulul", "Lecția", "Capitolul", etc.)
+              // 2. Extract significant keywords (ignore "Modulul", "LecÈ›ia", "Capitolul", etc.)
               // Filter out words < 3 chars
               const keywords = title.replace(/[:.\-]/g, ' ')
                                     .split(/\s+/)
@@ -2951,13 +3200,30 @@ serve(async (req) => {
         const parts = files.map((f: { filename: string; extracted_text: string | null }) => {
           const name = (f.filename || '').trim();
           const text = (f.extracted_text || '').trim().replace(/\s+/g, ' ');
-          const snippet = text.length > 800 ? text.substring(0, 800) + '…' : text;
-          return `• ${name}: ${snippet}`;
+          const snippet = text.length > 800 ? text.substring(0, 800) + 'â€¦' : text;
+          return `â€¢ ${name}: ${snippet}`;
         });
         fileContext = parts.join('\n');
       }
     }
 
+
+    // --- PREPARE CONTEXT (Shared across actions) ---
+    let formattedPreviousContext = "";
+    if (previous_steps && Array.isArray(previous_steps)) {
+        formattedPreviousContext = previous_steps
+            .map((s: any) => {
+                const content = s.content || '';
+                if (s.step_type === 'structure' || s.step_type === 'course_steps_structure') {
+                    return `\n--- PREVIOUS STEP: ${s.step_type} (MASTER STRUCTURE) ---\n${content.substring(0, 25000)}... (refer to MASTER STRUCTURE above for full content)`;
+                }
+                if (s.step_type === 'manual' || s.step_type === 'course_steps_manual') {
+                    return `\n--- PREVIOUS STEP: ${s.step_type} (TRAINER MANUAL - PRIMARY SOURCE FOR SLIDES) ---\n${content.substring(0, 25000)}...`;
+                }
+                return `\n--- PREVIOUS STEP: ${s.step_type} ---\n${content.substring(0, 2000)}`;
+            })
+            .join('\n');
+    }
 
     if (action === 'ping') {
       return new Response(JSON.stringify({ message: 'pong' }), {
@@ -3044,7 +3310,7 @@ serve(async (req) => {
 
       } else if (part_type === 'module') {
         if (!module_data) throw new Error("Missing module_data for part_type='module'");
-        const prompt = getWorkbookModulePrompt(course, module_data, module_index || 0, fileContext);
+        const prompt = getWorkbookModulePrompt(course, module_data, module_index || 0, fileContext, formattedPreviousContext);
         text = await generateContent(prompt, false, genAI, supabase, userId, 'workbook_part_module');
         
         // Simple length check retry
@@ -3064,22 +3330,12 @@ serve(async (req) => {
       // --- NEW: 12-STEP TRAINER FLOW GENERATION ---
       
       let fullStructureContext = "";
-      
-      const previousContext = previous_steps
-        ? (previous_steps as Array<{ step_type: string; content: string }>)
-            .map((s) => {
-                // Special handling for 'structure': we want to preserve it fully if possible, or at least a very large chunk
-                // because it is the "Source of Truth" for all subsequent steps.
-                if (s.step_type === 'structure' || s.step_type === 'course_steps_structure') {
-                    const content = s.content || '';
-                    // Keep up to 20k chars for the structure to ensure we don't lose modules 7-8 etc.
-                    fullStructureContext = content.substring(0, 25000); 
-                    return `\n--- PREVIOUS STEP: ${s.step_type} ---\n${content.substring(0, 2000)}... (refer to MASTER STRUCTURE above for full content)`;
-                }
-                return `\n--- PREVIOUS STEP: ${s.step_type} ---\n${(s.content || '').substring(0, 2000)}`;
-            })
-            .join('\n')
-        : "";
+      if (previous_steps && Array.isArray(previous_steps)) {
+         const structureStep = previous_steps.find((s: any) => s.step_type === 'structure' || s.step_type === 'course_steps_structure');
+         if (structureStep) {
+             fullStructureContext = (structureStep.content || '').substring(0, 25000);
+         }
+      }
 
       const structuredContext = context_summary
         ? `\n**STRUCTURED CONTEXT**\nModules: ${(context_summary?.modules || []).join('; ')}\nDurations: ${(context_summary?.durations || []).join(', ')}\nExercisesCount: ${context_summary?.exercisesCount ?? 0}\n`
@@ -3113,7 +3369,7 @@ serve(async (req) => {
             blueprintDuration,
             fileContext,
             structuredContext,
-            previousContext,
+            formattedPreviousContext,
             fullStructureContext,
             explicitModuleList
          );
@@ -3157,13 +3413,13 @@ serve(async (req) => {
         if (!text) {
              if (isIterative) {
                  console.log(`[Main] Executing Iterative Generation for ${normalizedStepType}`);
-                 if (normalizedStepType === 'participant_workbook') {
-                     text = await generateWorkbookIteratively(course, course.blueprint, fileContext, genAI, supabase, userId);
-                 } else if (normalizedStepType === 'slides') {
-                     text = await generateSlidesIteratively(course, course.blueprint, fileContext, genAI, supabase, userId);
-                 } else if (normalizedStepType === 'course_steps_exercises') {
-                     text = await generateExercisesIteratively(course, course.blueprint, fileContext, genAI, supabase, userId);
-                 }
+                if (normalizedStepType === 'participant_workbook') {
+                    text = await generateWorkbookIteratively(course, course.blueprint, fileContext, genAI, supabase, userId, formattedPreviousContext);
+                } else if (normalizedStepType === 'slides') {
+                    text = await generateSlidesIteratively(course, course.blueprint, fileContext, genAI, supabase, userId, formattedPreviousContext);
+                } else if (normalizedStepType === 'course_steps_exercises') {
+                    text = await generateExercisesIteratively(course, course.blueprint, fileContext, genAI, supabase, userId, formattedPreviousContext);
+                }
              } else if (isDNA) {
                  // Generate JSON DNA
                  console.log(`[Main] Generating Course DNA (JSON Mode)...`);
@@ -3220,7 +3476,7 @@ serve(async (req) => {
             const normalized = normalizeStepType(step_type);
             console.log(`Validating content for ${normalized}...`);
             
-            let validation = validateGeneratedContent(text, normalized, blueprint);
+            let validation = validateGeneratedContent(text, normalized, blueprint, course);
             let attempts = 0;
             const maxRetries = 2;
 
@@ -3232,8 +3488,7 @@ serve(async (req) => {
                 
                 try {
                     text = await generateContent(retryPrompt, isJsonMode, genAI, supabase, userId, normalized + '_retry');
-                    // Re-validate the new content
-                    validation = validateGeneratedContent(text, normalized, blueprint);
+                    validation = validateGeneratedContent(text, normalized, blueprint, course);
                 } catch (err) {
                     console.error(`Retry ${attempts} failed with error:`, err);
                     break; // Stop retrying if generation errors out
@@ -3274,7 +3529,7 @@ serve(async (req) => {
               if (!bpOk) {
                 // If the AI didn't provide a blueprint, it MUST be asking a question.
                 // If for some reason it didn't ask a question but didn't give a blueprint, force a default follow-up.
-                const followMsg = (msg && msg.length > 5) ? msg : 'Pentru a crea un curs de calitate, am nevoie de detalii suplimentare despre obiectivele de învățare și audiență.';
+                const followMsg = (msg && msg.length > 5) ? msg : 'Pentru a crea un curs de calitate, am nevoie de detalii suplimentare despre obiectivele de Ã®nvÄƒÈ›are È™i audienÈ›Äƒ.';
                 
                 const follow = { 
                     message: followMsg, 
@@ -3317,4 +3572,12 @@ serve(async (req) => {
     });
   }
 });
+
+// --- TEST EXPORTS (for E2E in Vitest) ---
+export {
+  generateSlidesIteratively,
+  generateExercisesIteratively,
+  validateGeneratedContent
+};
+
 

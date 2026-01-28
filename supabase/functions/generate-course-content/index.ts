@@ -160,12 +160,19 @@ CRITICAL PEDAGOGICAL RULES (ALWAYS APPLY):
   
   if (dna && dna.voiceProfile) {
     // DNA EXISTS: Use specific persona
+    const protagonistName = dna.narrativeUniverse?.protagonists?.[0]?.name;
+    const protagonistRole = dna.narrativeUniverse?.protagonists?.[0]?.role;
+    const protagonistContext = protagonistName 
+        ? `\n**PROTAGONIST RULE (CRITICAL)**: You MUST use **${protagonistName}** (${protagonistRole || 'Protagonist'}) as the main character. \n- IGNORE any other names (e.g. "Elena", "Andrei") found in the examples.\n- REPLACE them with ${protagonistName}.` 
+        : "";
+
     VOICE_INSTRUCTIONS = `
 === VOICE & PERSONALITY (FROM DNA) ===
 **FORMALITY**: ${dna.voiceProfile.formality || 'Conversational'}
 **HUMOR LEVEL**: ${dna.voiceProfile.humorLevel || 'Light'}
 **SIGNATURE PHRASES**: Use these often: "${dna.voiceProfile.signaturePhrases?.join('", "') || ''}"
 **FORBIDDEN PHRASES**: NEVER use these: "${dna.voiceProfile.forbiddenPhrases?.join('", "') || ''}"
+${protagonistContext}
     `;
   } else {
     // DNA MISSING: Fallback to "World Class" default
@@ -805,6 +812,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         - You MUST use the **Course DNA Protagonist** defined in the input context.
         - Ensure their story evolves across modules (Beginning -> Struggle -> Learning -> Mastery).
         - Do NOT create random isolated characters for the main case studies. Use the same protagonist to build emotional investment.
+        - Define 2-3 canonical scenarios that other materials (slides, workbook, video scripts) can reference directly.
         
         ${getToneInstructions(course)}
 
@@ -846,6 +854,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         - **OUTPUT**: You MUST generate a set of slides for **EVERY SINGLE MODULE**.
         - **RATIO**: Generate approx. 3-5 slides per Module.
         - **MAPPING**: If the structure has Module 1, 2, 3, and 4, and you only generate slides for Module 1, you have FAILED.
+        - **CONTEXT CHAINING**: Use the same protagonist and key case studies defined earlier; slides should visually reinforce the same stories and exercises, not invent new, unrelated ones.
         
         **CRITICAL OUTPUT RULE**: Regardless of the conversational tone required for the content, the OUTPUT FORMAT must be STRICTLY the XML structure below. 
         - Do NOT add any introductory text, markdown headers, or conclusion outside the XML tags.
@@ -867,6 +876,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         ${getToneInstructions(course)}
         **SCOPE**: Cover EVERY module in the MASTER STRUCTURE.
         **CRITICAL STRUCTURAL RULE**: Generate a SINGLE, cohesive version of the manual. Do NOT generate "Version 1" and then "Version 2". Do NOT repeat modules.
+        **CONTEXT CHAINING**: When you describe activities, debriefs, or examples, reuse the same protagonist, module names, and scenarios that appear in previous steps so the trainer sees one coherent story.
 
         **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
         You must emulate the structure, facilitator instructions, and debriefing questions of this EXACT example below:
@@ -884,6 +894,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         - Do NOT skip any section.
         - **IMPORTANT**: In the Module Header, you MUST include the duration exactly as it appears in the structure (e.g., "(2 ore)").
         - Follow the "Workbook" depth specs strictly (40+ pages target means ~1000 words per module).
+        - **CONTEXT CHAINING**: Use the same protagonist and key scenarios defined earlier; when possible, refer back to examples and exercises that participants have already seen so the narrative feels continuous.
         
         Use this structure for sections:
         ${getPromptTemplates(course.language).workbook_section}
@@ -917,6 +928,7 @@ const getStepPrompt = (step_type: string, course: Course, blueprintDuration: str
         - Format: **[VISUAL]** vs **[AUDIO]**.
         - Keep sentences short and spoken-word style.
         - Include "Hook", "Content", "Examples", and "Call to Action".
+        - **NARRATIVE CONTINUITY**: Reuse the same protagonist, terminology, and core case studies from earlier steps so the videos feel like different chapters of one story, not isolated clips.
 
         **THE GOLDEN STANDARD (ONE-SHOT EXAMPLE)**:
         You must emulate the tone, structure (Visual/Audio), and engagement of this EXACT example below:
@@ -1187,6 +1199,12 @@ const getMainPrompt = (
 
     ${previousContext}
 
+    **GLOBAL CONSISTENCY & CONTEXT CHAINING RULES:**
+    - Treat the OFFICIAL BLUEPRINT and COURSE DNA as the single source of truth for modules, terminology, and protagonist.
+    - Read the PREVIOUS CONTEXT carefully and continue the same storyline, characters, and decisions instead of inventing disconnected ones.
+    - If earlier steps introduced case studies, examples, or exercises, reference and reuse them here, deepening the narrative rather than restarting it.
+    - Keep module order, titles, and durations aligned with the current blueprint and master timeline; do not contradict previous validated content.
+
     ${specificPrompt}
 
     **OUTPUT RULES**:
@@ -1241,10 +1259,27 @@ function getWorkbookModulePrompt(
   course: Course,
   module: any,
   moduleIndex: number,
-  fileContext: string
+  fileContext: string,
+  previousContext: string = ""
 ): string {
   
   const dnaContext = getFullDNAContext(course.dna);
+  
+  // Find specific narrative arc for this module
+  let specificArc = "";
+  if (course.dna?.narrativeUniverse?.protagonists?.[0]?.arc) {
+    const arc = course.dna.narrativeUniverse.protagonists[0].arc;
+    // Try to find by index (assuming 1-based index in DNA matches moduleIndex + 1)
+    const step = Array.isArray(arc) ? arc.find((a: any) => a.module_index === moduleIndex + 1) : null;
+    if (step) {
+        specificArc = `
+        **NARRATIVE ARC STEP (Specific to this Module)**:
+        - **Current Challenge**: ${step.challenge}
+        - **Transformation/Learning**: ${step.transformation}
+        - **Instruction**: Ensure the "Real World Example" specifically illustrates this moment in the protagonist's journey.
+        `;
+    }
+  }
 
   return `
     **ROLE**: You are an expert Instructional Designer.
@@ -1252,6 +1287,10 @@ function getWorkbookModulePrompt(
     **LANGUAGE**: ${course.language}
     
     ${dnaContext}
+
+    ${specificArc}
+
+    ${previousContext ? `**PREVIOUS MODULES CONTEXT**:\n${previousContext}\n(Use this to maintain continuity, but focus on the CURRENT module.)` : ''}
 
     ${getToneInstructions(course)}
 
@@ -1275,7 +1314,7 @@ function getWorkbookModulePrompt(
     [Full explanation. Define terms, provide context. FOLLOW TONE INSTRUCTIONS: Buddy-to-buddy tone.]
 
     **[Translate: "Real World Example"] (NARRATIVE ARC):** (200-300 words)
-    [Continue the story of **${course.dna?.narrativeUniverse?.protagonists?.[0]?.name || 'the protagonist'}**. Show how they face a challenge related to this module's concept and how they apply the solution.]
+    [Continue the story of **${course.dna?.narrativeUniverse?.protagonists?.[0]?.name || 'the protagonist'}**. ${specificArc ? 'Follow the "NARRATIVE ARC STEP" defined above.' : 'Show how they face a challenge related to this module\'s concept.'}]
 
     ---
     🎯 **[Translate: "Practical Exercise"] ${moduleIndex + 1}.1**
@@ -1319,6 +1358,7 @@ async function generateWorkbookIteratively(
   userId?: string
 ): Promise<string> {
   const sections: string[] = [];
+  let previousContext = ""; // PS-4: Context Chaining State
   
   // 1. Introduction
   const introPrompt = `
@@ -1338,6 +1378,7 @@ async function generateWorkbookIteratively(
   console.log("[Iterative] Generating Workbook Intro...");
   const intro = await generateContent(introPrompt, false, genAI, supabase, userId, 'workbook_intro');
   sections.push(intro);
+  previousContext += `\n**INTRODUCTION**:\n${intro.slice(0, 500)}...\n`; // Add intro to context
 
   // 2. Modules (Parallel Batches)
   if (blueprint && Array.isArray(blueprint.modules)) {
@@ -1350,7 +1391,8 @@ async function generateWorkbookIteratively(
           
           const batchResults = await Promise.all(batch.map(async (module, index) => {
               const globalIndex = i + index;
-              const modulePrompt = getWorkbookModulePrompt(course, module, globalIndex, fileContext);
+              // PS-4: Pass previousContext to maintain narrative continuity
+              const modulePrompt = getWorkbookModulePrompt(course, module, globalIndex, fileContext, previousContext);
               try {
                   let content = await generateContent(modulePrompt, false, genAI, supabase, userId, `workbook_module_${globalIndex+1}`);
                   
@@ -1375,6 +1417,15 @@ async function generateWorkbookIteratively(
           
           sections.push(...batchResults);
           
+          // PS-4: Update Context for next batch (Extract headings/structure to save tokens)
+          const batchSummary = batchResults.map(res => {
+              return res.split('\n')
+                .filter(line => line.trim().startsWith('#') || line.trim().includes('Objective') || line.trim().includes('Example'))
+                .slice(0, 15) // Keep it tight
+                .join('\n');
+          }).join('\n');
+          previousContext += `\n**PREVIOUS BATCH (${i+1}-${i+batch.length}) SUMMARY**:\n${batchSummary}\n`;
+
           // Small delay between batches to be safe
           if (i + BATCH_SIZE < modules.length) {
              await new Promise(r => setTimeout(r, 1000));
@@ -1414,7 +1465,8 @@ function getSlideModulePrompt(
   course: Course,
   module: any,
   moduleIndex: number,
-  fileContext: string
+  fileContext: string,
+  previousContext: string = ""
 ): string {
   const envSuffix = course.environment === 'OnlineCourse' ? 'online' : 'live';
   const dnaContext = getFullDNAContext(course.dna);
@@ -1427,6 +1479,8 @@ function getSlideModulePrompt(
     **LANGUAGE**: The content MUST be in **${course.language}**.
     
     ${dnaContext}
+
+    ${previousContext ? `**PREVIOUS MODULES CONTEXT**:\n${previousContext}\n(Maintain visual and narrative consistency with these previous slides.)` : ''}
 
     ${getToneInstructions(course)}
 
@@ -1457,7 +1511,8 @@ function getExerciseModulePrompt(
   course: Course,
   module: any,
   moduleIndex: number,
-  fileContext: string
+  fileContext: string,
+  previousContext: string = ""
 ): string {
   const dnaContext = getFullDNAContext(course.dna);
 
@@ -1468,6 +1523,8 @@ function getExerciseModulePrompt(
     **LANGUAGE**: The content MUST be in **${course.language}**.
     
     ${dnaContext}
+
+    ${previousContext ? `**PREVIOUS EXERCISES CONTEXT**:\n${previousContext}\n(Ensure new exercises build upon previous scenarios/skills if applicable.)` : ''}
 
     ${getDepthSpecs(course.language).exercises}
     ${getToneInstructions(course)}
@@ -1499,6 +1556,7 @@ async function generateExercisesIteratively(
   userId?: string
 ): Promise<string> {
   const sections: string[] = [];
+  let previousContext = ""; // PS-4: Context Chaining
   
   if (blueprint && Array.isArray(blueprint.modules)) {
       const modules = blueprint.modules;
@@ -1510,7 +1568,7 @@ async function generateExercisesIteratively(
           
           const batchResults = await Promise.all(batch.map(async (module, index) => {
               const globalIndex = i + index;
-              const modulePrompt = getExerciseModulePrompt(course, module, globalIndex, fileContext);
+              const modulePrompt = getExerciseModulePrompt(course, module, globalIndex, fileContext, previousContext);
               try {
                   let content = await generateContent(modulePrompt, false, genAI, supabase, userId, `exercises_module_${globalIndex+1}`);
                   return content;
@@ -1522,6 +1580,13 @@ async function generateExercisesIteratively(
           
           sections.push(...batchResults);
           
+          // PS-4: Update Context
+          const batchSummary = batchResults.map(res => {
+              // Extract Title and Objective roughly (first 10 lines)
+              return res.split('\n').slice(0, 10).join('\n');
+          }).join('\n');
+          previousContext += `\n**EXERCISES BATCH (${i+1}-${i+batch.length})**:\n${batchSummary}\n`;
+
           if (i + BATCH_SIZE < modules.length) {
              await new Promise(r => setTimeout(r, 1000));
           }
@@ -1540,6 +1605,7 @@ async function generateSlidesIteratively(
   userId?: string
 ): Promise<string> {
   const sections: string[] = [];
+  let previousContext = ""; // PS-4: Context Chaining
   
   if (blueprint && Array.isArray(blueprint.modules)) {
       const modules = blueprint.modules;
@@ -1552,7 +1618,7 @@ async function generateSlidesIteratively(
           
           const batchResults = await Promise.all(batch.map(async (module, index) => {
               const globalIndex = i + index;
-              const modulePrompt = getSlideModulePrompt(course, module, globalIndex, fileContext);
+              const modulePrompt = getSlideModulePrompt(course, module, globalIndex, fileContext, previousContext);
               try {
                   let content = await generateContent(modulePrompt, false, genAI, supabase, userId, `slides_module_${globalIndex+1}`);
                   
@@ -1571,6 +1637,12 @@ async function generateSlidesIteratively(
           
           sections.push(...batchResults);
           
+          // PS-4: Update Context (Strip XML tags to save tokens)
+          const batchSummary = batchResults.map(res => {
+              return res.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 300) + '...';
+          }).join('\n');
+          previousContext += `\n**SLIDES BATCH (${i+1}-${i+batch.length})**:\n${batchSummary}\n`;
+
           if (i + BATCH_SIZE < modules.length) {
              await new Promise(r => setTimeout(r, 1000));
           }
