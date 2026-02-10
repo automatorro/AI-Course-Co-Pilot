@@ -234,7 +234,7 @@ const DashboardPage: React.FC = () => {
         showToast(t('dashboard.deleteToast.success'), 'success');
       } else {
         console.error('[Dashboard] Delete failed:', result.message);
-        showToast(t('dashboard.deleteToast.failure', { message: result.message }), 'error');
+        showToast(t('dashboard.deleteToast.failure', { message: result.message || 'Unknown error' }), 'error');
       }
     } catch (error) {
       console.error("Failed to delete course:", error);

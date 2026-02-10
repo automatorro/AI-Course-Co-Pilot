@@ -508,13 +508,13 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                              while(retries < 3 && !modContent) {
                                  try {
                                      // Build previous context just like for normal steps
-                                     // We need it for context chaining
-                                     const contextMap: Record<TrainerStepType, TrainerStepType[]> = {
-                                         [TrainerStepType.Slides]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.FacilitatorManual, TrainerStepType.FacilitatorNotes],
-                                         // Fallback map for others not needed here
-                                         [TrainerStepType.CourseDNA]: []
-                                     };
-                                     const allowed = new Set(contextMap[TrainerStepType.Slides]);
+                                    // We need it for context chaining
+                                    const contextMap: Partial<Record<TrainerStepType, TrainerStepType[]>> = {
+                                        [TrainerStepType.Slides]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.FacilitatorManual, TrainerStepType.FacilitatorNotes],
+                                        // Fallback map for others not needed here
+                                        [TrainerStepType.CourseDNA]: []
+                                    };
+                                    const allowed = new Set(contextMap[TrainerStepType.Slides] || []);
                                      const prevForContext = (accumulatedContentRef.current || [])
                                          .filter((s: any) => allowed.has(s.step_type))
                                          .map((s: any) => ({ step_type: s.step_type, content: String(s.content || '').slice(0, 2000) }));
