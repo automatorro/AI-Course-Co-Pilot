@@ -65,8 +65,8 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <span className="text-sm font-medium text-ink-600 dark:text-ink-400">{t('blueprint.totalModules')}</span>
-                            <span className="ml-2 font-semibold text-ink-900 dark:text-white">{blueprint.modules.length}</span>
+                            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('blueprint.totalModules')}</span>
+                            <span className="ml-2 font-semibold text-gray-900 dark:text-white">{blueprint.modules?.length || 0}</span>
                         </div>
                         <div>
                             <span className="text-sm font-medium text-ink-600 dark:text-ink-400">{t('blueprint.estimatedDuration')}</span>
@@ -88,7 +88,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                             const isExpanded = expandedModules.has(module.id);
                             return (
                                 <div
-                                    key={module.id}
+                                    key={module.id || moduleIndex}
                                     className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden"
                                 >
                                     {/* Module Header */}
@@ -113,16 +113,16 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                                             </p>
                                         </div>
                                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                                            {t('blueprint.sectionsCount', { count: module.sections.length })}
+                                            {t('blueprint.sectionsCount', { count: module.sections?.length || 0 })}
                                         </span>
                                     </button>
 
                                     {/* Module Sections */}
                                     {isExpanded && (
                                         <div className="p-4 space-y-2 bg-white dark:bg-gray-800">
-                                            {module.sections.map((section, sectionIndex) => (
+                                            {(module.sections || []).map((section, sectionIndex) => (
                                                 <div
-                                                    key={section.id}
+                                                    key={section.id || `sec-${moduleIndex}-${sectionIndex}`}
                                                     className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors"
                                                 >
                                                     <div className="flex-shrink-0 mt-0.5">

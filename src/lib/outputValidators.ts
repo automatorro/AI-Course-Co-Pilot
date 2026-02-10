@@ -74,7 +74,12 @@ export const compareModuleTitlesText = (aText: string, bText: string) => {
 export const extractModuleDurations = (text: string): number[] => {
   const lines = text.split(/\r?\n/);
   const durations: number[] = [];
-  const durRegex = /\((\d+)\s*(?:oră|ore)\)/i;
+  // More robust regex:
+  // - Matches "(X oră)", "(X ore)"
+  // - Matches "(X h)", "(X min)"
+  // - Matches "Durata: X ore"
+  const durRegex = /(?:\(|^|\s)(\d+)\s*(?:oră|ore|h|min|minute)(?:\)|$|\s)/i;
+
   for (const line of lines) {
     const m = line.match(durRegex);
     if (m) durations.push(parseInt(m[1], 10));
@@ -99,7 +104,7 @@ export const alignWorkbookDurationsByStructure = (structureText: string, workboo
   const lines = workbookText.split(/\r?\n/);
   // Match same robust pattern as extractModuleTitles
   const modRegex = /^(?:(?:\*\*|#+\s*)?)(?:Modul(?:ul)?|Module|Section|Sesiunea)\s+(\d+)\s*[:.\-–\)]\s*(.+?)(?:\*\*|$)/i;
-  const durRegex = /\((\d+)\s*(?:oră|ore)\)/i;
+  const durRegex = /(?:\(|^|\s)(\d+)\s*(?:oră|ore|h|min|minute)(?:\)|$|\s)/i;
 
   const outLines = lines.map(line => {
     const cleanLine = line.replace(/^\s*[-*]\s+/, '').trim();
@@ -108,10 +113,13 @@ export const alignWorkbookDurationsByStructure = (structureText: string, workboo
     const idx = parseInt(m[1], 10) - 1;
     const targetDuration = structureDurations[idx];
     if (!targetDuration || isNaN(targetDuration)) return line;
+    
+    // If line already has duration, replace it
     if (durRegex.test(line)) {
       const unit = targetDuration === 1 ? 'oră' : 'ore';
       return line.replace(durRegex, `(${targetDuration} ${unit})`);
     }
+    // If not, maybe append it? (Optional, but let's stick to replacement for now)
     return line;
   });
 

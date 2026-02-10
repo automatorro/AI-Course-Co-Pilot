@@ -18,7 +18,7 @@ export const CourseModuleSchema = z.object({
 
 export const CourseBlueprintSchema = z.object({
     version: z.literal('1.0'),
-    modules: z.array(CourseModuleSchema).min(1).max(10),
+    modules: z.array(CourseModuleSchema).min(1).max(30),
     estimated_duration: z.string().optional(),
     generated_at: z.string().datetime(),
 });

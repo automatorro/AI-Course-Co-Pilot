@@ -171,6 +171,17 @@ export async function createCourseFromUpload(
                 return { success: false, error: 'Invalid response from Edge Function (no content)' };
             }
             blueprint = safeJsonParse((analysisData as any).content);
+            
+            // Post-process: Ensure IDs exist for React keys
+            blueprint.modules = blueprint.modules.map((m: any, i: number) => ({
+                ...m,
+                id: m.id || `mod-${Date.now()}-${i}`,
+                sections: (m.sections || []).map((s: any, j: number) => ({
+                    ...s,
+                    id: s.id || `sec-${Date.now()}-${i}-${j}`
+                }))
+            }));
+
         } catch (e) {
             console.error('Blueprint parse error:', e);
             return { success: false, error: 'Failed to generate course blueprint' };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from '../contexts/I18nContext';
 import { Upload, X, Loader2, AlertTriangle, FileText, Replace, GitCompare, LayoutList, ChevronRight } from 'lucide-react';
 import { CourseStep } from '../types';
 import MarkdownPreview from './MarkdownPreview';
@@ -17,6 +18,7 @@ type Props = {
 };
 
 const ImportStagingModal: React.FC<Props> = ({ isOpen, onClose, step, onApplied, initialFileUrl, initialFileType, initialFileName }) => {
+  const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -124,7 +126,7 @@ const ImportStagingModal: React.FC<Props> = ({ isOpen, onClose, step, onApplied,
             <FileText size={20} className="text-primary-600" />
             <h2 className="text-lg font-bold">Import Staging</h2>
             <ChevronRight className="text-gray-400 mx-2" size={20} />
-            <span className="text-sm text-gray-500 font-medium">Scope: {step.title_key}</span>
+            <span className="text-sm text-gray-500 font-medium">Scope: {t(step.title_key)}</span>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Închide">
             <X size={18} />

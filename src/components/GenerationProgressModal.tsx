@@ -48,8 +48,8 @@ const STEPS_ORDER = [
     { type: TrainerStepType.Exercises, key: 'generation.steps.exercises' },
     { type: TrainerStepType.ExamplesAndStories, key: 'generation.steps.examplesStories' },
     { type: TrainerStepType.FacilitatorNotes, key: 'generation.steps.facilitatorNotes' },
-    { type: TrainerStepType.Slides, key: 'generation.steps.slides' },
     { type: TrainerStepType.FacilitatorManual, key: 'generation.steps.facilitatorManual' },
+    { type: TrainerStepType.Slides, key: 'generation.steps.slides' },
     { type: TrainerStepType.ParticipantWorkbook, key: 'generation.steps.participantWorkbook' },
     { type: TrainerStepType.VideoScripts, key: 'generation.steps.videoScripts' },
 ];
@@ -318,9 +318,9 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                     [TrainerStepType.Exercises]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
                     [TrainerStepType.ExamplesAndStories]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
                     [TrainerStepType.FacilitatorNotes]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
-                    [TrainerStepType.Slides]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ExamplesAndStories],
-                    [TrainerStepType.FacilitatorManual]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.TimingAndFlow, TrainerStepType.FacilitatorNotes, TrainerStepType.Exercises],
-                    [TrainerStepType.ParticipantWorkbook]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
+            [TrainerStepType.FacilitatorManual]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.TimingAndFlow, TrainerStepType.FacilitatorNotes, TrainerStepType.Exercises],
+            [TrainerStepType.Slides]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ExamplesAndStories, TrainerStepType.FacilitatorManual],
+            [TrainerStepType.ParticipantWorkbook]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
                     [TrainerStepType.VideoScripts]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
                     [TrainerStepType.CheatSheets]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ParticipantWorkbook],
                     [TrainerStepType.Projects]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
@@ -459,6 +459,128 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             const userId = course.user_id || user?.id;
             if (!userId) {
                 throw new Error('User ID is missing. Please refresh the page and try again.');
+            }
+
+            // --- NEW: Client-Side Iteration for Slides (To avoid Timeouts) ---
+            if (step.type === TrainerStepType.Slides) {
+                 const summary = buildContextSummary(accumulatedContentRef.current || []);
+                 let modulesToProcess = course.blueprint?.modules;
+                 
+                 // Fallback to structure titles if blueprint missing
+                 if ((!modulesToProcess || modulesToProcess.length === 0) && summary.modules.length > 0) {
+                      modulesToProcess = summary.modules.map((t: string, idx: number) => ({ 
+                          id: `generated-mod-${idx}`, 
+                          title: t, 
+                          learning_objective: "See content.",
+                          sections: [] 
+                      }));
+                 }
+
+                 if (modulesToProcess && modulesToProcess.length > 0) {
+                     console.log('[GenerationProgressModal] Using Client-Side Iteration for Slides');
+                     const slidesCacheKey = `slides_partial_${course.id}`;
+                     let parts: string[] = [];
+                     
+                     // Try to load partial slides progress
+                     try {
+                        const sCached = localStorage.getItem(slidesCacheKey);
+                        if (sCached) {
+                            parts = JSON.parse(sCached);
+                            console.log(`[Slides] Resuming from partial cache with ${parts.length} parts.`);
+                        }
+                     } catch(e) { console.error(e); }
+
+                     // Slides don't have Intro/Outro in this model, just modules.
+                     const startIndex = parts.length;
+                     
+                     // Batch processing (Concurrency = 2)
+                     const BATCH_SIZE = 2;
+                     for (let i = startIndex; i < modulesToProcess.length; i += BATCH_SIZE) {
+                         if (isStoppedRef.current) break;
+                         
+                         const batch = modulesToProcess.slice(i, i + BATCH_SIZE);
+                         console.log(`[Slides] Processing batch starting at index ${i}, size ${batch.length}`);
+
+                         const results = await Promise.all(batch.map(async (m: any, batchIdx: number) => {
+                             const realIdx = i + batchIdx;
+                             let modContent = "";
+                             let retries = 0;
+                             while(retries < 3 && !modContent) {
+                                 try {
+                                     // Build previous context just like for normal steps
+                                     // We need it for context chaining
+                                     const contextMap: Record<TrainerStepType, TrainerStepType[]> = {
+                                         [TrainerStepType.Slides]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.FacilitatorManual, TrainerStepType.FacilitatorNotes],
+                                         // Fallback map for others not needed here
+                                         [TrainerStepType.CourseDNA]: []
+                                     };
+                                     const allowed = new Set(contextMap[TrainerStepType.Slides]);
+                                     const prevForContext = (accumulatedContentRef.current || [])
+                                         .filter((s: any) => allowed.has(s.step_type))
+                                         .map((s: any) => ({ step_type: s.step_type, content: String(s.content || '').slice(0, 2000) }));
+
+                                     const { data: modData, error: modErr } = await supabase.functions.invoke('generate-course-content', {
+                                         body: { 
+                                             action: 'generate_slides_part', 
+                                             course, 
+                                             module_data: m, 
+                                             module_index: realIdx,
+                                             previous_steps: prevForContext
+                                         }
+                                     });
+                                     if (modErr) throw modErr;
+                                     modContent = modData.content;
+                                 } catch (e) {
+                                     console.warn(`Error generating slides module ${realIdx}, retry ${retries}`, e);
+                                     retries++;
+                                     await new Promise(r => setTimeout(r, 1500));
+                                 }
+                             }
+                             if (!modContent) {
+                                 modContent = `## Module ${realIdx+1}: ${m.title}\n\n(Slides generation failed for this module.)`;
+                             }
+                             return { index: realIdx, content: modContent };
+                         }));
+
+                         // Push to parts in order
+                         results.sort((a, b) => a.index - b.index).forEach(r => {
+                             parts.push(r.content);
+                         });
+                         
+                         // Progressive Save
+                         try {
+                             localStorage.setItem(slidesCacheKey, JSON.stringify(parts));
+                         } catch (e) {
+                             console.warn('[Slides] Failed to save partial progress to cache.');
+                         }
+                     }
+                     
+                     // Cleanup partial cache after success
+                     if (!isStoppedRef.current) {
+                        localStorage.removeItem(slidesCacheKey);
+                     } else {
+                        console.log('[Slides] Generation stopped.');
+                        setIsGenerating(false);
+                        return;
+                     }
+
+                     const finalContent = parts.join('\n\n---\n\n');
+                     
+                     accumulatedContentRef.current.push({
+                        step_type: step.type,
+                        content: finalContent
+                     });
+
+                     setCompletedSteps(prev => {
+                        const newSet = new Set([...prev, step.type]);
+                        const newArr = Array.from(newSet);
+                        saveProgressToCache(newArr, accumulatedContentRef.current);
+                        return newArr;
+                     });
+
+                     await processStep(index + 1);
+                     return;
+                 }
             }
 
             // --- NEW: Client-Side Iteration for Workbook ---
@@ -681,6 +803,7 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             }
 
             if (fnError) {
+                console.error('[GenerationProgressModal] Edge Function Error Object:', fnError);
                 const ctx = (fnError as any)?.context;
                 let msg = (fnError as any)?.message || 'Edge Function error';
 
@@ -710,6 +833,7 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                     }
                 }
                 
+                console.error('[GenerationProgressModal] Extracted Error Message:', msg);
                 throw new Error(msg);
             }
             if (data.error) throw new Error(data.error);
@@ -1005,17 +1129,14 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                 pendingStepsRef.current = stepsToInsert;
                 if (onlyDurationIssue) {
                     await handleAutoFixWorkbook();
-                    if (validationReport && validationReport.ok) {
-                        // After auto-fix, continue to insert
-                    } else {
-                        setIsGenerating(false);
-                        console.warn('[GenerationProgressModal] Duration auto-fix did not resolve all issues.');
-                    }
-                } else {
-                    setIsGenerating(false);
-                    console.warn('[GenerationProgressModal] Validation failed. Not inserting steps.');
-                }
-                return;
+                    // If auto-fix worked, validationReport might be updated? 
+                    // But we proceed anyway in this relaxed mode.
+                } 
+                
+                // FORCE SAVE: We proceed even if validation failed, as per user request to "pass over".
+                console.warn('[GenerationProgressModal] Validation failed, but proceeding to save (Relaxed Mode).');
+                // setIsGenerating(false);
+                // return; 
             }
 
             // 5. Delete existing and insert if validation ok

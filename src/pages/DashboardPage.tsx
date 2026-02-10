@@ -231,14 +231,14 @@ const DashboardPage: React.FC = () => {
 
       if (result.ok) {
         setCourses(prev => prev.filter(c => c.id !== courseId));
-        showToast('Course deleted successfully', 'success');
+        showToast(t('dashboard.deleteToast.success'), 'success');
       } else {
         console.error('[Dashboard] Delete failed:', result.message);
-        showToast(`Failed to delete course: ${result.message}`, 'error');
+        showToast(t('dashboard.deleteToast.failure', { message: result.message }), 'error');
       }
     } catch (error) {
       console.error("Failed to delete course:", error);
-      showToast('Failed to delete course.', 'error');
+      showToast(t('dashboard.deleteToast.genericFailure'), 'error');
     } finally {
       setLoadingStates(prev => ({ ...prev, [`delete-${courseId}`]: false }));
       setDeleteModalOpen(false);
@@ -414,9 +414,10 @@ const DashboardPage: React.FC = () => {
         isOpen={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={confirmDelete}
-        title="Delete Course"
-        message="Are you sure you want to delete this course? This action cannot be undone."
-        confirmText="Delete Course"
+        title={t('dashboard.deleteModal.title')}
+        message={t('dashboard.deleteModal.message')}
+        confirmText={t('dashboard.deleteModal.confirm')}
+        cancelText={t('common.cancel')}
         isDestructive={true}
       />
     </div>

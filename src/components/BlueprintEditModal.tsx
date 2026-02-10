@@ -22,8 +22,16 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
 
   useEffect(() => {
     if (isOpen) {
-      setText(safeStringify(blueprint));
-      setParsed(blueprint);
+      // Ensure every module has sections array to prevent crashes
+      const safeBlueprint = {
+        ...blueprint,
+        modules: (blueprint.modules || []).map(m => ({
+          ...m,
+          sections: m.sections || []
+        }))
+      };
+      setText(safeStringify(safeBlueprint));
+      setParsed(safeBlueprint);
       setErrors([]);
     }
   }, [isOpen, blueprint]);
@@ -43,17 +51,18 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
       }
       if (!Array.isArray(m.sections) || m.sections.length === 0) {
         errs.push(t('blueprint.edit.validation.noSections', { n: mi + 1 }));
+      } else {
+        const seen: Record<string, boolean> = {};
+        m.sections.forEach((s: CourseSection, si: number) => {
+            if (!s.title || s.title.trim().length === 0) {
+            errs.push(t('blueprint.edit.validation.emptySectionTitle', { module: mi + 1, n: si + 1 }));
+            }
+            if (seen[s.id]) {
+            errs.push(t('blueprint.edit.validation.duplicateSectionId', { module: mi + 1 }));
+            }
+            seen[s.id] = true;
+        });
       }
-      const seen: Record<string, boolean> = {};
-      m.sections.forEach((s: CourseSection, si: number) => {
-        if (!s.title || s.title.trim().length === 0) {
-          errs.push(t('blueprint.edit.validation.emptySectionTitle', { module: mi + 1, n: si + 1 }));
-        }
-        if (seen[s.id]) {
-          errs.push(t('blueprint.edit.validation.duplicateSectionId', { module: mi + 1 }));
-        }
-        seen[s.id] = true;
-      });
     });
     return errs;
   };
@@ -62,16 +71,16 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
     if (!parsed) return null;
     return (
       <div className="space-y-3">
-        {parsed.modules.map((m, mi) => (
-          <div key={m.id} className="border rounded-lg p-3 dark:border-gray-700">
+        {(parsed.modules || []).map((m, mi) => (
+          <div key={m.id || mi} className="border rounded-lg p-3 dark:border-gray-700">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-primary-600 dark:text-primary-400">{t('blueprint.moduleN', { n: mi + 1 })}</span>
               <h4 className="font-bold text-ink-900 dark:text-white">{m.title}</h4>
             </div>
             <p className="text-sm text-ink-600 dark:text-ink-400 mt-1">{m.learning_objective}</p>
             <ul className="mt-2 text-sm text-ink-700 dark:text-ink-300 list-disc ml-5">
-              {m.sections.map(s => (
-                <li key={s.id}>{s.title} — <span className="uppercase text-xs">{s.content_type.replace('_',' ')}</span></li>
+              {(m.sections || []).map((s, si) => (
+                <li key={s.id || si}>{s.title} — <span className="uppercase text-xs">{(s.content_type || 'slides').replace('_',' ')}</span></li>
               ))}
             </ul>
           </div>
@@ -104,7 +113,7 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
       ...bp,
       modules: bp.modules.map((m, idx) => idx === mi ? {
         ...m,
-        sections: m.sections.map((s, j) => j === si ? { ...s, [field]: value } : s)
+        sections: (m.sections || []).map((s, j) => j === si ? { ...s, [field]: value } : s)
       } : m)
     }));
   };
@@ -115,7 +124,7 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
       ...bp,
       modules: bp.modules.map((m, idx) => idx === mi ? {
         ...m,
-        sections: [...m.sections, { id, title: t('blueprint.edit.sectionNewTitle'), content_type: 'slides', order: m.sections.length + 1 }]
+        sections: [...(m.sections || []), { id, title: t('blueprint.edit.sectionNewTitle'), content_type: 'slides', order: (m.sections || []).length + 1 }]
       } : m)
     }));
   };
@@ -125,8 +134,34 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
       ...bp,
       modules: bp.modules.map((m, idx) => idx === mi ? {
         ...m,
-        sections: m.sections.filter((_, j) => j !== si).map((s, j) => ({ ...s, order: j + 1 }))
+        sections: (m.sections || []).filter((_, j) => j !== si).map((s, j) => ({ ...s, order: j + 1 }))
       } : m)
+    }));
+  };
+
+  const addModule = () => {
+    const id = `mod_${Date.now()}`;
+    const secId = `sec_${Date.now()}`;
+    updateBlueprint(bp => ({
+      ...bp,
+      modules: [
+        ...bp.modules,
+        {
+          id,
+          title: t('blueprint.edit.moduleNewTitle') || 'Modul Nou',
+          learning_objective: t('blueprint.edit.moduleNewLO') || '',
+          sections: [
+            { id: secId, title: t('blueprint.edit.sectionNewTitle'), content_type: 'slides', order: 1 }
+          ]
+        }
+      ]
+    }));
+  };
+
+  const removeModule = (mi: number) => {
+    updateBlueprint(bp => ({
+      ...bp,
+      modules: bp.modules.filter((_, idx) => idx !== mi)
     }));
   };
 
@@ -209,6 +244,18 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
                   <h4 className="text-sm font-semibold mb-2">{t('blueprint.edit.modulesLabel')}</h4>
                   {(parsed?.modules || []).map((m, mi) => (
                     <div key={m.id} className="mb-3 p-3 rounded-lg border dark:border-gray-700">
+                      <div className="flex items-center justify-end">
+                        <button
+                          className="text-red-600 dark:text-red-400 text-xs underline"
+                          onClick={() => {
+                            if (confirm(t('blueprint.edit.confirmRemoveModule'))) {
+                              removeModule(mi);
+                            }
+                          }}
+                        >
+                          {t('blueprint.edit.removeModule')}
+                        </button>
+                      </div>
                       <div className="grid grid-cols-1 gap-2">
                         <div>
                           <label className="block text-xs font-medium mb-1">{t('blueprint.edit.moduleTitleLabel', { n: mi + 1 })}</label>
@@ -249,6 +296,9 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
                 </ul>
               </div>
             )}
+             <button className="w-full mt-4 btn-secondary py-2 border-dashed border-2" onClick={addModule}>
+               + {t('blueprint.edit.addModule') || 'Add New Module'}
+             </button>
           </div>
           <div className="p-4">
             <label className="block text-sm font-medium mb-2">{t('blueprint.edit.previewLabel')}</label>
