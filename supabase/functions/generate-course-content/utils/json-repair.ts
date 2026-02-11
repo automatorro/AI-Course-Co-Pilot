@@ -8,6 +8,13 @@
 export function repairAndParseJson<T>(text: string): T {
   let cleaned = text.trim();
 
+  // 0. XML Extraction (Silent Operator Protocol)
+  // We prioritize the content inside <content_block> tags.
+  const xmlMatch = cleaned.match(/<content_block>([\s\S]*?)<\/content_block>/);
+  if (xmlMatch) {
+    cleaned = xmlMatch[1].trim();
+  }
+
   // 1. Remove Markdown Fences
   const fenceMatch = cleaned.match(/```json([\s\S]*?)```/);
   if (fenceMatch) {

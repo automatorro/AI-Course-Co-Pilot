@@ -18,9 +18,16 @@ This JSON will be the Single Source of Truth for generating 7 distinct deliverab
 - **Language**: {{language}} (Target language for ALL content)
 - **Protagonist**: {{protagonistName}} (Current State: {{protagonistState}})
 - **Target Audience**: {{targetAudience}}
+{{styleBlock}}
 
 ### 2. CRITICAL RULES (NON-NEGOTIABLE)
-1.  **JSON ONLY**: Your output must be a VALID JSON object. Do not include markdown formatting fences (like \`\`\`json). Do not include conversational text before or after the JSON.
+1.  **SILENT OPERATOR PROTOCOL (XML ENCAPSULATION)**:
+    - You must output **ONLY** two XML blocks. No other text.
+    - Block 1: `<meta>...</meta>` (Contains your internal reasoning and validation).
+    - Block 2: `<content_block>...</content_block>` (Contains the PURE JSON).
+    - **ANY text outside these tags will be treated as garbage and DELETED.**
+    - INSIDE `<content_block>`, provide **ONLY VALID JSON**. No markdown fences (\`\`\`json).
+
 2.  **BLUEPRINT INTEGRITY**: You MUST respect the Module Title and Duration provided in the input. Do not invent new modules.
 3.  **NARRATIVE ISOLATION**:
     - The character "{{protagonistName}}" exists ONLY in the \`narrativeContext\` and \`theoryContent.hook\` fields.
@@ -138,11 +145,17 @@ interface GoldenModuleData {
 \`\`\`
 
 ### 5. THINKING PROCESS (Internal Monologue)
-Before generating the JSON, plan the logical flow:
+Before generating the JSON, put your plan inside the `<meta>` tag:
 1.  **Analyze**: What is the core skill in {{moduleTitle}}?
-2.  **Story Arc**: How does {{protagonistName}} encounter this problem in state "{{protagonistState}}"?
-3.  **Consistency Check**: Ensure the Trainer Script matches the Workbook Theory.
-4.  **Timing**: Ensure section durations sum up to exactly {{durationMinutes}} minutes.
+2.  **Style Check**: Am I using the correct tone for the audience ({{targetAudience}})?
+3.  **Story Arc**: How does {{protagonistName}} encounter this problem?
+4.  **Consistency Check**: Ensure the Trainer Script matches the Workbook Theory.
 
-GENERATE THE JSON NOW.
+GENERATE THE XML NOW.
+<meta>
+[Your thinking process here]
+</meta>
+<content_block>
+[Your JSON here]
+</content_block>
 `;
