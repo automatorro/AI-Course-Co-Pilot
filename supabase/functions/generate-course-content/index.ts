@@ -6,8 +6,277 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
-import { getStyleBlock } from './prompts/style-blocks.ts';
-import { GOLDEN_MASTER_PROMPT } from './prompts/golden-master.ts';
+// --------------------------------------------------------------------------------
+// INLINED MODULE: Style Blocks
+// --------------------------------------------------------------------------------
+export enum AudienceLevel {
+  LEVEL_1_OPERATIONAL = 'LEVEL_1_OPERATIONAL',
+  LEVEL_2_CLERICAL = 'LEVEL_2_CLERICAL',
+  LEVEL_3_STRATEGIC = 'LEVEL_3_STRATEGIC',
+  LEVEL_4_COMMERCIAL = 'LEVEL_4_COMMERCIAL', // New: Sales/Service
+  LEVEL_5_TECHNICAL = 'LEVEL_5_TECHNICAL'    // New: Expert/Specialist
+}
+
+export const STYLE_BLOCKS = {
+  [AudienceLevel.LEVEL_1_OPERATIONAL]: `
+### 🧬 AUDIENCE DNA: LEVEL 1 (OPERATIONAL / FRONT LINE)
+**PRIMARY GOAL:** Practical Execution, Safety & Consistency.
+**BLOOM LEVEL:** Understand & Apply (Troubleshoot).
+
+**STRICT STYLE RULES:**
+1.  **TONE:** Respectful, Direct, Peer-to-Peer. Avoid "school teacher" tone.
+2.  **SENTENCE STRUCTURE:** Concise. Action-First. (e.g., "Press X to start", not "To start, X should be pressed").
+3.  **VOCABULARY:**
+    - ✅ USE: Industry-standard terms, "Verify", "Calibrate", "Result".
+    - ❌ FORBIDDEN: Corporate jargon ("Synergy"), Academic fluff.
+4.  **EXAMPLES:** Real-world scenarios ("When the warning light blinks...").
+5.  **FORMATTING:** Checklists, Troubleshooting Tables, bold warnings.
+`,
+
+  [AudienceLevel.LEVEL_2_CLERICAL]: `
+### 🧬 AUDIENCE DNA: LEVEL 2 (CLERICAL / JUNIOR MANAGEMENT)
+**PRIMARY GOAL:** Process Efficiency, Accuracy & Coordination.
+**BLOOM LEVEL:** Apply & Analyze.
+
+**STRICT STYLE RULES:**
+1.  **TONE:** Professional, Collaborative, Structured.
+2.  **SENTENCE STRUCTURE:** Clear cause-and-effect ("If X happens, then do Y").
+3.  **VOCABULARY:** Standard business terminology.
+    - ✅ USE: "Workflow", "Compliance", "Stakeholder", "Optimization".
+    - ❌ FORBIDDEN: Overly casual slang or overly dense academic theory.
+4.  **EXAMPLES:** Case studies, Email templates, Process maps.
+5.  **FORMATTING:** Step-by-step guides, Decision trees.
+`,
+
+  [AudienceLevel.LEVEL_3_STRATEGIC]: `
+### 🧬 AUDIENCE DNA: LEVEL 3 (STRATEGIC / SENIOR LEADERSHIP)
+**PRIMARY GOAL:** Vision, ROI, Culture & Change Management.
+**BLOOM LEVEL:** Evaluate & Create.
+
+**STRICT STYLE RULES:**
+1.  **TONE:** Executive, Insightful, "Boardroom Ready".
+2.  **SENTENCE STRUCTURE:** Sophisticated but high-impact. Focus on "Why" over "How".
+3.  **VOCABULARY:** Strategic drivers.
+    - ✅ USE: "Scalability", "Market positioning", "Risk mitigation", "Capital allocation".
+    - ❌ FORBIDDEN: Getting bogged down in low-level tactical details.
+4.  **EXAMPLES:** Industry trends, Competitive analysis, high-stakes dilemmas.
+5.  **FORMATTING:** Executive summaries, key strategic pillars, data visualization concepts.
+`,
+
+  [AudienceLevel.LEVEL_4_COMMERCIAL]: `
+### 🧬 AUDIENCE DNA: LEVEL 4 (SALES / CUSTOMER SUCCESS)
+**PRIMARY GOAL:** Persuasion, Relationship Building & Revenue.
+**BLOOM LEVEL:** Apply, Analyze & Create (Social Dynamics).
+
+**STRICT STYLE RULES:**
+1.  **TONE:** High-Energy, Empathetic, Persuasive, Confident.
+2.  **SENTENCE STRUCTURE:** Conversational, engaging, question-heavy.
+3.  **VOCABULARY:** Emotional intelligence & Sales.
+    - ✅ USE: "Rapport", "Discovery", "Pain point", "Value proposition", "Closing".
+    - ❌ FORBIDDEN: Dry technical specs, passive voice, bureaucratic language.
+4.  **EXAMPLES:** Roleplay scripts, Objection handling, "What to say when...".
+5.  **FORMATTING:** Scripts, Dialogue blocks, "Do's and Don'ts".
+`,
+
+  [AudienceLevel.LEVEL_5_TECHNICAL]: `
+### 🧬 AUDIENCE DNA: LEVEL 5 (TECHNICAL EXPERT / R&D)
+**PRIMARY GOAL:** Deep Understanding, Innovation & Problem Solving.
+**BLOOM LEVEL:** Analyze, Evaluate & Create (Systemic).
+
+**STRICT STYLE RULES:**
+1.  **TONE:** Precise, Geeky (in a good way), Detail-Oriented.
+2.  **SENTENCE STRUCTURE:** Can handle complexity. Precision is key.
+3.  **VOCABULARY:** Domain-specific technical terminology.
+    - ✅ USE: Correct technical acronyms, specific metrics, system logic.
+    - ❌ FORBIDDEN: Simplifying things "for the layman". Dumbed-down analogies.
+4.  **EXAMPLES:** Code snippets, Schematics, Edge cases, Debugging logs.
+5.  **FORMATTING:** Code blocks, Technical diagrams, Data tables.
+`
+};
+
+export function getStyleBlock(audienceDescription: string): string {
+  const lowerDesc = audienceDescription.toLowerCase();
+
+  // Level 1: Operational
+  if (lowerDesc.includes('blue collar') || lowerDesc.includes('operator') || lowerDesc.includes('factory') || lowerDesc.includes('manual') || lowerDesc.includes('worker')) {
+    return STYLE_BLOCKS[AudienceLevel.LEVEL_1_OPERATIONAL];
+  }
+
+  // Level 3: Strategic
+  if (lowerDesc.includes('executive') || lowerDesc.includes('director') || lowerDesc.includes('c-level') || lowerDesc.includes('vp') || lowerDesc.includes('strategy')) {
+    return STYLE_BLOCKS[AudienceLevel.LEVEL_3_STRATEGIC];
+  }
+
+  // Level 4: Commercial (Sales/Service)
+  if (lowerDesc.includes('sales') || lowerDesc.includes('customer') || lowerDesc.includes('client') || lowerDesc.includes('support') || lowerDesc.includes('agent')) {
+    return STYLE_BLOCKS[AudienceLevel.LEVEL_4_COMMERCIAL];
+  }
+
+  // Level 5: Technical (Devs/Engineers)
+  if (lowerDesc.includes('developer') || lowerDesc.includes('engineer') || lowerDesc.includes('architect') || lowerDesc.includes('technical') || lowerDesc.includes('it pro')) {
+    return STYLE_BLOCKS[AudienceLevel.LEVEL_5_TECHNICAL];
+  }
+
+  // Default to Level 2 (Clerical/General Management)
+  return STYLE_BLOCKS[AudienceLevel.LEVEL_2_CLERICAL];
+}
+
+// --------------------------------------------------------------------------------
+// INLINED MODULE: Golden Master Prompt
+// --------------------------------------------------------------------------------
+export const GOLDEN_MASTER_PROMPT = `
+You are an expert **Instructional Designer** and **JSON Data Architect**.
+Your task is to generate a single, comprehensive "Golden JSON" object for a specific training module.
+This JSON will be the Single Source of Truth for generating 7 distinct deliverables (Workbook, Manual, Slides, etc.).
+
+### 1. INPUT CONTEXT
+- **Module Title**: {{moduleTitle}}
+- **Duration**: {{durationMinutes}} minutes (STRICT)
+- **Environment**: {{environment}} (LIVE = In-Person Workshop | ONLINE = Virtual/Zoom)
+- **Language**: {{language}} (Target language for ALL content)
+- **Protagonist**: {{protagonistName}} (Current State: {{protagonistState}})
+- **Target Audience**: {{targetAudience}}
+{{styleBlock}}
+
+### 2. CRITICAL RULES (NON-NEGOTIABLE)
+1.  **SILENT OPERATOR PROTOCOL (XML ENCAPSULATION)**:
+    - You must output **ONLY** two XML blocks. No other text.
+    - Block 1: \`<meta>...</meta>\` (Contains your internal reasoning and validation).
+    - Block 2: \`<content_block>...</content_block>\` (Contains the PURE JSON).
+    - **ANY text outside these tags will be treated as garbage and DELETED.**
+    - INSIDE \`<content_block>\`, provide **ONLY VALID JSON**. No markdown fences (\`\`\`json).
+
+2.  **BLUEPRINT INTEGRITY**: You MUST respect the Module Title and Duration provided in the input. Do not invent new modules.
+3.  **NARRATIVE ISOLATION**:
+    - The character "{{protagonistName}}" exists ONLY in the \`narrativeContext\` and \`theoryContent.hook\` fields.
+    - Do NOT mention "{{protagonistName}}" in the \`trainerInstructions\`, \`exercisesDetailed\` (unless as a case study subject), or \`logistics\`.
+    - The Trainer Manual should sound professional and instructional, NOT like a storybook.
+4.  **ENVIRONMENT ADAPTATION**:
+    - IF environment == 'LIVE':
+      - Generate \`flipchartSketch\` instructions (What to draw on paper).
+      - Generate physical activities (standing up, moving rooms).
+      - \`videoScript\` MUST be null.
+      - \`breakoutRoomConfig\` MUST be null.
+    - IF environment == 'ONLINE':
+      - Generate \`breakoutRoomConfig\` (Zoom/Teams setup).
+      - Generate \`videoScript\` (for self-paced segments).
+      - \`flipchartSketch\` MUST be null.
+5.  **LANGUAGE CONSISTENCY**:
+    - All generated content (Theory, Scripts, Slides) must be in **{{language}}**.
+    - Field names (keys) remain in English (e.g., \`participantContent\`), but string values must be in {{language}}.
+
+### 3. CONTENT GUIDELINES
+- **Theory (Workbook)**: Use Markdown inside string fields. Use bolding (**text**) for emphasis. Be concise. Action-oriented.
+- **Trainer Script**: Write VERBATIM what the trainer should say. Casual, professional, engaging. NO "Hello everyone". Start directly with the hook.
+- **Slides**:
+    - \`visualDescription\`: Instructions for a designer (e.g., "Photo of a frustrated manager...").
+    - \`speakerNotes\`: Match the Trainer Script.
+- **Exercises**:
+    - Step-by-step instructions.
+    - Clear "Success Indicators" (How do we know they got it right?).
+
+### 4. JSON STRUCTURE (SCHEMA)
+You must strictly follow this TypeScript interface structure:
+
+\`\`\`typescript
+interface GoldenModuleData {
+  moduleId: string; // Use "{{moduleId}}"
+  moduleTitle: string; // Use "{{moduleTitle}}"
+  moduleDurationMinutes: number; // Use {{durationMinutes}}
+  environment: "{{environment}}";
+
+  narrativeContext: {
+    protagonistName: string;
+    storyArcStage: string; // "{{protagonistState}}"
+    contextDescription: string; // Context for this specific module
+    examplesLibrary: Array<{
+      id: string;
+      title: string;
+      storyContent: string; // The example story
+      applicationContext: string; // When to use it
+    }>;
+  };
+
+  sections: Array<{
+    id: string; // e.g., "section-1"
+    title: string;
+    durationMinutes: number;
+    type: 'THEORY' | 'ACTIVITY' | 'DISCUSSION' | 'VIDEO_LESSON';
+
+    participantContent: {
+      theoryMarkdown: string; // Rich text in {{language}}
+      keyTakeaways: string[];
+      reflectionQuestions?: string[];
+      actionableSteps?: string[];
+    };
+
+    trainerInstructions: {
+      deliveryMethod: string;
+      script: string; // Verbatim script in {{language}}
+      logistics: string[];
+      // LIVE ONLY
+      flipchartSketch?: {
+        title: string;
+        visualDescription: string;
+        bulletPoints: string[];
+      };
+      // ONLINE ONLY
+      breakoutRoomConfig?: {
+        groupSize: number;
+        duration: number;
+        taskDescription: string;
+      };
+    };
+
+    visuals: {
+      slidesSequence: Array<{
+        slideId: string;
+        layout: 'TITLE' | 'BULLETS' | 'VISUAL_FOCUS' | 'QUOTE';
+        title: string;
+        visualDescription: string; // English description for AI image gen
+        contentBullets: string[];
+        speakerNotes: string;
+      }>;
+    };
+
+    // ONLY IF type == 'ACTIVITY' or 'DISCUSSION'
+    exercisesDetailed?: {
+      title: string;
+      objective: string;
+      durationMinutes: number;
+      instructionsParticipant: string;
+      instructionsFacilitator: string;
+      materialsNeeded: string[];
+      debriefingQuestions: string[];
+      successIndicators: string[];
+      adaptationNotes: string;
+    };
+
+    // ONLY IF environment == 'ONLINE' AND type == 'VIDEO_LESSON'
+    videoScript?: {
+      sceneDescription: string;
+      scriptContent: string;
+      visualOverlays: Array<{ timestamp: string; description: string }>;
+    };
+  }>;
+}
+\`\`\`
+
+### 5. THINKING PROCESS (Internal Monologue)
+Before generating the JSON, put your plan inside the \`<meta>\` tag:
+1.  **Analyze**: What is the core skill in {{moduleTitle}}?
+2.  **Style Check**: Am I using the correct tone for the audience ({{targetAudience}})?
+3.  **Story Arc**: How does {{protagonistName}} encounter this problem?
+4.  **Consistency Check**: Ensure the Trainer Script matches the Workbook Theory.
+
+GENERATE THE XML NOW.
+<meta>
+[Your thinking process here]
+</meta>
+<content_block>
+[Your JSON here]
+</content_block>
+`;
 
 // ==========================================
 // 1. INFRASTRUCTURE & CONFIGURATION
@@ -735,9 +1004,15 @@ export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget): 
 
 const renderWorkbookSection = (section: GoldenSection): string => {
   const content = section.participantContent;
+  
+  // Defensive Coding (Issue #5 from Audit)
+  if (!content) {
+      return `> **Error**: Missing content for section "${section.title}". Please regenerate this module.`;
+  }
+
   let md = `### Theory & Concepts\n\n`;
   
-  md += `${content.theoryMarkdown}\n\n`;
+  md += `${content.theoryMarkdown || ''}\n\n`;
 
   if (content.keyTakeaways && content.keyTakeaways.length > 0) {
     md += `### 🔑 Key Takeaways\n`;
@@ -1145,7 +1420,17 @@ async function getOrCreateStoryArc(supabase: any, course: Course, moduleIndex?: 
     return storyArc;
   } catch (e) {
     Logger.error("Failed to generate Story Arc, using default.", e);
-    return {};
+    // Fallback: Generic arc to prevent crashes in handleGoldenStep
+    return {
+        "1": "Enthusiastic but overwhelmed by the new concepts.",
+        "2": "Encountering the first major obstacle.",
+        "3": "Beginning to understand the core logic.",
+        "4": "Attempting to apply the knowledge, making mistakes.",
+        "5": "Achieving the first small win.",
+        "6": "Gaining confidence and flow.",
+        "7": "Mastering the nuances.",
+        "8": "Fully competent and ready to teach others."
+    };
   }
 }
 
@@ -1208,8 +1493,8 @@ async function handleLegacyStep(
 
   if (step_type === 'course.steps.structure') {
      const prompt = `
-        **TASK**: Design the Course Structure (High-Level Architecture).
-        **GOAL**: Create a Table of Contents (TOC) as a JSON Array.
+        **TASK**: Design the Course Structure & Agenda (Detailed Minute-by-Minute View).
+        **GOAL**: Create a comprehensive Agenda Table based on the Blueprint.
         **LANGUAGE**: ${course.language}.
         **ENVIRONMENT**: ${course.environment}.
 
@@ -1223,82 +1508,121 @@ async function handleLegacyStep(
         ${explicitModuleList}
         ` : ''}
 
-        **WHAT TO INCLUDE FOR EACH MODULE**:
-        - Title (Clear and engaging)
-        - Duration (e.g., "45 min")
-        - Description (Brief overview of what will be covered)
-        - Key Topics (Bullet points of sub-topics/lessons)
+        **INSTRUCTIONS**:
+        1. **General Objectives**: Start with EXACTLY 5-7 concise, high-level learning objectives for the entire course. (Do not list granular objectives per module here).
+        2. **Detailed Minute-by-Minute Agenda Table**: Create a Markdown Table with the following columns:
+           - **Time** (e.g. "09:00 - 09:15")
+           - **Topic/Module** (The Module Title & Subtopic)
+           - **Activity/Exercise** (Specific games, roleplays, or exercises)
+           - **Method** (Presentation, Video, Group Work, etc.)
+           - **Trainer Action** (What is the trainer doing?)
+           - **Participant Action** (What are they doing?)
 
-        **CRITICAL: REALISTIC TIMING RULES**:
-        - When assigning durations (e.g. "30 min"), assume ONLY 60-70% is content delivery.
-        - The rest is "Reality Buffer" (Questions, Transitions, Setup).
+        **CRITICAL**: 
+        - **NO FILLER TEXT**. No introductions, no conclusions. Just the Objectives list and the Table.
+        - **MINUTE-BY-MINUTE**: Break down the modules into logical time slots.
+        - **ACTIVITIES**: If Environment is LIVE, suggest flipcharts/physical games. If ONLINE, suggest polls/breakout rooms.
 
         **OUTPUT FORMAT**: 
-        Strict JSON Array of Objects. No Markdown formatting around the JSON.
-        Example:
-        [
-          {
-            "title": "Module 1: Introduction",
-            "duration": "45 min",
-            "description": "Overview of the core concepts...",
-            "topics": ["Topic A", "Topic B"]
-          }
-        ]
+        Return a **Markdown string** directly (NOT JSON).
+        
+        Structure:
+        # Course Agenda: ${course.title}
+        
+        ### 🎯 Key Learning Objectives (5-7)
+        - [Objective 1]
+        ...
+        - [Objective 7]
+
+        ### 📅 Minute-by-Minute Agenda
+        | Time | Topic | Activity/Exercise | Method | Trainer Action | Participant Action |
+        | :--- | :--- | :--- | :--- | :--- | :--- |
+        | 09:00 - 09:15 | Introduction | Icebreaker | Group | Welcomes, Leads | Introduces self |
+        | ... | ... | ... | ... | ... | ... |
+        
      `;
      
      const rawResponse = await callLLM(prompt);
-     
-     try {
-       // 1. Parse JSON
-       const structureData = repairAndParseJson<Array<{
-         title: string; 
-         duration: string; 
-         description: string;
-         topics?: string[];
-       }>>(rawResponse);
-
-       // 2. Save to DB (Populate course_modules)
-       Logger.info(`Saving ${structureData.length} modules to DB for course ${course.id}`);
-       
-       // Clean up existing modules to avoid duplicates (Regeneration Scenario)
-       await supabase.from('course_modules').delete().eq('course_id', course.id);
-
-       const modulesToInsert = structureData.map((mod, index) => {
-         // Parse duration string to integer
-         const durationMatch = (mod.duration || "").match(/(\d+)/);
-         const durationInt = durationMatch ? parseInt(durationMatch[1], 10) : 60;
-
-         return {
-           course_id: course.id,
-           module_index: index + 1,
-           title: mod.title,
-           duration_minutes: durationInt,
-           description: mod.description
-           // Note: 'content_data' remains null until the Golden Step is triggered
-         };
-       });
-
-       const { error: insertError } = await supabase
-         .from('course_modules')
-         .insert(modulesToInsert);
-
-       if (insertError) {
-         Logger.error("Failed to insert modules:", insertError);
-       }
-
-       // 3. Render to Markdown for UI
-       const markdownOutput = structureData.map((mod, i) => {
-         const topicsList = (mod.topics || []).map(t => `- ${t}`).join('\n');
-         return `## Module ${i + 1}: ${mod.title} (${mod.duration})\n\n${mod.description}\n\n**Key Topics:**\n${topicsList}`;
-       }).join('\n\n---\n\n');
-
-       return markdownOutput;
-
-     } catch (e) {
-       Logger.error("Structure parsing failed:", e);
-       return rawResponse;
-     }
+     return rawResponse; // Return Markdown directly
   }
+
+  if (step_type === 'course.steps.performance_objectives') {
+    const prompt = `
+    **TASK**: Define 5-7 High-Level Performance Objectives.
+    **COURSE**: "${course.title}"
+    **LANGUAGE**: ${course.language}
+    
+    **CONSTRAINT**: 
+    - Output EXACTLY 5-7 bullet points.
+    - Be concise and action-oriented.
+    - NO introductory text. NO closing text.
+    - DO NOT categorize (e.g. Verbal, Non-verbal). Just a single list of the most critical skills.
+    `;
+    return await callLLM(prompt);
+  }
+
+  if (step_type === 'course.steps.course_objectives') {
+    const prompt = `
+    **TASK**: Write a concise Course Goal Statement.
+    **COURSE**: "${course.title}"
+    **LANGUAGE**: ${course.language}
+    
+    **CONSTRAINT**: 
+    - Output a single paragraph (max 3-4 sentences) summarizing the main goal.
+    - NO bullet points.
+    - NO repetition of performance objectives.
+    `;
+    return await callLLM(prompt);
+  }
+
+  if (step_type === 'course.steps.timing_and_flow') {
+      const prompt = `
+      **TASK**: Provide brief Pacing & Flow Tips.
+      **COURSE**: "${course.title}"
+      **LANGUAGE**: ${course.language}
+      
+      **CONSTRAINT**: 
+      - Max 3-5 tips on how to manage the energy and flow of this course.
+      - Do NOT repeat the agenda/schedule.
+      `;
+      return await callLLM(prompt);
+  }
+
+  if (step_type === 'course.steps.slides') {
+      const prompt = `
+      **TASK**: Create a Course Kick-off Presentation (Slide Deck).
+      **COURSE**: "${course.title}"
+      **LANGUAGE**: ${course.language}
+      **CONTEXT**: ${course.description}
+      
+      **GOAL**: A sequence of 8-12 slides to introduce the course, objectives, and structure to the participants.
+      
+      **OUTPUT FORMAT**: 
+      Markdown with clear slide delimiters.
+      
+      **TEMPLATE PER SLIDE**:
+      ## Slide [N]: [Title]
+      **Visual Description:** [Instruction for designer/AI]
+      **Key Points:**
+      - [Bullet 1]
+      - [Bullet 2]
+      - [Bullet 3]
+      **Speaker Notes:** [What the trainer says - conversational and engaging]
+      
+      **REQUIRED SLIDES**:
+      1. Title Slide
+      2. Welcome & Icebreaker
+      3. Why this course? (WIIFM - What's in it for me?)
+      4. Key Learning Objectives (Summarized)
+      5. High-level Agenda/Roadmap
+      6. Rules of Engagement / Logistics
+      7-11. Brief intro to key modules (1 slide per major topic)
+      12. Closing & Q&A
+      `;
+      return await callLLM(prompt);
+  }
+
+
   
   const prompt = `
     Generate content for ${step_type} for course "${course.title}".
@@ -1309,14 +1633,19 @@ async function handleLegacyStep(
 }
 
 async function handleAnalyzeUpload(content: string, fileName: string, environment: string): Promise<string> {
-    // Truncate content to safe limit for 8k models (approx 20k chars is ~5k tokens)
-    const safeContent = content.substring(0, 20000);
-    
+  // ----------------------------------------------------------------------------
+  // STRATEGY: Chunking for Large Documents (Problem #3 Fix)
+  // ----------------------------------------------------------------------------
+  // If content is manageable (under 100k chars), process directly for speed.
+  // Gemini 1.5/2.0 can handle much more, but we want to ensure focus and avoid
+  // "lost in the middle" phenomenon for very dense docs.
+  if (content.length < 100000) {
+    const safeContent = content.substring(0, 100000);
     const prompt = `
     **TASK**: Analyze the uploaded course material and create a comprehensive Course Blueprint.
     **INPUT**: 
     File Name: ${fileName}
-    Content Snippet: ${safeContent}... (truncated to fit context)
+    Content Snippet: ${safeContent}
     Target Environment: ${environment}
 
     **GOAL**: Extract the structure and learning objectives to create a valid JSON Blueprint.
@@ -1339,8 +1668,84 @@ async function handleAnalyzeUpload(content: string, fileName: string, environmen
     
     Return ONLY valid JSON. Do not include markdown formatting.
     `;
-
     return await callLLM(prompt);
+  }
+
+  // ----------------------------------------------------------------------------
+  // Large Content Logic: Map-Reduce Chunking
+  // ----------------------------------------------------------------------------
+  Logger.info(`Large document detected (${content.length} chars). Engaging Chunking Strategy.`);
+  
+  const CHUNK_SIZE = 50000; // ~12k tokens
+  const chunks = [];
+  for (let i = 0; i < content.length; i += CHUNK_SIZE) {
+    chunks.push(content.substring(i, i + CHUNK_SIZE));
+  }
+
+  // Limit chunks to avoid timeouts (max 20 chunks = 1M chars covered)
+  // If > 20 chunks, we take first 5, middle 5, last 5
+  let selectedChunks = chunks;
+  if (chunks.length > 20) {
+    const first = chunks.slice(0, 5);
+    const last = chunks.slice(-5);
+    const middleStart = Math.floor(chunks.length / 2) - 2;
+    const middle = chunks.slice(middleStart, middleStart + 5);
+    selectedChunks = [...first, ...middle, ...last];
+    Logger.warn(`Document extremely large. Sampling ${selectedChunks.length} chunks out of ${chunks.length}.`);
+  }
+
+  // Step 1: Summarize Chunks (Parallel)
+  const summarizePromises = selectedChunks.map(async (chunk, index) => {
+    const chunkPrompt = `
+      **TASK**: Analyze this segment (Part ${index + 1}) of a large course document.
+      **GOAL**: Extract key pedagogical topics, potential module titles, and specific learning points.
+      **CONTENT**: ${chunk.substring(0, 50000)}...
+
+      **OUTPUT**: A concise bulleted summary. Focus on STRUCTURE and KEY CONCEPTS.
+    `;
+    try {
+      return await callLLM(chunkPrompt);
+    } catch (e) {
+      Logger.error(`Failed to summarize chunk ${index}`, e);
+      return ""; // Skip failed chunks
+    }
+  });
+
+  const summaries = await Promise.all(summarizePromises);
+  const masterSummary = summaries.join("\n\n=== NEXT SEGMENT ===\n\n");
+
+  // Step 2: Final Blueprint Generation from Summaries
+  const masterPrompt = `
+    **TASK**: Create a Master Course Blueprint based on these document summaries.
+    **INPUT**: 
+    File Name: ${fileName}
+    Target Environment: ${environment}
+    
+    **DOCUMENT SUMMARIES**:
+    ${masterSummary}
+
+    **GOAL**: Synthesize the summaries into a cohesive course structure.
+    **IMPORTANT**: The output language MUST be the same as the INPUT content language.
+    
+    **OUTPUT FORMAT**:
+    Strict JSON object with this structure:
+    {
+      "title": "Course Title",
+      "target_audience": "Who is this for?",
+      "description": "Course description",
+      "modules": [
+        {
+          "title": "Module 1 Title",
+          "duration": "45 min",
+          "learning_objective": "By the end of this module, participants will..."
+        }
+      ]
+    }
+    
+    Return ONLY valid JSON.
+  `;
+
+  return await callLLM(masterPrompt);
 }
 
 async function handleFillGaps(blueprint: any, existingContent: string, environment: string): Promise<string> {
@@ -1374,75 +1779,124 @@ async function handleChatOnboarding(chat_history: any[], course: any): Promise<s
     const conversation = chat_history.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n');
     const lang = course.language || 'Romanian';
     
-    const prompt = `
-    **ROLE**: Expert Course Architect.
-    **TASK**: Interact with the user to design a course.
+    // ----------------------------------------------------------------------------
+    // PHASE 1: CONVERSATION ANALYST (Is the user done?)
+    // ----------------------------------------------------------------------------
+    // Solution to "Prompt Overload" (Problem #2)
+    // Split the logic: First determine IF we are ready, THEN generate.
+    
+    const analystPrompt = `
+    **ROLE**: Course Requirements Analyst.
+    **TASK**: Analyze the conversation to see if we have enough info to build a course blueprint.
     **CONTEXT**: 
     Course Title: ${course.title}
-    Target Language: ${lang}
+    Language: ${lang}
     
     **CONVERSATION HISTORY**:
     ${conversation}
     
-    **GOAL**: Gather 3 key details to build a blueprint:
-    1. Target Audience
-    2. Specific Learning Objectives
-    3. Estimated Duration (or infer it if implied)
-    
-    **INSTRUCTIONS**:
-    1. Analyze the history. If the user just answered a question, acknowledge it briefly.
-    2. If you have enough info (Audience + Objectives + Duration/Scope), generate a "blueprint".
-    3. If info is missing, ask **ONE** relevant clarifying question in ${lang}.
-    4. **CRITICAL**: Your output must be ONLY a valid JSON object. No Markdown. No introductory text.
-    5. **CRITICAL**: The content of "message" MUST be in ${lang}.
-    
-    **OUTPUT FORMAT (JSON)**:
-    {
-      "message": "Your response to the user in ${lang}...",
-      "blueprint": { 
-        "title": "Refined Title",
-        "target_audience": "...",
-        "estimated_duration": "...",
-        "modules": [
-           { 
-             "title": "Module 1", 
-             "duration": "...", 
-             "learning_objective": "...",
-             "sections": [
-                { "title": "Hook/Intro", "content_type": "slides" },
-                { "title": "Core Concept", "content_type": "video_script" },
-                { "title": "Guided Practice", "content_type": "exercise" },
-                { "title": "Application", "content_type": "reading" },
-                { "title": "Review/Quiz", "content_type": "quiz" }
-             ]
-           }
-        ]
-      } // Set to null if not yet ready
-    }
+    **REQUIREMENTS FOR BLUEPRINT**:
+    1. Target Audience (Who is this for?)
+    2. Learning Objectives (What will they learn?)
+    3. Scope/Duration (Rough estimate or depth)
 
-    **PEDAGOGICAL STRUCTURE RULES**:
-    - Each module MUST have a logical flow (3-5 sections):
-      1. **Hook/Discovery**: Start with an engaging intro (slides/video).
-      2. **Core Concept**: Present the main theory (video_script/slides/reading).
-      3. **Active Practice**: Apply the concept immediately (exercise).
-      4. **Application/Review**: Consolidate learning (quiz/reading).
-    - **Mix Content Types**: Do NOT use the same 'content_type' for all sections.
-    - **Language**: All titles and content must be in **${lang}**.
+    **DECISION LOGIC**:
+    - IF information is missing: Generate a polite, short question in ${lang} to ask for it.
+    - IF information is sufficient: Set status to "READY" and summarize the gathered requirements.
 
-    **EXAMPLE**:
+    **OUTPUT FORMAT (JSON ONLY)**:
     {
-      "message": "Mulțumesc! Pentru a structura cursul, îmi poți spune cam cât timp ar trebui să dureze?",
-      "blueprint": null
+      "status": "READY" | "NEEDS_INFO",
+      "message": "Your question to the user (if NEEDS_INFO) or a confirmation message (if READY)",
+      "gathered_requirements": {
+         "audience": "...",
+         "objectives": "...",
+         "duration": "..."
+      }
     }
+    
+    Return ONLY valid JSON.
     `;
+
+    Logger.info("Step 1: Running Conversation Analyst...");
+    const rawAnalyst = await callLLM(analystPrompt);
+    let analystData;
     
-    const rawResponse = await callLLM(prompt);
-    let cleaned = rawResponse.trim();
-    // Aggressive cleanup for markdown code blocks
-    if (cleaned.includes('```')) {
-        cleaned = cleaned.replace(/```json/g, '').replace(/```/g, '').trim();
+    try {
+        analystData = repairAndParseJson<{status: string, message: string, gathered_requirements: any}>(rawAnalyst);
+    } catch (e) {
+        Logger.error("Failed to parse Analyst response", e);
+        // Fallback: Assume we need more info if AI failed to format correctly
+        return JSON.stringify({
+            message: "Îmi poți da te rog mai multe detalii despre audiența țintă și obiective?",
+            blueprint: null
+        });
     }
-    return cleaned;
+
+    if (analystData?.status !== 'READY') {
+        Logger.info("Analyst Status: NEEDS_INFO");
+        return JSON.stringify({
+            message: analystData?.message || "Could you provide more details about the target audience?",
+            blueprint: null
+        });
+    }
+
+    // ----------------------------------------------------------------------------
+    // PHASE 2: BLUEPRINT ARCHITECT (Generate the structure)
+    // ----------------------------------------------------------------------------
+    Logger.info("Analyst Status: READY. Running Blueprint Architect...");
+    
+    const architectPrompt = `
+    **ROLE**: Expert Instructional Designer.
+    **TASK**: Generate a detailed Course Blueprint JSON based on gathered requirements.
+    **LANGUAGE**: ${lang}
+    
+    **REQUIREMENTS**:
+    ${JSON.stringify(analystData.gathered_requirements, null, 2)}
+    
+    **PEDAGOGICAL STRUCTURE RULES**:
+    - Create a logical flow of modules.
+    - Each module must have 3-5 sections (Hook, Theory, Practice, Review).
+    - Mix content types (slides, video_script, exercise, quiz).
+    - **Language**: All titles and content must be in **${lang}**.
+    
+    **OUTPUT FORMAT (JSON ONLY)**:
+    {
+      "title": "Refined Title",
+      "target_audience": "...",
+      "estimated_duration": "...",
+      "modules": [
+          {
+            "title": "Module Title",
+            "duration": "...",
+            "learning_objective": "...",
+            "sections": [
+              { "title": "Section Title", "content_type": "slides" }
+            ]
+          }
+      ]
+    }
+    
+    Return ONLY valid JSON.
+    `;
+
+    const rawBlueprint = await callLLM(architectPrompt);
+    let blueprintData;
+    try {
+        blueprintData = repairAndParseJson(rawBlueprint);
+    } catch (e) {
+        Logger.error("Failed to parse Blueprint", e);
+        return JSON.stringify({
+            message: "Am întâmpinat o eroare tehnică la generarea structurii. Te rog să mai încerci o dată.",
+            blueprint: null
+        });
+    }
+
+    // Combine for the final return
+    return JSON.stringify({
+        message: analystData.message, 
+        blueprint: blueprintData
+    });
 }
 
 function fillPromptTemplate(template: string, variables: Record<string, any>): string {

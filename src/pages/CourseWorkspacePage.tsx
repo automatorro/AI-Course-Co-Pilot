@@ -1240,9 +1240,22 @@ const CourseWorkspacePage: React.FC = () => {
   const handleBlueprintReady = async (blueprint: CourseBlueprint) => {
     if (!course) return;
 
+    // UPDATE: Sync extracted metadata (Audience, Duration) from Blueprint to Course
+    // This ensures Style Blocks and subsequent generation steps use the refined chat data.
+    const updates: any = { blueprint };
+    
+    if (blueprint.target_audience) {
+        updates.target_audience = blueprint.target_audience;
+    }
+    
+    // Also save the refined title if changed
+    if (blueprint.title && blueprint.title !== course.title) {
+        updates.title = blueprint.title;
+    }
+
     const { error } = await supabase
       .from('courses')
-      .update({ blueprint })
+      .update(updates)
       .eq('id', course.id);
 
     if (error) {
@@ -1251,7 +1264,7 @@ const CourseWorkspacePage: React.FC = () => {
       return;
     }
 
-    setCourse(prev => prev ? { ...prev, blueprint } : null);
+    setCourse(prev => prev ? { ...prev, ...updates } : null);
     showToast('Blueprint created! Welcome to the editor.', 'success');
   };
 
@@ -1553,9 +1566,9 @@ const CourseWorkspacePage: React.FC = () => {
           <div id="main-scroll-container" className="flex-1 overflow-y-auto relative scroll-container flex flex-col">
             <div className="editor-header-sticky p-2 sm:p-3 border-b dark:border-gray-700 flex justify-between items-center bg-white dark:bg-gray-800 z-10 sticky top-0">
               <button
-                onClick={() => window.location.href = '/#/dashboard'}
+                onClick={() => navigate('/dashboard')}
                 className="p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mr-1 sm:mr-4 text-gray-500 hover:text-gray-900 dark:text-gray-400"
-                title="Înapoi la cursurile mele"
+                title="Înapoi la dashboard"
                 aria-label="Înapoi la dashboard"
               >
                 <ArrowLeft size={18} className="sm:w-5 sm:h-5" />

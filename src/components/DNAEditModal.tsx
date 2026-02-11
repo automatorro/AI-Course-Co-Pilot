@@ -57,9 +57,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                 <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
                     <div className="flex items-center gap-2">
                         <span className="text-2xl">🧬</span>
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                            {t('dna.edit.title')}
-                        </h2>
+                        <span className="font-medium text-green-700 dark:text-green-300">Apasa acum "Inchide"</span>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors">
                         <X size={20} />
