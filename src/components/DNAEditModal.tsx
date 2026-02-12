@@ -57,7 +57,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                 <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
                     <div className="flex items-center gap-2">
                         <span className="text-2xl">🧬</span>
-                        <span className="font-medium text-green-700 dark:text-green-300">Apasa acum "Inchide"</span>
+                        <span className="font-medium text-lg text-gray-900 dark:text-gray-100">{t('dna.edit.title')}</span>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors">
                         <X size={20} />
@@ -120,9 +120,12 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                             {/* Mandatory Terms */}
                             <div className="mt-6">
                                 <div className="flex items-center justify-between mb-2">
-                                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
-                                        {t('dna.edit.section.mandatory')}
-                                    </label>
+                                    <div className="block">
+                                        <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                            {t('dna.edit.section.mandatory')}
+                                        </label>
+                                        <p className="text-[10px] font-normal text-gray-500 mt-0.5">{t('dna.edit.mandatory.help')}</p>
+                                    </div>
                                     <button
                                         onClick={() => {
                                             const currentTerms = formData.terminology?.mandatoryTerms || {};
@@ -240,9 +243,12 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                                 <div>
                                     <div className="flex items-center justify-between mb-2">
-                                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
-                                            {t('dna.edit.section.forbidden')}
-                                        </label>
+                                        <div className="block">
+                                            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                {t('dna.edit.section.forbidden')}
+                                            </label>
+                                            <p className="text-[10px] font-normal text-gray-500 mt-0.5">{t('dna.edit.forbidden.help')}</p>
+                                        </div>
                                         <button
                                             onClick={() => {
                                                 const current = formData.voiceProfile?.forbiddenPhrases || [];
@@ -295,9 +301,12 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                                 </div>
                                 <div>
                                     <div className="flex items-center justify-between mb-2">
-                                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
-                                            {t('dna.edit.section.signature')}
-                                        </label>
+                                        <div className="block">
+                                            <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                {t('dna.edit.section.signature')}
+                                            </label>
+                                            <p className="text-[10px] font-normal text-gray-500 mt-0.5">{t('dna.edit.signature.help')}</p>
+                                        </div>
                                         <button
                                             onClick={() => {
                                                 const current = formData.voiceProfile?.signaturePhrases || [];

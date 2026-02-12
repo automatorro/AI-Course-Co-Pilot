@@ -13,8 +13,8 @@ export enum AudienceLevel {
   LEVEL_1_OPERATIONAL = 'LEVEL_1_OPERATIONAL',
   LEVEL_2_CLERICAL = 'LEVEL_2_CLERICAL',
   LEVEL_3_STRATEGIC = 'LEVEL_3_STRATEGIC',
-  LEVEL_4_COMMERCIAL = 'LEVEL_4_COMMERCIAL', // New: Sales/Service
-  LEVEL_5_TECHNICAL = 'LEVEL_5_TECHNICAL'    // New: Expert/Specialist
+  LEVEL_4_COMMERCIAL = 'LEVEL_4_COMMERCIAL',
+  LEVEL_5_TECHNICAL = 'LEVEL_5_TECHNICAL'
 }
 
 export const STYLE_BLOCKS = {
@@ -27,9 +27,9 @@ export const STYLE_BLOCKS = {
 1.  **TONE:** Respectful, Direct, Peer-to-Peer. Avoid "school teacher" tone.
 2.  **SENTENCE STRUCTURE:** Concise. Action-First. (e.g., "Press X to start", not "To start, X should be pressed").
 3.  **VOCABULARY:**
-    - ✅ USE: Industry-standard terms, "Verify", "Calibrate", "Result".
-    - ❌ FORBIDDEN: Corporate jargon ("Synergy"), Academic fluff.
-4.  **EXAMPLES:** Real-world scenarios ("When the warning light blinks...").
+    - ✅ USE: Industry-standard terms, "Verify", "Calibrate", "Result", "Check", "Stop", "Report".
+    - ❌ FORBIDDEN: Corporate jargon ("Synergy"), Academic fluff, "Paradigm".
+4.  **EXAMPLES:** Real-world scenarios ("When the warning light blinks...", "When the machine stops...").
 5.  **FORMATTING:** Checklists, Troubleshooting Tables, bold warnings.
 `,
 
@@ -97,27 +97,48 @@ export const STYLE_BLOCKS = {
 export function getStyleBlock(audienceDescription: string): string {
   const lowerDesc = audienceDescription.toLowerCase();
 
-  // Level 1: Operational
-  if (lowerDesc.includes('blue collar') || lowerDesc.includes('operator') || lowerDesc.includes('factory') || lowerDesc.includes('manual') || lowerDesc.includes('worker')) {
+  // 1. Operational (Factory / Blue Collar) - EXPANDED KEYWORDS (FIXED)
+  const operationalKeywords = [
+    'blue collar', 'operator', 'factory', 'manual', 'worker',
+    'muncitor', 'fabrică', 'nivel redus', 'fortem', 'bca', // Romanian & Specific
+    'production', 'assembly', 'maintenance', 'driver'
+  ];
+  
+  if (operationalKeywords.some(kw => lowerDesc.includes(kw))) {
     return STYLE_BLOCKS[AudienceLevel.LEVEL_1_OPERATIONAL];
   }
 
-  // Level 3: Strategic
-  if (lowerDesc.includes('executive') || lowerDesc.includes('director') || lowerDesc.includes('c-level') || lowerDesc.includes('vp') || lowerDesc.includes('strategy')) {
+  // 3. Strategic (Executives)
+  const strategicKeywords = [
+    'executive', 'director', 'c-level', 'vp', 'strategy', 'board',
+    'manager', 'leader', 'founder', 'owner'
+  ];
+  
+  if (strategicKeywords.some(kw => lowerDesc.includes(kw))) {
     return STYLE_BLOCKS[AudienceLevel.LEVEL_3_STRATEGIC];
   }
 
-  // Level 4: Commercial (Sales/Service)
-  if (lowerDesc.includes('sales') || lowerDesc.includes('customer') || lowerDesc.includes('client') || lowerDesc.includes('support') || lowerDesc.includes('agent')) {
+  // 4. Commercial (Sales)
+  const commercialKeywords = [
+    'sales', 'customer', 'client', 'support', 'agent',
+    'vanzari', 'clienti', 'relatii'
+  ];
+
+  if (commercialKeywords.some(kw => lowerDesc.includes(kw))) {
     return STYLE_BLOCKS[AudienceLevel.LEVEL_4_COMMERCIAL];
   }
 
-  // Level 5: Technical (Devs/Engineers)
-  if (lowerDesc.includes('developer') || lowerDesc.includes('engineer') || lowerDesc.includes('architect') || lowerDesc.includes('technical') || lowerDesc.includes('it pro')) {
+  // 5. Technical (Engineers)
+  const technicalKeywords = [
+    'developer', 'engineer', 'architect', 'technical', 'it pro',
+    'programator', 'inginer', 'tehnic'
+  ];
+
+  if (technicalKeywords.some(kw => lowerDesc.includes(kw))) {
     return STYLE_BLOCKS[AudienceLevel.LEVEL_5_TECHNICAL];
   }
 
-  // Default to Level 2 (Clerical/General Management)
+  // Default to Level 2 (Clerical / General)
   return STYLE_BLOCKS[AudienceLevel.LEVEL_2_CLERICAL];
 }
 
@@ -125,156 +146,64 @@ export function getStyleBlock(audienceDescription: string): string {
 // INLINED MODULE: Golden Master Prompt
 // --------------------------------------------------------------------------------
 export const GOLDEN_MASTER_PROMPT = `
-You are an expert **Instructional Designer** and **JSON Data Architect**.
-Your task is to generate a single, comprehensive "Golden JSON" object for a specific training module.
-This JSON will be the Single Source of Truth for generating 7 distinct deliverables (Workbook, Manual, Slides, etc.).
+You are an expert **Instructional Designer**. Generate a single "Golden JSON" object for this training module.
 
-### 1. INPUT CONTEXT
-- **Module Title**: {{moduleTitle}}
-- **Duration**: {{durationMinutes}} minutes (STRICT)
-- **Environment**: {{environment}} (LIVE = In-Person Workshop | ONLINE = Virtual/Zoom)
-- **Language**: {{language}} (Target language for ALL content)
-- **Protagonist**: {{protagonistName}} (Current State: {{protagonistState}})
-- **Target Audience**: {{targetAudience}}
+### 1. CORE CONTEXT
+- **Module**: {{moduleTitle}} ({{durationMinutes}} min)
+- **Environment**: {{environment}}
+- **Language**: {{language}}
+- **Protagonist**: {{protagonistName}} (Stage: {{protagonistState}})
+- **Audience**: {{targetAudience}}
 {{styleBlock}}
 
-### 2. CRITICAL RULES (NON-NEGOTIABLE)
-1.  **SILENT OPERATOR PROTOCOL (XML ENCAPSULATION)**:
-    - You must output **ONLY** two XML blocks. No other text.
-    - Block 1: \`<meta>...</meta>\` (Contains your internal reasoning and validation).
-    - Block 2: \`<content_block>...</content_block>\` (Contains the PURE JSON).
-    - **ANY text outside these tags will be treated as garbage and DELETED.**
-    - INSIDE \`<content_block>\`, provide **ONLY VALID JSON**. No markdown fences (\`\`\`json).
+### 2. GOLDEN RULES (STRICT)
+1. **XML ONLY**: Output <meta>...</meta> then <content_block>PURE JSON</content_block>.
+2. **NARRATIVE**: "{{protagonistName}}" appears ONLY in \`narrativeContext\` and \`theoryContent.hook\`.
+3. **CONSISTENCY**: All content in {{language}}. JSON keys in English.
+4. **NO HALLUCINATIONS**: Respect the duration. Do not invent modules.
 
-2.  **BLUEPRINT INTEGRITY**: You MUST respect the Module Title and Duration provided in the input. Do not invent new modules.
-3.  **NARRATIVE ISOLATION**:
-    - The character "{{protagonistName}}" exists ONLY in the \`narrativeContext\` and \`theoryContent.hook\` fields.
-    - Do NOT mention "{{protagonistName}}" in the \`trainerInstructions\`, \`exercisesDetailed\` (unless as a case study subject), or \`logistics\`.
-    - The Trainer Manual should sound professional and instructional, NOT like a storybook.
-4.  **ENVIRONMENT ADAPTATION**:
-    - IF environment == 'LIVE':
-      - Generate \`flipchartSketch\` instructions (What to draw on paper).
-      - Generate physical activities (standing up, moving rooms).
-      - \`videoScript\` MUST be null.
-      - \`breakoutRoomConfig\` MUST be null.
-    - IF environment == 'ONLINE':
-      - Generate \`breakoutRoomConfig\` (Zoom/Teams setup).
-      - Generate \`videoScript\` (for self-paced segments).
-      - \`flipchartSketch\` MUST be null.
-5.  **LANGUAGE CONSISTENCY**:
-    - All generated content (Theory, Scripts, Slides) must be in **{{language}}**.
-    - Field names (keys) remain in English (e.g., \`participantContent\`), but string values must be in {{language}}.
-
-### 3. CONTENT GUIDELINES
-- **Theory (Workbook)**: Use Markdown inside string fields. Use bolding (**text**) for emphasis. Be concise. Action-oriented.
-- **Trainer Script**: Write VERBATIM what the trainer should say. Casual, professional, engaging. NO "Hello everyone". Start directly with the hook.
-- **Slides**:
-    - \`visualDescription\`: Instructions for a designer (e.g., "Photo of a frustrated manager...").
-    - \`speakerNotes\`: Match the Trainer Script.
-- **Exercises**:
-    - Step-by-step instructions.
-    - Clear "Success Indicators" (How do we know they got it right?).
-
-### 4. JSON STRUCTURE (SCHEMA)
-You must strictly follow this TypeScript interface structure:
-
+### 3. JSON TEMPLATE
 \`\`\`typescript
 interface GoldenModuleData {
-  moduleId: string; // Use "{{moduleId}}"
-  moduleTitle: string; // Use "{{moduleTitle}}"
-  moduleDurationMinutes: number; // Use {{durationMinutes}}
+  moduleId: "{{moduleId}}";
+  moduleTitle: "{{moduleTitle}}";
+  moduleDurationMinutes: number;
   environment: "{{environment}}";
-
   narrativeContext: {
     protagonistName: string;
-    storyArcStage: string; // "{{protagonistState}}"
-    contextDescription: string; // Context for this specific module
-    examplesLibrary: Array<{
-      id: string;
-      title: string;
-      storyContent: string; // The example story
-      applicationContext: string; // When to use it
-    }>;
+    storyArcStage: string;
+    contextDescription: string;
+    examplesLibrary: Array<{ id: string; title: string; storyContent: string; applicationContext: string }>;
   };
-
   sections: Array<{
-    id: string; // e.g., "section-1"
+    id: string;
     title: string;
     durationMinutes: number;
     type: 'THEORY' | 'ACTIVITY' | 'DISCUSSION' | 'VIDEO_LESSON';
-
-    participantContent: {
-      theoryMarkdown: string; // Rich text in {{language}}
-      keyTakeaways: string[];
-      reflectionQuestions?: string[];
-      actionableSteps?: string[];
-    };
-
-    trainerInstructions: {
-      deliveryMethod: string;
-      script: string; // Verbatim script in {{language}}
-      logistics: string[];
-      // LIVE ONLY
-      flipchartSketch?: {
-        title: string;
-        visualDescription: string;
-        bulletPoints: string[];
-      };
-      // ONLINE ONLY
-      breakoutRoomConfig?: {
-        groupSize: number;
-        duration: number;
-        taskDescription: string;
-      };
-    };
-
-    visuals: {
-      slidesSequence: Array<{
-        slideId: string;
-        layout: 'TITLE' | 'BULLETS' | 'VISUAL_FOCUS' | 'QUOTE';
-        title: string;
-        visualDescription: string; // English description for AI image gen
-        contentBullets: string[];
-        speakerNotes: string;
-      }>;
-    };
-
-    // ONLY IF type == 'ACTIVITY' or 'DISCUSSION'
-    exercisesDetailed?: {
-      title: string;
-      objective: string;
-      durationMinutes: number;
-      instructionsParticipant: string;
-      instructionsFacilitator: string;
-      materialsNeeded: string[];
-      debriefingQuestions: string[];
-      successIndicators: string[];
-      adaptationNotes: string;
-    };
-
-    // ONLY IF environment == 'ONLINE' AND type == 'VIDEO_LESSON'
-    videoScript?: {
-      sceneDescription: string;
-      scriptContent: string;
-      visualOverlays: Array<{ timestamp: string; description: string }>;
-    };
+    participantContent: { theoryMarkdown: string; keyTakeaways: string[]; reflectionQuestions?: string[]; actionableSteps?: string[] };
+    trainerInstructions: { deliveryMethod: string; script: string; logistics: string[]; flipchartSketch?: any; breakoutRoomConfig?: any };
+    visuals: { slidesSequence: Array<{ slideId: string; layout: string; title: string; visualDescription: string; contentBullets: string[]; speakerNotes: string }> };
+    exercisesDetailed?: { title: string; objective: string; durationMinutes: number; instructionsParticipant: string; instructionsFacilitator: string; materialsNeeded: string[]; debriefingQuestions: string[]; successIndicators: string[]; adaptationNotes: string };
+    videoScript?: { sceneDescription: string; scriptContent: string; visualOverlays: Array<{ timestamp: string; description: string }> };
   }>;
 }
 \`\`\`
 
-### 5. THINKING PROCESS (Internal Monologue)
-Before generating the JSON, put your plan inside the \`<meta>\` tag:
-1.  **Analyze**: What is the core skill in {{moduleTitle}}?
-2.  **Style Check**: Am I using the correct tone for the audience ({{targetAudience}})?
-3.  **Story Arc**: How does {{protagonistName}} encounter this problem?
-4.  **Consistency Check**: Ensure the Trainer Script matches the Workbook Theory.
-
-GENERATE THE XML NOW.
+### 4. THINKING PROCESS
 <meta>
-[Your thinking process here]
+1. Analyze audience & tone.
+2. Define protagonist's struggle.
+3. Align exercises with environment ({{environment}}).
 </meta>
 <content_block>
-[Your JSON here]
+{
+  "moduleId": "{{moduleId}}",
+  "moduleTitle": "{{moduleTitle}}",
+  "moduleDurationMinutes": {{durationMinutes}},
+  "environment": "{{environment}}",
+  "narrativeContext": { ... },
+  "sections": [ ... ]
+}
 </content_block>
 `;
 
@@ -1346,12 +1275,14 @@ async function handleGoldenStep(
   if (!goldenData) {
     Logger.info(`Generating Golden Data for Module: ${moduleData.title}`);
     
+    const protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name || "Alex";
+
     const prompt = fillPromptTemplate(GOLDEN_MASTER_PROMPT, {
       moduleTitle: moduleData.title,
       durationMinutes: moduleData.duration_minutes || 60, 
       environment: course.environment,
       language: course.language || "Romanian",
-      protagonistName: course.dna?.narrativeUniverse?.protagonists?.[0]?.name || "Alex",
+      protagonistName: protagonistName,
       protagonistState: currentStoryStage,
       targetAudience: course.target_audience || "General Audience",
       styleBlock: getStyleBlock(course.target_audience || "General Audience"),
@@ -1359,8 +1290,9 @@ async function handleGoldenStep(
     });
 
     const rawJson = await callLLM(prompt);
+    const enforcedJson = ProtagonistEnforcer.enforce(rawJson, protagonistName);
     
-    goldenData = repairAndParseJson<GoldenModuleData>(rawJson);
+    goldenData = repairAndParseJson<GoldenModuleData>(enforcedJson);
     
     await supabase
       .from('course_modules')
@@ -1905,4 +1837,43 @@ function fillPromptTemplate(template: string, variables: Record<string, any>): s
     output = output.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
   }
   return output;
+}
+
+// ==========================================
+// 8. PROTAGONIST ENFORCER (CRITICAL FIX)
+// ==========================================
+
+export class ProtagonistEnforcer {
+  private static BANNED_NAMES = [
+    'ion', 'maria', 'ana', 'bogdan', 'vasile', 'elena', 
+    'andrei', 'mihai', 'alexandru', 'ioana', 'george' // Common Romanian names that LLMs default to
+  ];
+
+  static enforce(content: string, protagonistName: string): string {
+    const lowerProtagonist = protagonistName.toLowerCase();
+    
+    // Find and replace banned names
+    let fixedContent = content;
+    let modified = false;
+
+    this.BANNED_NAMES.forEach(bannedName => {
+      // Don't ban the protagonist if their name happens to be in the banned list
+      if (bannedName === lowerProtagonist) return;
+
+      // Regex to find whole words, case insensitive
+      const regex = new RegExp(`\\b${bannedName}\\b`, 'gi');
+      
+      if (regex.test(fixedContent)) {
+        Logger.warn(`[ProtagonistEnforcer] Found banned name: ${bannedName}. Replacing with ${protagonistName}.`);
+        fixedContent = fixedContent.replace(regex, protagonistName);
+        modified = true;
+      }
+    });
+
+    if (modified) {
+        Logger.info(`[ProtagonistEnforcer] Content auto-corrected.`);
+    }
+
+    return fixedContent;
+  }
 }

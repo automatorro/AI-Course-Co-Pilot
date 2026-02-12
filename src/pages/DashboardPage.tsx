@@ -140,7 +140,7 @@ const DashboardPage: React.FC = () => {
     if (courseError) {
       console.error("Error creating course:", courseError);
       showToast('Error creating course.', 'error');
-      return;
+      throw courseError;
     }
 
     // Initialize empty steps for UI consistency until Blueprint is ready

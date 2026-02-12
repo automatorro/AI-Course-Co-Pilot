@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from '../contexts/I18nContext';
 import { GenerationEnvironment } from '../types';
 import { POPULAR_LANGUAGES, OTHER_LANGUAGES } from '../languages';
-import { X, Presentation, MonitorPlay, Lightbulb } from 'lucide-react';
+import { X, Presentation, MonitorPlay, Lightbulb, Loader2 } from 'lucide-react';
+
+const STORAGE_KEY = 'new_course_modal_state';
 
 interface NewCourseModalProps {
   isOpen: boolean;
@@ -14,28 +16,96 @@ interface NewCourseModalProps {
     environment: GenerationEnvironment;
     language: string;
     learningObjectives?: string;
-  }) => void;
+  }) => Promise<void> | void;
 }
 
 const NewCourseModal: React.FC<NewCourseModalProps> = ({ isOpen, onClose, onCreate }) => {
   const { t } = useTranslation();
-  const [title, setTitle] = useState('');
-  const [subject, setSubject] = useState('');
-  const [targetAudience, setTargetAudience] = useState('');
-  const [environment, setEnvironment] = useState<GenerationEnvironment>(GenerationEnvironment.LiveWorkshop);
-  const [language, setLanguage] = useState('en');
-  const [learningObjectives, setLearningObjectives] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onCreate({
+  // Initialize state from localStorage or defaults
+  const [title, setTitle] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).title || '' : '';
+    } catch { return ''; }
+  });
+
+  const [subject, setSubject] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).subject || '' : '';
+    } catch { return ''; }
+  });
+
+  const [targetAudience, setTargetAudience] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).targetAudience || '' : '';
+    } catch { return ''; }
+  });
+
+  const [environment, setEnvironment] = useState<GenerationEnvironment>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).environment || GenerationEnvironment.LiveWorkshop : GenerationEnvironment.LiveWorkshop;
+    } catch { return GenerationEnvironment.LiveWorkshop; }
+  });
+
+  const [language, setLanguage] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).language || 'en' : 'en';
+    } catch { return 'en'; }
+  });
+
+  const [learningObjectives, setLearningObjectives] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved).learningObjectives || '' : '';
+    } catch { return ''; }
+  });
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    const data = {
       title,
       subject,
       targetAudience,
       environment,
       language,
-      learningObjectives: learningObjectives.trim() || undefined
-    });
+      learningObjectives
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }, [title, subject, targetAudience, environment, language, learningObjectives]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await onCreate({
+        title,
+        subject,
+        targetAudience,
+        environment,
+        language,
+        learningObjectives: learningObjectives.trim() || undefined
+      });
+      // Clear storage on successful submission
+      localStorage.removeItem(STORAGE_KEY);
+      // Also reset local state if the modal is kept mounted (though usually it closes/unmounts or page changes)
+      // For safety, we can reset them, but if the component unmounts, next mount will read from empty storage.
+      setTitle('');
+      setSubject('');
+      setTargetAudience('');
+      setEnvironment(GenerationEnvironment.LiveWorkshop);
+      setLanguage('en');
+      setLearningObjectives('');
+    } catch (error) {
+      console.error("Failed to create course", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -45,7 +115,7 @@ const NewCourseModal: React.FC<NewCourseModalProps> = ({ isOpen, onClose, onCrea
       <div className="card-premium w-full max-w-2xl transform transition-all max-h-[90vh] flex flex-col">
         <div className="flex justify-between items-center p-6 border-b dark:border-ink-700">
           <h2 className="text-2xl font-bold font-display tracking-tight">{t('modal.newCourse.title')}</h2>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-ink-100 dark:hover:bg-ink-800 interactive-soft">
+          <button onClick={onClose} disabled={isSubmitting} className="p-1 rounded-full hover:bg-ink-100 dark:hover:bg-ink-800 interactive-soft">
             <X size={24} />
           </button>
         </div>
@@ -126,8 +196,11 @@ const NewCourseModal: React.FC<NewCourseModalProps> = ({ isOpen, onClose, onCrea
           </div>
 
           <div className="p-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-3 flex-shrink-0">
-            <button type="button" onClick={onClose} className="btn-premium--secondary">{t('modal.newCourse.cancel')}</button>
-            <button type="submit" className="btn-premium">{t('modal.newCourse.create')}</button>
+            <button type="button" onClick={onClose} disabled={isSubmitting} className="btn-premium--secondary">{t('modal.newCourse.cancel')}</button>
+            <button type="submit" disabled={isSubmitting} className="btn-premium flex items-center gap-2">
+              {isSubmitting && <Loader2 className="animate-spin" size={20} />}
+              {t('modal.newCourse.create')}
+            </button>
           </div>
         </form>
       </div>

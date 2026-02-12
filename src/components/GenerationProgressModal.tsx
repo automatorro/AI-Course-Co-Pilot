@@ -947,7 +947,7 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                      }
 
                      setIsGenerating(false);
-                     setSuccessMessage("Pasul 0 (ADN) completat. Puteți închide fereastra pentru a revizui/edita ADN-ul, apoi reluați generarea.");
+                     setSuccessMessage("ADN-ul Cursului a fost generat cu succes. Puteți închide fereastra pentru a revizui/edita ADN-ul, apoi reluați generarea.");
                      return;
                 }
 
@@ -1364,7 +1364,9 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                                             isCompleted ? 'text-green-700 dark:text-green-300' :
                                                 'text-slate-500 dark:text-slate-500'
                                             }`}>
-                                            {`${index}. ${t(step.key)}`}
+                                            {step.type === TrainerStepType.CourseDNA ? 
+                            <span className="font-bold text-green-700 dark:text-green-400">ADN-ul Cursului --&gt; Apasa acum "Inchide"</span> 
+                            : `${index}. ${t(step.key)}`}
                                         </span>
                                     </div>
 
