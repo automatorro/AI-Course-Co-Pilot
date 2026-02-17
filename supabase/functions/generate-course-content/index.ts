@@ -933,31 +933,73 @@ export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget): 
 
 const renderWorkbookSection = (section: GoldenSection): string => {
   const content = section.participantContent;
-  
-  // Defensive Coding (Issue #5 from Audit)
-  if (!content) {
-      return `> **Error**: Missing content for section "${section.title}". Please regenerate this module.`;
+  const exercise = section.exercisesDetailed;
+
+  if (!content && !exercise) {
+      return `> Missing content for section "${section.title}". Please regenerate this module.`;
   }
 
-  let md = `### Theory & Concepts\n\n`;
-  
-  md += `${content.theoryMarkdown || ''}\n\n`;
+  let md = `### ${section.title}\n\n`;
 
-  if (content.keyTakeaways && content.keyTakeaways.length > 0) {
-    md += `### 🔑 Key Takeaways\n`;
-    content.keyTakeaways.forEach(pt => md += `- ${pt}\n`);
+  if (content && content.keyTakeaways && content.keyTakeaways.length > 0) {
+    md += `#### 🔑 Key Takeaways\n`;
+    content.keyTakeaways.forEach(pt => {
+      md += `- ${pt}\n`;
+    });
     md += `\n`;
   }
 
-  if (content.actionableSteps && content.actionableSteps.length > 0) {
-    md += `### 🚀 Action Plan\n`;
-    content.actionableSteps.forEach((step, i) => md += `${i + 1}. ${step}\n`);
-    md += `\n`;
+  if (content && content.actionableSteps && content.actionableSteps.length > 0) {
+    md += `#### 🚀 Action Plan\n`;
+    content.actionableSteps.forEach((step, i) => {
+      md += `${i + 1}. ${step}\n`;
+    });
+    md += `\n\n`;
+    md += `\n\n`;
   }
 
-  if (content.reflectionQuestions && content.reflectionQuestions.length > 0) {
-    md += `### 🤔 Reflection\n`;
-    content.reflectionQuestions.forEach(q => md += `> **Question:** ${q}\n\n*(Write your answer here)*\n\n\n`);
+  if (exercise) {
+    if (exercise.title) {
+      md += `#### 🎯 Practical Exercise: ${exercise.title}\n\n`;
+    } else {
+      md += `#### 🎯 Practical Exercise\n\n`;
+    }
+
+    if (exercise.objective) {
+      md += `**Objective:** ${exercise.objective}\n\n`;
+    }
+
+    if (typeof exercise.durationMinutes === 'number' && exercise.durationMinutes > 0) {
+      md += `**Duration:** ${exercise.durationMinutes} min\n\n`;
+    }
+
+    if (exercise.instructionsParticipant) {
+      md += `**Instructions for you:**\n`;
+      md += `${exercise.instructionsParticipant}\n\n`;
+    }
+
+    md += `**Workspace:**\n\n`;
+    md += `\n\n\n\n\n`;
+
+    if (exercise.successIndicators && exercise.successIndicators.length > 0) {
+      md += `**Success Checklist:**\n`;
+      exercise.successIndicators.forEach(item => {
+        md += `- [ ] ${item}\n`;
+      });
+      md += `\n`;
+    }
+  }
+
+  if (content && content.reflectionQuestions && content.reflectionQuestions.length > 0) {
+    md += `#### 🤔 Reflection\n`;
+    content.reflectionQuestions.forEach(q => {
+      md += `**${q}**\n\n`;
+      md += `\n\n\n\n`;
+    });
+  }
+
+  if (content && (!content.keyTakeaways || content.keyTakeaways.length === 0) && (!content.actionableSteps || content.actionableSteps.length === 0) && content.theoryMarkdown) {
+    md += `${content.theoryMarkdown}\n\n`;
   }
 
   return md;
