@@ -1103,6 +1103,8 @@ interface Course {
   target_audience: string;
   environment: 'LIVE' | 'ONLINE';
   language: string;
+  blueprint?: any;
+  learning_objectives?: string;
   dna?: any;
   story_arc?: Record<string, string>;
 }
@@ -1277,7 +1279,7 @@ async function handleGoldenStep(
     
     const protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name || "Alex";
 
-    const prompt = fillPromptTemplate(GOLDEN_MASTER_PROMPT, {
+    let prompt = fillPromptTemplate(GOLDEN_MASTER_PROMPT, {
       moduleTitle: moduleData.title,
       durationMinutes: moduleData.duration_minutes || 60, 
       environment: course.environment,
@@ -1288,6 +1290,10 @@ async function handleGoldenStep(
       styleBlock: getStyleBlock(course.target_audience || "General Audience"),
       moduleId: module_id
     });
+    const approvedObjectives = String((course as any).learning_objectives || '').trim();
+    if (approvedObjectives) {
+      prompt = `${prompt}\n\n${(course.language || 'ro').toLowerCase().includes('ro') ? '**Obiective aprobate de utilizator**' : '**User-approved objectives**'}:\n${approvedObjectives}\n${(course.language || 'ro').toLowerCase().includes('ro') ? 'Aliniază secțiunile, exercițiile și exemplele cu aceste obiective.' : 'Align sections, exercises and examples with these objectives.'}`;
+    }
 
     const rawJson = await callLLM(prompt);
     const enforcedJson = ProtagonistEnforcer.enforce(rawJson, protagonistName);
@@ -1352,17 +1358,44 @@ async function getOrCreateStoryArc(supabase: any, course: Course, moduleIndex?: 
     return storyArc;
   } catch (e) {
     Logger.error("Failed to generate Story Arc, using default.", e);
-    // Fallback: Generic arc to prevent crashes in handleGoldenStep
-    return {
-        "1": "Enthusiastic but overwhelmed by the new concepts.",
-        "2": "Encountering the first major obstacle.",
-        "3": "Beginning to understand the core logic.",
-        "4": "Attempting to apply the knowledge, making mistakes.",
-        "5": "Achieving the first small win.",
-        "6": "Gaining confidence and flow.",
-        "7": "Mastering the nuances.",
-        "8": "Fully competent and ready to teach others."
-    };
+    const lang = (course.language || '').toLowerCase();
+    try {
+      const fallbackPrompt = `
+        **TASK**: Create a default Narrative Arc for a generic course participant.
+        **COURSE TITLE**: "${course.title}"
+        **LANGUAGE**: ${course.language || "English"}
+        **GOAL**: Define the emotional/professional state of the participant for 8 modules.
+        **OUTPUT**: JSON { "1": "...", "2": "...", "3": "...", "4": "...", "5": "...", "6": "...", "7": "...", "8": "..." }
+        Return ONLY JSON in the specified language.
+      `;
+      const rawFallback = await callLLM(fallbackPrompt);
+      const arc = repairAndParseJson<Record<string, string>>(rawFallback);
+      return arc;
+    } catch (e2) {
+      Logger.error("Fallback Story Arc generation also failed. Using static map.", e2);
+    }
+    const isRo = lang.startsWith('ro') || lang.includes('roman');
+    return isRo
+      ? {
+          "1": "Entuziast, dar copleșit de conceptele noi.",
+          "2": "Se confruntă cu primul obstacol major.",
+          "3": "Începe să înțeleagă logica de bază.",
+          "4": "Încearcă să aplice cunoștințele și greșește uneori.",
+          "5": "Obține primul succes vizibil.",
+          "6": "Câștigă încredere și ritm.",
+          "7": "Stăpânește nuanțele și cazurile dificile.",
+          "8": "Este pe deplin competent și pregătit să-i ajute și pe alții."
+        }
+      : {
+          "1": "Enthusiastic but overwhelmed by the new concepts.",
+          "2": "Encountering the first major obstacle.",
+          "3": "Beginning to understand the core logic.",
+          "4": "Attempting to apply the knowledge, making mistakes.",
+          "5": "Achieving the first small win.",
+          "6": "Gaining confidence and flow.",
+          "7": "Mastering the nuances.",
+          "8": "Fully competent and ready to teach others."
+        };
   }
 }
 
@@ -1423,62 +1456,64 @@ async function handleLegacyStep(
       }
   }
 
-  if (step_type === 'course.steps.structure') {
+  if (step_type === 'course.steps.structure' || step_type === 'structure') {
+     let modulesList = "";
+     if (!explicitModuleList || String(explicitModuleList).trim().length === 0) {
+       const mods = (course.blueprint && Array.isArray(course.blueprint.modules)) ? course.blueprint.modules : [];
+       if (mods.length > 0) {
+         const lines = mods.map((m: any, i: number) => `${i + 1}. ${m.title}`).join('\n');
+         modulesList = `\n${lines}\n`;
+       }
+     }
+     const approvedObjectives = String((course as any).learning_objectives || '').trim();
+     const lang = course.language || "Romanian";
+     const isRo = (lang.toLowerCase().startsWith('ro') || lang.toLowerCase().includes('roman'));
+     const titleText = isRo ? `Structură și Agendă: ${course.title}` : `Structure and Agenda: ${course.title}`;
+     const objectivesHeader = isRo ? `Obiectivele cursului (4–6)` : `Course Objectives (4–6)`;
+     const agendaHeader = isRo ? `Agenda la minut` : `Minute-by-minute Agenda`;
+     const tableHeader = isRo
+       ? `| Ora | Subiectul | Metoda folosita | Material | Ce face trainerul | Obiectiv activitate | Ce vor face participantii | Cu ce ii ajuta pe participanti la munca |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |`
+       : `| Time | Topic | Method | Material | Trainer Action | Activity Objective | Participant Action | On-the-job Benefit |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |`;
+     const blueprintBlock = (explicitModuleList && String(explicitModuleList).trim().length > 0)
+       ? `\n${isRo ? '**BLUEPRINT APROBAT (sursa supremă de adevăr)**' : '**APPROVED BLUEPRINT (supreme source of truth)**'}:\n${explicitModuleList}\n`
+       : (modulesList ? `\n${isRo ? '**BLUEPRINT APROBAT (sursa supremă de adevăr)**' : '**APPROVED BLUEPRINT (supreme source of truth)**'}:\n${modulesList}\n` : '');
+     const objectivesBlock = approvedObjectives
+       ? `\n${isRo ? '**Obiective aprobate de utilizator**' : '**User-approved objectives**'}:\n${approvedObjectives}\n`
+       : '';
+     const constraints = isRo
+       ? `- Nu depăși 1000 de cuvinte.\n- Nu adăuga introduceri sau concluzii.\n- Scrie telegrafic, 1–2 fraze pe celulă.\n- Fiecare rând din agendă trebuie să susțină cel puțin un obiectiv.\n- Folosește blocuri de 10–30 minute.\n- Respectă mediul: ${course.environment}.`
+       : `- Do not exceed 1000 words.\n- No introductions or conclusions.\n- Telegraphic style, 1–2 sentences per cell.\n- Each agenda row must support at least one objective.\n- Use 10–30 minute blocks.\n- Respect environment: ${course.environment}.`;
+     const instructions = isRo
+       ? `1) Generează exact 4–6 obiective concise în formatul „La finalul cursului, participanții vor ști să …”, utilizând nivelul Bloom corespunzător audienței.\n2) Construiește tabelul de agendă la minut cu coloanele indicate.`
+       : `1) Generate exactly 4–6 concise objectives in the form “By the end, participants will be able to …”, using the appropriate Bloom level.\n2) Build the minute-by-minute agenda table with the indicated columns.`;
      const prompt = `
-        **TASK**: Design the Course Structure & Agenda (Detailed Minute-by-Minute View).
-        **GOAL**: Create a comprehensive Agenda Table based on the Blueprint.
-        **LANGUAGE**: ${course.language}.
-        **ENVIRONMENT**: ${course.environment}.
-
-        ${explicitModuleList ? `
-        **💎 OFFICIAL BLUEPRINT (SUPREME SOURCE OF TRUTH)**:
-        The user has approved the following structure. You MUST follow this EXACT list of modules. 
-        DO NOT ADD, REMOVE, OR REORDER MODULES.
-        DO NOT CHANGE THE TITLES.
+        ${isRo ? '**SARCINĂ**' : '**TASK**'}: ${isRo ? 'Proiectează Structura și Agenda cursului' : 'Design the Course Structure & Agenda'}.
+        ${isRo ? '**LIMBĂ**' : '**LANGUAGE**'}: ${lang}.
+        ${isRo ? '**MEDIUL**' : '**ENVIRONMENT**'}: ${course.environment}.
+        ${blueprintBlock}${objectivesBlock}
+        ${isRo ? '**INSTRUCȚIUNI**' : '**INSTRUCTIONS**'}:
+        ${instructions}
+        ${isRo ? '**CONSTRÂNGERI**' : '**CONSTRAINTS**'}:
+        ${constraints}
         
-        **REQUIRED MODULES**:
-        ${explicitModuleList}
-        ` : ''}
-
-        **INSTRUCTIONS**:
-        1. **General Objectives**: Start with EXACTLY 5-7 concise, high-level learning objectives for the entire course. (Do not list granular objectives per module here).
-        2. **Detailed Minute-by-Minute Agenda Table**: Create a Markdown Table with the following columns:
-           - **Time** (e.g. "09:00 - 09:15")
-           - **Topic/Module** (The Module Title & Subtopic)
-           - **Activity/Exercise** (Specific games, roleplays, or exercises)
-           - **Method** (Presentation, Video, Group Work, etc.)
-           - **Trainer Action** (What is the trainer doing?)
-           - **Participant Action** (What are they doing?)
-
-        **CRITICAL**: 
-        - **NO FILLER TEXT**. No introductions, no conclusions. Just the Objectives list and the Table.
-        - **MINUTE-BY-MINUTE**: Break down the modules into logical time slots.
-        - **ACTIVITIES**: If Environment is LIVE, suggest flipcharts/physical games. If ONLINE, suggest polls/breakout rooms.
-
-        **OUTPUT FORMAT**: 
-        Return a **Markdown string** directly (NOT JSON).
+        ${isRo ? 'Returnează DOAR Markdown-ul următor:' : 'Return ONLY the following Markdown:'}
         
-        Structure:
-        # Course Agenda: ${course.title}
+        # ${titleText}
         
-        ### 🎯 Key Learning Objectives (5-7)
-        - [Objective 1]
-        ...
-        - [Objective 7]
-
-        ### 📅 Minute-by-Minute Agenda
-        | Time | Topic | Activity/Exercise | Method | Trainer Action | Participant Action |
-        | :--- | :--- | :--- | :--- | :--- | :--- |
-        | 09:00 - 09:15 | Introduction | Icebreaker | Group | Welcomes, Leads | Introduces self |
-        | ... | ... | ... | ... | ... | ... |
+        ### ${objectivesHeader}
+        - ...
+        - ...
         
+        ### ${agendaHeader}
+        ${tableHeader}
+        | 09:00 - 09:15 | Introducere | Discuție ghidată | Slide 1 | Deschide sesiunea, setează așteptările | Aliniere obiective | Împărtășesc așteptări | Clarifică așteptările și focusul la job |
      `;
      
      const rawResponse = await callLLM(prompt);
      return rawResponse; // Return Markdown directly
   }
 
-  if (step_type === 'course.steps.performance_objectives') {
+  if (step_type === 'course.steps.performance_objectives' || step_type === 'performance_objectives') {
     const prompt = `
     **TASK**: Define 5-7 High-Level Performance Objectives.
     **COURSE**: "${course.title}"
@@ -1493,7 +1528,7 @@ async function handleLegacyStep(
     return await callLLM(prompt);
   }
 
-  if (step_type === 'course.steps.course_objectives') {
+  if (step_type === 'course.steps.course_objectives' || step_type === 'course_objectives') {
     const prompt = `
     **TASK**: Write a concise Course Goal Statement.
     **COURSE**: "${course.title}"
@@ -1507,7 +1542,7 @@ async function handleLegacyStep(
     return await callLLM(prompt);
   }
 
-  if (step_type === 'course.steps.timing_and_flow') {
+  if (step_type === 'course.steps.timing_and_flow' || step_type === 'timing_and_flow') {
       const prompt = `
       **TASK**: Provide brief Pacing & Flow Tips.
       **COURSE**: "${course.title}"
@@ -1520,7 +1555,7 @@ async function handleLegacyStep(
       return await callLLM(prompt);
   }
 
-  if (step_type === 'course.steps.slides') {
+  if (step_type === 'course.steps.slides' || step_type === 'slides') {
       const prompt = `
       **TASK**: Create a Course Kick-off Presentation (Slide Deck).
       **COURSE**: "${course.title}"
