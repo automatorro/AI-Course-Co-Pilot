@@ -70,6 +70,16 @@ function safeJsonParse(text: string): any {
     }
 }
 
+function blueprintHasValidSections(blueprint: CourseBlueprint): boolean {
+    if (!blueprint || !Array.isArray(blueprint.modules) || blueprint.modules.length === 0) return false;
+    for (const m of blueprint.modules as any[]) {
+        if (!m || !Array.isArray(m.sections) || m.sections.length === 0) return false;
+        const hasValid = m.sections.some((s: any) => s && typeof s.title === 'string' && s.title.trim().length > 0 && typeof s.content_type === 'string' && s.content_type.trim().length > 0);
+        if (!hasValid) return false;
+    }
+    return true;
+}
+
 /**
  * Create a new course from an uploaded file
  */
@@ -171,9 +181,28 @@ export async function createCourseFromUpload(
                 return { success: false, error: 'Invalid response from Edge Function (no content)' };
             }
             blueprint = safeJsonParse((analysisData as any).content);
-            
-            // Post-process: Ensure IDs exist for React keys
-            blueprint.modules = blueprint.modules.map((m: any, i: number) => ({
+            const isRomanian = /[ăâîșțĂÂÎȘȚ]/.test(content);
+            if (!blueprintHasValidSections(blueprint)) {
+                const { data: fixData, error: fixError } = await supabase.functions.invoke(
+                    'generate-course-content',
+                    {
+                        body: {
+                            action: 'complete_sections_for_import',
+                            blueprint,
+                            environment,
+                            language: isRomanian ? 'Romanian' : 'English'
+                        }
+                    }
+                );
+                if (fixError || !fixData || typeof (fixData as any).content !== 'string') {
+                    return { success: false, error: 'Failed to enrich blueprint with sections' };
+                }
+                blueprint = safeJsonParse((fixData as any).content);
+                if (!blueprintHasValidSections(blueprint)) {
+                    return { success: false, error: 'AI did not return a usable module/section structure' };
+                }
+            }
+            blueprint.modules = (blueprint.modules || []).map((m: any, i: number) => ({
                 ...m,
                 id: m.id || `mod-${Date.now()}-${i}`,
                 sections: (m.sections || []).map((s: any, j: number) => ({

@@ -70,6 +70,14 @@ export async function generateBlueprintWithRetry(
                 throw new Error(`Database update error: ${updateError.message}`);
             }
 
+            const { error: dirtyError } = await supabase
+                .from('course_modules')
+                .update({ is_dirty: true })
+                .eq('course_id', courseId);
+            if (dirtyError) {
+                console.warn('Failed to mark modules as dirty after blueprint generation:', dirtyError);
+            }
+
             return { success: true, blueprint: validationResult.data };
 
         } catch (error: unknown) {

@@ -10,6 +10,7 @@ import { htmlToMarkdownWithComments, updateSlideInMarkdown, updateSlideLayoutInM
 import { SlideState } from '../types/slideState';
 
 import { refineCourseContent } from '../services/geminiService';
+import { syncCourseModulesWithBlueprint } from '../services/courseService';
 import { supabase } from '../services/supabaseClient';
 import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ArrowLeft, ArrowRight, Upload, Replace, History, PanelLeft, Eye, Layout } from 'lucide-react';
 import BlueprintEditModal from '../components/BlueprintEditModal';
@@ -132,6 +133,7 @@ const CourseWorkspacePage: React.FC = () => {
   const [course, setCourse] = useState<Course | null>(null);
   // Add local state for the dropdown to ensure instant visual feedback
   const [selectedCourseId, setSelectedCourseId] = useState<string>('');
+  const [generationVersion, setGenerationVersion] = useState(0);
 
   const [userCourses, setUserCourses] = useState<Array<{ id: string; title: string }>>([]);
   const [activeStepIndex, setActiveStepIndex] = useState(() => {
@@ -689,6 +691,13 @@ const CourseWorkspacePage: React.FC = () => {
     // Convert any blob: URLs to public Storage URLs before saving
     // Process image tokens first, then convert any remaining blob: URLs to public Storage URLs before saving
     const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+    try {
+      const turndownPluginGfm = await import('turndown-plugin-gfm');
+      const gfm = (turndownPluginGfm as any).gfm || turndownPluginGfm;
+      turndown.use(gfm);
+    } catch (e) {
+      console.warn('Failed to load GFM plugin for Turndown in handleSaveChanges:', e);
+    }
     const mdContent = turndown.turndown(editedContent);
     const normalizeExternalImageLinks = (md: string): string => {
       try {
@@ -783,6 +792,14 @@ const CourseWorkspacePage: React.FC = () => {
       showToast('Failed to save changes.', 'error');
       setIsSaving(false);
       return;
+    }
+
+    const { error: dirtyError } = await supabase
+      .from('course_modules')
+      .update({ is_dirty: true })
+      .eq('course_id', course.id);
+    if (dirtyError) {
+      console.warn('Failed to mark modules as dirty after manual edit:', dirtyError);
     }
 
     // Reflect processed content back into editor as HTML
@@ -1264,6 +1281,14 @@ const CourseWorkspacePage: React.FC = () => {
       return;
     }
 
+    await syncCourseModulesWithBlueprint(course.id, blueprint);
+
+    // Clear generation cache to force regeneration with new blueprint
+    localStorage.removeItem(`generation_progress_${course.id}`);
+    localStorage.removeItem(`slides_partial_${course.id}`);
+    localStorage.removeItem(`workbook_partial_${course.id}`);
+    setGenerationVersion(v => v + 1);
+
     setCourse(prev => prev ? { ...prev, ...updates } : null);
     showToast('Blueprint created! Welcome to the editor.', 'success');
   };
@@ -1314,19 +1339,35 @@ const CourseWorkspacePage: React.FC = () => {
             <DNAEditModal
                 isOpen={showDNAEdit}
                 dna={course.dna}
+                course={course}
                 onClose={() => setShowDNAEdit(false)}
                 onSave={async (dna) => {
-                    const { error } = await supabase
-                        .from('courses')
-                        .update({ dna })
-                        .eq('id', course.id);
-                    if (error) {
-                        console.error('Failed to save DNA:', error);
-                        showToast('Failed to save DNA.', 'error');
-                        return;
-                    }
-                    setCourse(prev => prev ? { ...prev, dna } : null);
-                    showToast('DNA updated successfully.', 'success');
+                const { error } = await supabase
+                    .from('courses')
+                    .update({ dna })
+                    .eq('id', course.id);
+                if (error) {
+                    console.error('Failed to save DNA:', error);
+                    showToast('Failed to save DNA.', 'error');
+                    return;
+                }
+
+                const { error: dirtyError } = await supabase
+                  .from('course_modules')
+                  .update({ is_dirty: true })
+                  .eq('course_id', course.id);
+                if (dirtyError) {
+                  console.warn('Failed to mark modules as dirty after DNA edit:', dirtyError);
+                }
+
+                // Clear generation cache to force regeneration with new DNA
+                localStorage.removeItem(`generation_progress_${course.id}`);
+                localStorage.removeItem(`slides_partial_${course.id}`);
+                localStorage.removeItem(`workbook_partial_${course.id}`);
+                setGenerationVersion(v => v + 1);
+
+                setCourse(prev => prev ? { ...prev, dna } : null);
+                showToast('DNA updated successfully.', 'success');
                 }}
             />
         )}
@@ -1345,7 +1386,16 @@ const CourseWorkspacePage: React.FC = () => {
                 showToast('Failed to save updated blueprint.', 'error');
                 return;
               }
-              setCourse(prev => prev ? { ...prev, blueprint: bp } : null);
+
+              await syncCourseModulesWithBlueprint(course.id, bp);
+ 
+               // Clear generation cache to force regeneration with new blueprint
+               localStorage.removeItem(`generation_progress_${course.id}`);
+               localStorage.removeItem(`slides_partial_${course.id}`);
+               localStorage.removeItem(`workbook_partial_${course.id}`);
+               setGenerationVersion(v => v + 1);
+
+               setCourse(prev => prev ? { ...prev, blueprint: bp } : null);
               showToast('Blueprint updated successfully.', 'success');
             }}
           />
@@ -1366,9 +1416,17 @@ const CourseWorkspacePage: React.FC = () => {
                 showToast('Failed to save refined blueprint.', 'error');
                 return;
               }
+
+              await syncCourseModulesWithBlueprint(course.id, bp);
+
+              // Clear generation cache to force regeneration with new blueprint
+              localStorage.removeItem(`generation_progress_${course.id}`);
+              localStorage.removeItem(`slides_partial_${course.id}`);
+              localStorage.removeItem(`workbook_partial_${course.id}`);
+              setGenerationVersion(v => v + 1);
+
               setCourse(prev => prev ? { ...prev, blueprint: bp } : null);
-              setShowBlueprintRefine(false);
-              showToast('Blueprint refined and saved.', 'success');
+              showToast('Refined blueprint saved.', 'success');
             }}
           />
         )}
@@ -1420,6 +1478,7 @@ const CourseWorkspacePage: React.FC = () => {
         </div>
         <GenerationProgressModal
           isOpen={true}
+          key={generationVersion}
           onClose={async () => {
             setShowGenerationModal(false);
             
@@ -1454,7 +1513,28 @@ const CourseWorkspacePage: React.FC = () => {
   }
 
   if (!currentStep) {
-    return <div className="flex items-center justify-center h-screen"><Loader2 className="animate-spin text-primary-500" size={32} /> <span className="ml-2">Preparing workspace...</span></div>;
+    const isTemplate = course.title?.startsWith('(Template)') || course.title?.startsWith('(Copy)');
+    return (
+      <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+        <div className="border-b bg-white dark:bg-gray-800 p-4 flex items-center gap-4 shadow-sm">
+          <button onClick={() => navigate('/dashboard')} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
+            <ArrowLeft size={20} />
+          </button>
+          <div className="flex flex-col">
+            <h1 className="text-xl font-bold text-gray-800 dark:text-white">{course.title}</h1>
+            {isTemplate && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                Acesta este un curs duplicat (template). Orice modificare aici nu afectează cursul original.
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="animate-spin text-primary-500" size={32} />
+          <span className="ml-2 text-gray-700 dark:text-gray-200">Preparing workspace...</span>
+        </div>
+      </div>
+    );
   }
 
   const isLastStep = activeStepIndex === ((course.steps?.length ?? 0) - 1);
@@ -2188,6 +2268,7 @@ const CourseWorkspacePage: React.FC = () => {
       {course && (
         <GenerationProgressModal
           isOpen={showGenerationModal}
+          key={generationVersion}
           onClose={() => setShowGenerationModal(false)}
           course={course}
           onComplete={handleGenerationComplete}

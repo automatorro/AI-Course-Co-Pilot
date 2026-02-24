@@ -112,28 +112,18 @@ Then, they applied [Core Concept].
 
 ---
 
-## 📚 MODULE 1: [Module Title]
-**Video Duration:** [X] min
-**Objective:** [Main Goal]
+## 📚 Agenda Detaliată (Trainer Manual)
 
-### Lesson 1.1: [Lesson Title] (Video [X] min)
-**Learning Objectives:**
-- To **[Bloom Verb]** [Concept]
-- To **[Bloom Verb]** [Skill]
+### Minute-by-minute Agenda
+| Minut | Segment | Obiectiv Trainer | Activitatea Participanților |
+|-------|---------|------------------|-----------------------------|
+| 0-10  | Deschidere și context | Conectează tema cursului la realitatea participanților. | Răspund la întrebări scurte, împărtășesc situații proprii. |
+| 10-25 | Explicarea conceptului cheie | Clarifică modelul/abordarea cu exemple concrete. | Notează idei-cheie, pune întrebări de clarificare. |
+| 25-45 | Exercițiu aplicat | Dă instrucțiuni clare și observă dinamica. | Lucrează în grupuri/perechi la aplicația practică. |
+| 45-55 | Debrief și consolidare | Ghidează discuția și extrage învățămintele principale. | Împărtășește insight-uri, formulează concluzii. |
+| 55-60 | Wrap-up și următorii pași | Rezumă mesajele cheie și definește follow-up. | Notează angajamente personale și întrebări rămase. |
 
-**Content:**
-#### A. Hook (Video)
-**Narrative:** "[Story/Analogy opening]"
-
-#### B. Theory (Video + Animation)
-- **SLIDE 1:** [Visual Concept Model]
-- **SLIDE 2:** [Process Steps]
-- **SLIDE 3:** [Common Mistakes / Red Flags]
-
-#### C. Reflection (Pause Video)
-**On-Screen Instruction:** "Pause now. Open workbook page [X]. Complete exercise [Y]."
-
----
+> Notă: Ajustează timpii în funcție de durata totală a modulului și de nivelul grupului.
 `,
 
   slides_live: `
@@ -279,12 +269,18 @@ Don't skip this. It's where the learning happens."
 **Format:** [Pairs/Groups/Individual]
 **Objective:** Practice [Skill/Concept]
 
-**Instructions:**
-1. **Setup (5 min):** Divide into groups. Assign roles: [Role A], [Role B].
-2. **Action (10 min):** [Role A] performs [Task]. [Role B] provides [Input].
-3. **Debrief (5 min):** Discuss:
-   - What worked?
-   - What didn't?
+**Timing Breakdown:**
+| Timp | Acțiune Facilitator | Acțiune Participant |
+|------|---------------------|---------------------|
+| 5 min | Prezintă scopul exercițiului și explică regulile. | Ascultă și pune întrebări de clarificare. |
+| 10 min | Observă interacțiunile și notează comportamente-cheie. | Lucrează în perechi/grup la sarcina dată. |
+| 5 min | Ghidează debrief-ul și extrage învățămintele principale. | Răspunde la întrebări și împărtășește observațiile. |
+
+**Instrucțiuni detaliate:**
+1. Formează grupuri de [X] persoane și atribuie roluri: [Role A], [Role B].
+2. Explică sarcina: [Descriere scurtă a sarcinii].
+3. Pornește cronometrul pentru fiecare etapă din tabel.
+4. La final, facilitează discuția de debrief pe baza observațiilor.
 
 **Observer Checklist:**
 - [ ] Did they use [Technique 1]?

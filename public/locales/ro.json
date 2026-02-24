@@ -83,6 +83,8 @@
   "dna.edit.humor.none": "Deloc",
   "dna.edit.humor.light": "Ușor",
   "dna.edit.humor.heavy": "Accentuat",
+  "dna.edit.auto_fill": "Completare Auto",
+  "dna.edit.generate_save": "Generează și Salvează",
   "dna.edit.save": "Salvează ADN",
   "dna.edit.cancel": "Anulează",
   "dna.edit.parseError": "Am detectat o inconsistență în structura ADN. Vă rugăm să verificați în tab-ul Editor Avansat.",

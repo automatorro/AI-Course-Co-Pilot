@@ -155,15 +155,20 @@ const DashboardPage: React.FC = () => {
     const originalCourse = courses.find(c => c.id === courseId);
     if (!originalCourse || !user) return;
 
+    const duplicatedTitle = `(Template) ${originalCourse.title}`;
+
     const { data: newCourseData, error: courseError } = await supabase
       .from('courses')
       .insert({
         user_id: user.id,
-        title: `(Copy) ${originalCourse.title}`,
+        title: duplicatedTitle,
         subject: originalCourse.subject,
         target_audience: originalCourse.target_audience,
         environment: originalCourse.environment,
         language: originalCourse.language,
+        learning_objectives: originalCourse.learning_objectives || null,
+        blueprint: originalCourse.blueprint || null,
+        dna: originalCourse.dna || null,
         progress: 0,
       })
       .select('*, steps:course_steps(*)')

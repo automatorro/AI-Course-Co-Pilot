@@ -192,3 +192,36 @@ function generateStructureMarkdown(blueprint: CourseBlueprint): string {
 
   return md;
 }
+
+/**
+ * Synchronizes the course_modules table with the blueprint.
+ * 1. Deletes modules that no longer exist in the blueprint (based on index).
+ * 2. Marks remaining modules as dirty to force regeneration.
+ */
+export async function syncCourseModulesWithBlueprint(courseId: string, blueprint: CourseBlueprint): Promise<void> {
+    const moduleCount = blueprint.modules.length;
+
+    // 1. Delete orphaned modules (index >= moduleCount)
+    const { error: deleteError } = await supabase
+        .from('course_modules')
+        .delete()
+        .eq('course_id', courseId)
+        .gte('module_index', moduleCount);
+
+    if (deleteError) {
+        console.error('[syncCourseModulesWithBlueprint] Failed to delete orphaned modules:', deleteError);
+    } else {
+        console.log(`[syncCourseModulesWithBlueprint] Cleaned up modules >= ${moduleCount}`);
+    }
+
+    // 2. Mark remaining modules as dirty
+    const { error: dirtyError } = await supabase
+        .from('course_modules')
+        .update({ is_dirty: true })
+        .eq('course_id', courseId)
+        .lt('module_index', moduleCount); // Optimization: only update valid ones
+
+    if (dirtyError) {
+        console.warn('[syncCourseModulesWithBlueprint] Failed to mark modules as dirty:', dirtyError);
+    }
+}

@@ -59,6 +59,8 @@ export interface CourseDNA {
       personality: string;
       arc: string;
     }>;
+    bannedNames?: string[];
+    bannedNamesByLanguage?: Record<string, string[]>;
   };
   masterTimeline: {
     totalDuration: number; // minutes

@@ -31,6 +31,7 @@ export const getDepthSpecs = (language: string, type: 'live' | 'online' = 'live'
       *   **Case Studies**: Full case studies (1 page each) with the Course Protagonist.
       *   **Exercises**: Every exercise must have: Objective, Instructions, Formatted answer space (tables/boxes).
     - **FORMATTING**: Markdown headers, Blockquotes for takeaways, Bold for emphasis.
+      *   For any tabular content (timing breakdowns, comparisons, multi-column checklists), use standard GitHub-Flavored Markdown tables with a header row and separator row (| Col1 | Col2 | ... | / | --- | --- | ... |). Do NOT use HTML tables.
     - **LANGUAGE**: All content must be in **${language}**.
     ${envSpecs}
   `,
@@ -56,12 +57,15 @@ export const getDepthSpecs = (language: string, type: 'live' | 'online' = 'live'
       *   **Timing**: Specify exact duration.
       *   **Facilitator Instructions**: Step-by-step guide.
       *   **Debriefing**: 3-5 specific questions (Factual, Analytical, Applicative).
+    - **TABULAR CONTENT**:
+      *   When describing timing breakdowns, comparison grids (Before/After, Do/Don't), or observer checklists with more than one column, always format them as standard GitHub-Flavored Markdown tables (header row + separator row + data rows). Example pattern: \`| Time | Activity | Method |\\n| --- | --- | --- |\\n| 10 min | Warm-up | Pair discussion |\`.
+      *   Do NOT use HTML \`<table>\` tags anywhere. Only Markdown tables.
     - **LANGUAGE**: All content must be in **${language}**.
     ${envSpecs}
   `,
     manual: `
     **DEPTH SPECIFICATIONS (Trainer Manual):**
-    - **FLOW TABLE**: Minute-by-minute agenda.
+    - **FLOW TABLE**: Minute-by-minute agenda written as a standard GitHub-Flavored Markdown table (header row, separator row, then one row per segment). Do NOT use HTML tables.
     - **SCRIPTS**: Full conversational scripts. NO "Say hello to participants". WRITE exactly what to say.
     - **STORYTELLING**: The trainer is a storyteller. Scripts must include personal anecdotes placeholders.
     - **METHODOLOGY**:

@@ -939,6 +939,15 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                                  .eq('id', course.id);
                                  
                              if (updateError) throw updateError;
+                             
+                             const { error: dirtyError } = await supabase
+                                 .from('course_modules')
+                                 .update({ is_dirty: true })
+                                 .eq('course_id', course.id);
+                             if (dirtyError) {
+                                 console.warn('[GenerationProgressModal] Failed to mark modules as dirty after DNA generation:', dirtyError);
+                             }
+
                              console.log('[GenerationProgressModal] DNA saved to courses table.');
                           }
                      } catch (e) {

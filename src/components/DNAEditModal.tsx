@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, Trash2 } from 'lucide-react';
+import { X, Save, Plus, Trash2, Wand2 } from 'lucide-react';
 import { useTranslation } from '../contexts/I18nContext';
-import { CourseDNA } from '../types';
+import { CourseDNA, Course, TrainerStepType } from '../types';
+import { supabase } from '../services/supabaseClient';
 
 interface DNAEditModalProps {
     isOpen: boolean;
     dna: CourseDNA;
+    course?: Course;
     onClose: () => void;
     onSave: (dna: CourseDNA) => Promise<void>;
 }
 
-const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSave }) => {
+const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, course, onClose, onSave }) => {
     const { t } = useTranslation();
     
     // Form State (Source of Truth)
@@ -18,6 +20,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
     
     const [error, setError] = useState<string | null>(null);
     const [isSaving, setIsSaving] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     useEffect(() => {
         if (dna) {
@@ -27,19 +30,78 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
         }
     }, [dna]);
 
+    const handleAutoGenerate = async () => {
+        if (!course) return;
+        
+        try {
+            setIsGenerating(true);
+            setError(null);
+            
+            const { data, error } = await supabase.functions.invoke('generate-course-content', {
+                body: { 
+                    action: 'generate_step_content', 
+                    step_type: TrainerStepType.CourseDNA, 
+                    course 
+                }
+            });
+
+            if (error) throw error;
+            
+            let content = data?.content || '';
+            // Clean markdown code blocks if present
+            content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+            
+            const generatedDNA = JSON.parse(content);
+            setFormData(generatedDNA);
+            
+        } catch (err: any) {
+            console.error("Auto-generation failed:", err);
+            setError("Failed to generate DNA: " + (err.message || "Unknown error"));
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
     const handleSave = async () => {
         try {
             setError(null);
             
+            let dataToSave = formData;
+
+            // Auto-generate if empty and course is available
+            if ((!dataToSave.terminology || !dataToSave.narrativeUniverse) && course) {
+                setIsSaving(true); // Show saving/processing state
+                try {
+                    const { data, error } = await supabase.functions.invoke('generate-course-content', {
+                        body: { 
+                            action: 'generate_step_content', 
+                            step_type: TrainerStepType.CourseDNA, 
+                            course 
+                        }
+                    });
+                    
+                    if (error) throw error;
+                    
+                    let content = data?.content || '';
+                    content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+                    dataToSave = JSON.parse(content);
+                    setFormData(dataToSave);
+                } catch (genErr: any) {
+                    setIsSaving(false);
+                    setError("Auto-generation failed during save: " + genErr.message);
+                    return;
+                }
+            }
+            
             // Basic validation
-            if (!formData.terminology || !formData.narrativeUniverse) {
+            if (!dataToSave.terminology || !dataToSave.narrativeUniverse) {
                 throw new Error(t('dna.edit.error.structure') || "Invalid DNA structure.");
             }
 
             setIsSaving(true);
             // We cast to CourseDNA because we assume the structure is valid based on the form inputs
             // Any hidden fields (like masterTimeline) are preserved in formData since we initialized it with the full object
-            await onSave(formData as CourseDNA);
+            await onSave(dataToSave as CourseDNA);
             setIsSaving(false);
             onClose();
         } catch (e: any) {
@@ -522,6 +584,17 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                         {error}
                     </div>
                     <div className="flex gap-3">
+                        {course && (
+                             <button
+                                onClick={handleAutoGenerate}
+                                disabled={isGenerating || isSaving}
+                                className="px-3 py-2 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors flex items-center gap-2"
+                                title="Regenerate DNA based on course context"
+                            >
+                                {isGenerating ? <span className="animate-spin">✨</span> : <Wand2 size={18} />}
+                                <span className="hidden sm:inline">{t('dna.edit.auto_fill')}</span>
+                            </button>
+                        )}
                         <button
                             onClick={onClose}
                             className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -530,11 +603,11 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, onClose, onSav
                         </button>
                         <button
                             onClick={handleSave}
-                            disabled={isSaving}
+                            disabled={isSaving || isGenerating}
                             className="btn-primary flex items-center gap-2"
                         >
-                            {isSaving ? <span className="animate-spin">⏳</span> : <Save size={18} />}
-                            {t('dna.edit.save')}
+                            {isSaving || isGenerating ? <span className="animate-spin">⏳</span> : ((!formData.terminology && !formData.narrativeUniverse && course) ? <Wand2 size={18} /> : <Save size={18} />)}
+                            {(!formData.terminology && !formData.narrativeUniverse && course) ? t('dna.edit.generate_save') : t('dna.edit.save')}
                         </button>
                     </div>
                 </div>

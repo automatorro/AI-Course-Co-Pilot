@@ -1677,7 +1677,29 @@ const buildDocxParagraphs = async (content: string): Promise<(Paragraph | Table)
 const createDocx = async (step: CourseStep, courseTitle: string, stepTitle: string): Promise<Blob> => {
     const pre = normalizeExternalImageLinks(step.content);
     const withPublic = await replaceBlobUrlsWithPublic(pre, step.user_id || null, step.course_id || null);
-    const children = await buildDocxParagraphs(withPublic);
+
+    let normalizedForDocx = withPublic;
+
+    // Dacă pasul conține tabele HTML (ex. copiate din Excel), convertim HTML-ul la Markdown GFM
+    // astfel încât pipeline-ul de DOCX (buildDocxParagraphs + createDocxTable) să le poată reda ca tabele Word.
+    if (/<table[\s>]/i.test(normalizedForDocx)) {
+        try {
+            const turndownModule: any = await import('turndown');
+            const TurndownService = turndownModule.default || turndownModule;
+            const turndownPluginGfm: any = await import('turndown-plugin-gfm');
+            const gfm = turndownPluginGfm.gfm || turndownPluginGfm;
+
+            const td = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+            td.keep(['img']);
+            td.use(gfm);
+
+            normalizedForDocx = td.turndown(normalizedForDocx);
+        } catch (e) {
+            console.warn('[Export] Failed to normalize HTML tables to Markdown for DOCX export:', e);
+        }
+    }
+
+    const children = await buildDocxParagraphs(normalizedForDocx);
     const doc = new Document({
         sections: [{
             headers: {

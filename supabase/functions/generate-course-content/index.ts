@@ -94,52 +94,97 @@ export const STYLE_BLOCKS = {
 `
 };
 
+function normalizeAudienceText(text: string): string {
+  const lower = (text || '').toLowerCase();
+  return lower
+    .replace(/ă/g, 'a')
+    .replace(/â/g, 'a')
+    .replace(/î/g, 'i')
+    .replace(/ș/g, 's')
+    .replace(/ş/g, 's')
+    .replace(/ț/g, 't')
+    .replace(/ţ/g, 't');
+}
+
 export function getStyleBlock(audienceDescription: string): string {
-  const lowerDesc = audienceDescription.toLowerCase();
+  const normalized = normalizeAudienceText(audienceDescription);
 
-  // 1. Operational (Factory / Blue Collar) - EXPANDED KEYWORDS (FIXED)
-  const operationalKeywords = [
-    'blue collar', 'operator', 'factory', 'manual', 'worker',
-    'muncitor', 'fabrică', 'nivel redus', 'fortem', 'bca', // Romanian & Specific
-    'production', 'assembly', 'maintenance', 'driver'
+  const opKeywords = [
+    'blue collar', 'line worker', 'frontline', 'front line',
+    'operator', 'factory', 'warehouse', 'depozit', 'magazie',
+    'muncitor', 'muncitori', 'productie', 'linie de productie',
+    'sofer', 'driver', 'assembly', 'maintenance', 'field technician'
   ];
-  
-  if (operationalKeywords.some(kw => lowerDesc.includes(kw))) {
-    return STYLE_BLOCKS[AudienceLevel.LEVEL_1_OPERATIONAL];
-  }
 
-  // 3. Strategic (Executives)
+  const clericalKeywords = [
+    'office', 'back office', 'clerical', 'administrative',
+    'junior', 'assistant', 'coordinator', 'front desk',
+    'operator call center', 'data entry'
+  ];
+
   const strategicKeywords = [
-    'executive', 'director', 'c-level', 'vp', 'strategy', 'board',
-    'manager', 'leader', 'founder', 'owner'
+    'executive', 'executives', 'director', 'vp', 'c-level', 'c level',
+    'ceo', 'cfo', 'coo', 'board', 'board member',
+    'senior leadership', 'top management', 'strategic',
+    'founder', 'owner'
   ];
-  
-  if (strategicKeywords.some(kw => lowerDesc.includes(kw))) {
-    return STYLE_BLOCKS[AudienceLevel.LEVEL_3_STRATEGIC];
-  }
 
-  // 4. Commercial (Sales)
   const commercialKeywords = [
-    'sales', 'customer', 'client', 'support', 'agent',
-    'vanzari', 'clienti', 'relatii'
+    'sales', 'sales team', 'account manager', 'account management',
+    'customer success', 'customer support', 'customer service',
+    'client service', 'call center', 'contact center',
+    'agent vanzari', 'vanzari', 'relatii cu clientii'
   ];
 
-  if (commercialKeywords.some(kw => lowerDesc.includes(kw))) {
-    return STYLE_BLOCKS[AudienceLevel.LEVEL_4_COMMERCIAL];
-  }
-
-  // 5. Technical (Engineers)
   const technicalKeywords = [
-    'developer', 'engineer', 'architect', 'technical', 'it pro',
-    'programator', 'inginer', 'tehnic'
+    'developer', 'software engineer', 'programmer',
+    'programator', 'inginer', 'engineer', 'architect',
+    'it', 'it pro', 'devops', 'sysadmin', 'data scientist',
+    'technical staff', 'r&d', 'research and development'
   ];
 
-  if (technicalKeywords.some(kw => lowerDesc.includes(kw))) {
-    return STYLE_BLOCKS[AudienceLevel.LEVEL_5_TECHNICAL];
+  let scoreOperational = 0;
+  let scoreClerical = 0;
+  let scoreStrategic = 0;
+  let scoreCommercial = 0;
+  let scoreTechnical = 0;
+
+  const addScore = (keywords: string[], increment: () => void) => {
+    for (const kw of keywords) {
+      if (!kw) continue;
+      if (normalized.includes(kw)) {
+        increment();
+      }
+    }
+  };
+
+  addScore(opKeywords, () => { scoreOperational += 2; });
+  addScore(clericalKeywords, () => { scoreClerical += 2; });
+  addScore(strategicKeywords, () => { scoreStrategic += 2; });
+  addScore(commercialKeywords, () => { scoreCommercial += 2; });
+  addScore(technicalKeywords, () => { scoreTechnical += 2; });
+
+  if (scoreOperational === 0 && scoreClerical === 0 && scoreStrategic === 0 && scoreCommercial === 0 && scoreTechnical === 0) {
+    return STYLE_BLOCKS[AudienceLevel.LEVEL_2_CLERICAL];
   }
 
-  // Default to Level 2 (Clerical / General)
-  return STYLE_BLOCKS[AudienceLevel.LEVEL_2_CLERICAL];
+  let bestLevel = AudienceLevel.LEVEL_2_CLERICAL;
+  let bestScore = scoreClerical;
+
+  const consider = (level: AudienceLevel, score: number, priorityBoost = 0) => {
+    const effectiveScore = score + priorityBoost;
+    if (effectiveScore > bestScore) {
+      bestScore = effectiveScore;
+      bestLevel = level;
+    }
+  };
+
+  consider(AudienceLevel.LEVEL_1_OPERATIONAL, scoreOperational, 0.5);
+  consider(AudienceLevel.LEVEL_3_STRATEGIC, scoreStrategic, 0.5);
+  consider(AudienceLevel.LEVEL_4_COMMERCIAL, scoreCommercial, 0.25);
+  consider(AudienceLevel.LEVEL_5_TECHNICAL, scoreTechnical, 0.5);
+
+  return STYLE_BLOCKS[bestLevel];
 }
 
 // --------------------------------------------------------------------------------
@@ -1230,6 +1275,14 @@ serve(async (req) => {
         });
     }
 
+    if (action === 'complete_sections_for_import') {
+        const { blueprint, environment, language } = body;
+        const result = await handleCompleteSectionsForImport(blueprint, environment, language);
+        return new Response(JSON.stringify({ content: result }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+    }
+
     if (action === 'fill_gaps') {
         const { blueprint, existingContent, environment } = body;
         const result = await handleFillGaps(blueprint, existingContent, environment);
@@ -1296,6 +1349,88 @@ serve(async (req) => {
 // 7. BUSINESS LOGIC HANDLERS
 // ==========================================
 
+function hasMinimalCourseDNA(course: Course): boolean {
+  const dna = course.dna;
+  if (!dna) return false;
+
+  const firstProtagonistName = dna.narrativeUniverse?.protagonists?.[0]?.name;
+  const lang = String(course.language || '').trim();
+
+  if (!firstProtagonistName || String(firstProtagonistName).trim().length === 0) {
+    return false;
+  }
+
+  if (!lang) {
+    return false;
+  }
+
+  return true;
+}
+
+function inferProtagonistFromAudience(audienceDescription: string, language: string): { name: string; role: string } | null {
+  const desc = (audienceDescription || '').toLowerCase();
+  const lang = (language || '').toLowerCase();
+  const isRo = lang.startsWith('ro') || lang.includes('roman');
+
+  if (!desc) return null;
+
+  // Operational / blue collar
+  if (
+    desc.includes('muncitor') ||
+    desc.includes('linie de produc') ||
+    desc.includes('depozit') ||
+    desc.includes('factory') ||
+    desc.includes('blue collar') ||
+    desc.includes('operator')
+  ) {
+    return isRo
+      ? { name: 'Marcela', role: 'operator în producție' }
+      : { name: 'Marco', role: 'factory operator' };
+  }
+
+  // Sales / call center
+  if (
+    desc.includes('vânz') ||
+    desc.includes('vanz') ||
+    desc.includes('sales') ||
+    desc.includes('account manager') ||
+    desc.includes('call center') ||
+    desc.includes('customer support') ||
+    desc.includes('customer service')
+  ) {
+    return isRo
+      ? { name: 'Andreea', role: 'manager de vânzări' }
+      : { name: 'Andrea', role: 'sales manager' };
+  }
+
+  // Middle management
+  if (
+    desc.includes('manager') ||
+    desc.includes('team leader') ||
+    desc.includes('supervisor') ||
+    desc.includes('middle management')
+  ) {
+    return isRo
+      ? { name: 'Raluca', role: 'manager de echipă' }
+      : { name: 'Alex', role: 'team lead' };
+  }
+
+  // Technical roles
+  if (
+    desc.includes('developer') ||
+    desc.includes('inginer') ||
+    desc.includes('engineer') ||
+    desc.includes('it') ||
+    desc.includes('programator')
+  ) {
+    return isRo
+      ? { name: 'Cătălin', role: 'inginer software' }
+      : { name: 'Chris', role: 'software engineer' };
+  }
+
+  return null;
+}
+
 async function handleGoldenStep(
   supabase: any, 
   course: Course, 
@@ -1311,15 +1446,97 @@ async function handleGoldenStep(
 
   if (moduleError || !moduleData) throw new Error(`Module not found: ${module_id}`);
 
+  if (!hasMinimalCourseDNA(course)) {
+    Logger.warn('Course DNA is incomplete. Materials may be generic until DNA is refined.', {
+      courseId: course.id,
+      hasDna: !!course.dna
+    });
+  }
+
   const storyArc = await getOrCreateStoryArc(supabase, course, moduleData.module_index);
   const currentStoryStage = storyArc[module_id] || storyArc[moduleData.module_index] || "Protagonist applies the concepts.";
 
+  const isDirty = (moduleData as any).is_dirty === true;
+
   let goldenData: GoldenModuleData | null = moduleData.content_data;
 
-  if (!goldenData) {
+  const shouldRegenerate = !goldenData || isDirty;
+
+  if (shouldRegenerate) {
     Logger.info(`Generating Golden Data for Module: ${moduleData.title}`);
     
-    const protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name || "Alex";
+    let protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name as string | undefined;
+
+    if (!protagonistName || String(protagonistName).trim().length === 0) {
+      const inferred = inferProtagonistFromAudience(course.target_audience || '', course.language || 'ro');
+      if (inferred) {
+        protagonistName = inferred.name;
+
+        const currentDna: any = course.dna || {};
+        const protagonists = currentDna.narrativeUniverse?.protagonists || [];
+        const updatedDna = {
+          terminology: currentDna.terminology || {
+            participant: "Participant",
+            trainer: "Trainer",
+            exercise: "Exercise",
+            mandatoryTerms: {}
+          },
+          narrativeUniverse: {
+            ...(currentDna.narrativeUniverse || {}),
+            protagonists: protagonists.length > 0
+              ? [
+                  {
+                    ...protagonists[0],
+                    name: inferred.name,
+                    role: inferred.role || protagonists[0].role || ''
+                  },
+                  ...protagonists.slice(1)
+                ]
+              : [
+                  {
+                    name: inferred.name,
+                    role: inferred.role,
+                    personality: '',
+                    arc: ''
+                  }
+                ]
+          },
+          voiceProfile: currentDna.voiceProfile || {
+            formality: "professional",
+            humorLevel: "none",
+            forbiddenPhrases: [],
+            signaturePhrases: []
+          },
+          masterTimeline: currentDna.masterTimeline || {
+            totalDuration: 0,
+            bufferPerModule: 0,
+            modules: []
+          }
+        };
+
+        try {
+          await supabase
+            .from('courses')
+            .update({ dna: updatedDna })
+            .eq('id', course.id);
+          course.dna = updatedDna;
+          Logger.info("Inferred protagonist stored into Course DNA.", { courseId: course.id });
+        } catch (e: any) {
+          Logger.warn("Failed to persist inferred Course DNA protagonist.", e);
+        }
+      }
+    }
+
+    if (!protagonistName || String(protagonistName).trim().length === 0) {
+      protagonistName = "Alex";
+    }
+
+    const dna = course.dna || {};
+    const bannedNamesFromDNA = Array.isArray(dna?.narrativeUniverse?.bannedNames)
+      ? dna.narrativeUniverse.bannedNames
+      : undefined;
+
+    const knowledgeBase = await buildKnowledgeBaseContext(supabase, course.id, course.language || "Romanian");
 
     let prompt = fillPromptTemplate(GOLDEN_MASTER_PROMPT, {
       moduleTitle: moduleData.title,
@@ -1336,15 +1553,22 @@ async function handleGoldenStep(
     if (approvedObjectives) {
       prompt = `${prompt}\n\n${(course.language || 'ro').toLowerCase().includes('ro') ? '**Obiective aprobate de utilizator**' : '**User-approved objectives**'}:\n${approvedObjectives}\n${(course.language || 'ro').toLowerCase().includes('ro') ? 'Aliniază secțiunile, exercițiile și exemplele cu aceste obiective.' : 'Align sections, exercises and examples with these objectives.'}`;
     }
+    
+    if (knowledgeBase.trim().length > 0) {
+      const kbHeader = (course.language || 'ro').toLowerCase().includes('ro')
+        ? '### Context din fișiere încărcate (Knowledge Base)'
+        : '### Knowledge Base Context (Uploaded Files)';
+      prompt = `${prompt}\n\n${kbHeader}\n${knowledgeBase}`;
+    }
 
     const rawJson = await callLLM(prompt);
-    const enforcedJson = ProtagonistEnforcer.enforce(rawJson, protagonistName);
+    const enforcedJson = ProtagonistEnforcer.enforce(rawJson, protagonistName, bannedNamesFromDNA);
     
     goldenData = repairAndParseJson<GoldenModuleData>(enforcedJson);
     
     await supabase
       .from('course_modules')
-      .update({ content_data: goldenData })
+      .update({ content_data: goldenData, is_dirty: false })
       .eq('id', module_id);
   }
 
@@ -1441,6 +1665,47 @@ async function getOrCreateStoryArc(supabase: any, course: Course, moduleIndex?: 
   }
 }
 
+async function buildKnowledgeBaseContext(
+  supabase: any,
+  courseId: string,
+  language: string,
+  maxFiles: number = 4,
+  maxCharsPerFile: number = 2000
+): Promise<string> {
+  try {
+    const { data, error } = await supabase
+      .from('course_files')
+      .select('filename, extracted_text, uploaded_at')
+      .eq('course_id', courseId)
+      .order('uploaded_at', { ascending: false })
+      .limit(maxFiles);
+    
+    if (error || !data || data.length === 0) {
+      return '';
+    }
+
+    const isRo = (language || '').toLowerCase().includes('ro');
+    const pieces: string[] = [];
+    for (const f of data) {
+      const title = f.filename || (isRo ? 'Fișier' : 'File');
+      const text = String(f.extracted_text || '').trim();
+      if (!text) continue;
+      const truncated = text.length > maxCharsPerFile ? text.slice(0, maxCharsPerFile) + '...' : text;
+      pieces.push(`- ${title}: ${truncated}`);
+    }
+
+    if (pieces.length === 0) return '';
+
+    const guidance = isRo
+      ? 'Folosește contextul de mai jos pentru a alinia exemplele, terminologia și scenariile. Evită contradicțiile.'
+      : 'Use the context below to align examples, terminology and scenarios. Avoid contradictions.';
+
+    return `${guidance}\n${pieces.join('\n')}`;
+  } catch (e) {
+    Logger.warn('Failed to build Knowledge Base Context', e);
+    return '';
+  }
+}
 async function handleLegacyStep(
   supabase: any, 
   course: Course, 
@@ -1642,12 +1907,6 @@ async function handleLegacyStep(
 }
 
 async function handleAnalyzeUpload(content: string, fileName: string, environment: string): Promise<string> {
-  // ----------------------------------------------------------------------------
-  // STRATEGY: Chunking for Large Documents (Problem #3 Fix)
-  // ----------------------------------------------------------------------------
-  // If content is manageable (under 100k chars), process directly for speed.
-  // Gemini 1.5/2.0 can handle much more, but we want to ensure focus and avoid
-  // "lost in the middle" phenomenon for very dense docs.
   if (content.length < 100000) {
     const safeContent = content.substring(0, 100000);
     const prompt = `
@@ -1657,7 +1916,7 @@ async function handleAnalyzeUpload(content: string, fileName: string, environmen
     Content Snippet: ${safeContent}
     Target Environment: ${environment}
 
-    **GOAL**: Extract the structure and learning objectives to create a valid JSON Blueprint.
+    **GOAL**: Extract the structure and learning objectives to create a valid JSON Blueprint with modules and sections that can be used directly to generate course content.
     **IMPORTANT**: The output language MUST be the same as the INPUT content language. If the input is in Romanian, the JSON values (titles, descriptions, objectives) MUST be in Romanian.
 
     **OUTPUT FORMAT**:
@@ -1670,19 +1929,25 @@ async function handleAnalyzeUpload(content: string, fileName: string, environmen
         {
           "title": "Module 1 Title",
           "duration": "45 min",
-          "learning_objective": "By the end of this module, participants will..."
+          "learning_objective": "By the end of this module, participants will...",
+          "sections": [
+            {
+              "title": "Section 1 Title",
+              "content_type": "theory | exercise | quiz | reflection | video_script | summary",
+              "estimated_duration": "10-20 min",
+              "goal": "What this section achieves"
+            }
+          ]
         }
       ]
     }
     
+    Each module MUST have at least 3 sections with non-empty titles and content_type.
     Return ONLY valid JSON. Do not include markdown formatting.
     `;
     return await callLLM(prompt);
   }
 
-  // ----------------------------------------------------------------------------
-  // Large Content Logic: Map-Reduce Chunking
-  // ----------------------------------------------------------------------------
   Logger.info(`Large document detected (${content.length} chars). Engaging Chunking Strategy.`);
   
   const CHUNK_SIZE = 50000; // ~12k tokens
@@ -1746,11 +2011,20 @@ async function handleAnalyzeUpload(content: string, fileName: string, environmen
         {
           "title": "Module 1 Title",
           "duration": "45 min",
-          "learning_objective": "By the end of this module, participants will..."
+          "learning_objective": "By the end of this module, participants will...",
+          "sections": [
+            {
+              "title": "Section 1 Title",
+              "content_type": "theory | exercise | quiz | reflection | video_script | summary",
+              "estimated_duration": "10-20 min",
+              "goal": "What this section achieves"
+            }
+          ]
         }
       ]
     }
     
+    Each module MUST have at least 3 sections with non-empty titles and content_type.
     Return ONLY valid JSON.
   `;
 
@@ -1782,6 +2056,33 @@ async function handleFillGaps(blueprint: any, existingContent: string, environme
     `;
 
     return await callLLM(prompt);
+}
+
+async function handleCompleteSectionsForImport(blueprint: any, environment: string, languageHint?: string): Promise<string> {
+  const lang = languageHint || 'Romanian';
+  const prompt = `
+  **TASK**: Ensure that every module in the Course Blueprint has a well-defined list of sections.
+  **ENVIRONMENT**: ${environment}
+  **LANGUAGE**: ${lang}
+  **BLUEPRINT**: ${JSON.stringify(blueprint).substring(0, 5000)}
+
+  **GOAL**:
+  - For each module, if "sections" is missing, null or empty, generate 3-7 sections.
+  - If sections exist but are incomplete, fix them (fill missing fields).
+
+  Each section must have:
+  - "title": concise, clear, in ${lang}
+  - "content_type": one of "theory", "exercise", "quiz", "reflection", "video_script", "summary"
+  - "estimated_duration": short text like "10-15 min"
+  - "goal": what the participant will achieve in this section
+
+  **OUTPUT FORMAT**:
+  Return the full Blueprint JSON with the same top-level structure, but with modules[].sections[] completed as described above.
+
+  Return ONLY valid JSON. Do not include markdown or explanations.
+  `;
+
+  return await callLLM(prompt);
 }
 
 async function handleChatOnboarding(chat_history: any[], course: any): Promise<string> {
@@ -1921,19 +2222,32 @@ function fillPromptTemplate(template: string, variables: Record<string, any>): s
 // ==========================================
 
 export class ProtagonistEnforcer {
-  private static BANNED_NAMES = [
+  private static DEFAULT_BANNED_NAMES = [
     'ion', 'maria', 'ana', 'bogdan', 'vasile', 'elena', 
-    'andrei', 'mihai', 'alexandru', 'ioana', 'george' // Common Romanian names that LLMs default to
+    'andrei', 'mihai', 'alexandru', 'ioana', 'george'
   ];
 
-  static enforce(content: string, protagonistName: string): string {
+  private static getEffectiveBannedNames(override?: string[]): string[] {
+    const normalizedOverride = (override || [])
+      .map(name => String(name || '').trim().toLowerCase())
+      .filter(name => name.length > 0);
+
+    if (normalizedOverride.length > 0) {
+      return normalizedOverride;
+    }
+
+    return this.DEFAULT_BANNED_NAMES;
+  }
+
+  static enforce(content: string, protagonistName: string, bannedNamesOverride?: string[]): string {
     const lowerProtagonist = protagonistName.toLowerCase();
+    const bannedNames = this.getEffectiveBannedNames(bannedNamesOverride);
     
     // Find and replace banned names
     let fixedContent = content;
     let modified = false;
 
-    this.BANNED_NAMES.forEach(bannedName => {
+    bannedNames.forEach(bannedName => {
       // Don't ban the protagonist if their name happens to be in the banned list
       if (bannedName === lowerProtagonist) return;
 

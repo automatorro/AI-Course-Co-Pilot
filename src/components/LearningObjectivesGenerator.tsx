@@ -80,6 +80,14 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
 
             if (updateError) throw updateError;
 
+            const { error: dirtyError } = await supabase
+                .from('course_modules')
+                .update({ is_dirty: true })
+                .eq('course_id', course.id);
+            if (dirtyError) {
+                console.warn('Failed to mark modules as dirty after learning objectives update:', dirtyError);
+            }
+
             // Call onComplete callback (no params needed, course will be reloaded)
             onComplete();
         } catch (err: any) {

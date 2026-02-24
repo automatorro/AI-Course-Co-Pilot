@@ -2,7 +2,9 @@
 export enum AudienceLevel {
   LEVEL_1_OPERATIONAL = 'LEVEL_1_OPERATIONAL',
   LEVEL_2_CLERICAL = 'LEVEL_2_CLERICAL',
-  LEVEL_3_STRATEGIC = 'LEVEL_3_STRATEGIC'
+  LEVEL_3_STRATEGIC = 'LEVEL_3_STRATEGIC',
+  LEVEL_4_COMMERCIAL = 'LEVEL_4_COMMERCIAL',
+  LEVEL_5_TECHNICAL = 'LEVEL_5_TECHNICAL'
 }
 
 export const STYLE_BLOCKS = {
@@ -49,22 +51,128 @@ export const STYLE_BLOCKS = {
     - ❌ FORBIDDEN: Patronizing simplifications. Basic definitions of common terms.
 4.  **EXAMPLES:** Case studies of major companies, Dilemmas with no right answer, Macro-economic trends.
 5.  **FORMATTING:** Executive Summaries, Key Strategic Pillars.
+`,
+
+  [AudienceLevel.LEVEL_4_COMMERCIAL]: `
+### 🧬 AUDIENCE DNA: LEVEL 4 (SALES / CUSTOMER SUCCESS)
+**PRIMARY GOAL:** Persuasion, Relationship Building & Revenue.
+**BLOOM LEVEL:** Apply, Analyze & Create (Social Dynamics).
+
+**STRICT STYLE RULES:**
+1.  **TONE:** High-Energy, Empathetic, Persuasive, Confident.
+2.  **SENTENCE STRUCTURE:** Conversational, engaging, question-heavy.
+3.  **VOCABULARY:** Emotional intelligence & Sales.
+    - ✅ USE: "Rapport", "Discovery", "Pain point", "Value proposition", "Closing".
+    - ❌ FORBIDDEN: Dry technical specs, passive voice, bureaucratic language.
+4.  **EXAMPLES:** Roleplay scripts, Objection handling, "What to say when...".
+5.  **FORMATTING:** Scripts, Dialogue blocks, "Do's and Don'ts".
+`,
+
+  [AudienceLevel.LEVEL_5_TECHNICAL]: `
+### 🧬 AUDIENCE DNA: LEVEL 5 (TECHNICAL EXPERT / R&D)
+**PRIMARY GOAL:** Deep Understanding, Innovation & Problem Solving.
+**BLOOM LEVEL:** Analyze, Evaluate & Create (Systemic).
+
+**STRICT STYLE RULES:**
+1.  **TONE:** Precise, Geeky (in a good way), Detail-Oriented.
+2.  **SENTENCE STRUCTURE:** Can handle complexity. Precision is key.
+3.  **VOCABULARY:** Domain-specific technical terminology.
+    - ✅ USE: Correct technical acronyms, specific metrics, system logic.
+    - ❌ FORBIDDEN: Simplifying things "for the layman". Dumbed-down analogies.
+4.  **EXAMPLES:** Code snippets, Schematics, Edge cases, Debugging logs.
+5.  **FORMATTING:** Code blocks, Technical diagrams, Data tables.
 `
 };
 
+function normalizeAudienceText(text: string): string {
+  const lower = (text || '').toLowerCase();
+  return lower
+    .replace(/ă/g, 'a')
+    .replace(/â/g, 'a')
+    .replace(/î/g, 'i')
+    .replace(/ș/g, 's')
+    .replace(/ş/g, 's')
+    .replace(/ț/g, 't')
+    .replace(/ţ/g, 't');
+}
+
 export function getStyleBlock(audienceDescription: string): string {
-  // Simple keyword matching to determine level if not explicitly provided
-  // In a real scenario, this logic might be more complex or passed directly
-  const lowerDesc = audienceDescription.toLowerCase();
+  const normalized = normalizeAudienceText(audienceDescription);
 
-  if (lowerDesc.includes('blue collar') || lowerDesc.includes('operator') || lowerDesc.includes('factory') || lowerDesc.includes('basic') || lowerDesc.includes('entry level')) {
-    return STYLE_BLOCKS[AudienceLevel.LEVEL_1_OPERATIONAL];
+  const opKeywords = [
+    'blue collar', 'line worker', 'frontline', 'front line',
+    'operator', 'factory', 'warehouse', 'depozit', 'magazie',
+    'muncitor', 'muncitori', 'productie', 'linie de productie',
+    'sofer', 'driver', 'assembly', 'maintenance', 'field technician'
+  ];
+
+  const clericalKeywords = [
+    'office', 'back office', 'clerical', 'administrative',
+    'junior', 'assistant', 'coordinator', 'front desk',
+    'operator call center', 'data entry'
+  ];
+
+  const strategicKeywords = [
+    'executive', 'executives', 'director', 'vp', 'c-level', 'c level',
+    'ceo', 'cfo', 'coo', 'board', 'board member',
+    'senior leadership', 'top management', 'strategic',
+    'founder', 'owner'
+  ];
+
+  const commercialKeywords = [
+    'sales', 'sales team', 'account manager', 'account management',
+    'customer success', 'customer support', 'customer service',
+    'client service', 'call center', 'contact center',
+    'agent vanzari', 'vanzari', 'relatii cu clientii'
+  ];
+
+  const technicalKeywords = [
+    'developer', 'software engineer', 'programmer',
+    'programator', 'inginer', 'engineer', 'architect',
+    'it', 'it pro', 'devops', 'sysadmin', 'data scientist',
+    'technical staff', 'r&d', 'research and development'
+  ];
+
+  let scoreOperational = 0;
+  let scoreClerical = 0;
+  let scoreStrategic = 0;
+  let scoreCommercial = 0;
+  let scoreTechnical = 0;
+
+  const addScore = (keywords: string[], increment: () => void) => {
+    for (const kw of keywords) {
+      if (!kw) continue;
+      if (normalized.includes(kw)) {
+        increment();
+      }
+    }
+  };
+
+  addScore(opKeywords, () => { scoreOperational += 2; });
+  addScore(clericalKeywords, () => { scoreClerical += 2; });
+  addScore(strategicKeywords, () => { scoreStrategic += 2; });
+  addScore(commercialKeywords, () => { scoreCommercial += 2; });
+  addScore(technicalKeywords, () => { scoreTechnical += 2; });
+
+  if (scoreOperational === 0 && scoreClerical === 0 && scoreStrategic === 0 && scoreCommercial === 0 && scoreTechnical === 0) {
+    return STYLE_BLOCKS[AudienceLevel.LEVEL_2_CLERICAL];
   }
 
-  if (lowerDesc.includes('manager') || lowerDesc.includes('executive') || lowerDesc.includes('leader') || lowerDesc.includes('director') || lowerDesc.includes('strategy')) {
-    return STYLE_BLOCKS[AudienceLevel.LEVEL_3_STRATEGIC];
-  }
+  let bestLevel = AudienceLevel.LEVEL_2_CLERICAL;
+  let bestScore = scoreClerical;
 
-  // Default to Level 2 (Clerical/General)
-  return STYLE_BLOCKS[AudienceLevel.LEVEL_2_CLERICAL];
+  const consider = (level: AudienceLevel, score: number, priorityBoost = 0) => {
+    const effectiveScore = score + priorityBoost;
+    if (effectiveScore > bestScore) {
+      bestScore = effectiveScore;
+      bestLevel = level;
+    }
+  };
+
+  consider(AudienceLevel.LEVEL_1_OPERATIONAL, scoreOperational, 0.5);
+  consider(AudienceLevel.LEVEL_3_STRATEGIC, scoreStrategic, 0.5);
+  consider(AudienceLevel.LEVEL_4_COMMERCIAL, scoreCommercial, 0.25);
+  consider(AudienceLevel.LEVEL_5_TECHNICAL, scoreTechnical, 0.5);
+
+  return STYLE_BLOCKS[bestLevel];
 }

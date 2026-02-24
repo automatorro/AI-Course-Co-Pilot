@@ -3,6 +3,8 @@ import { supabase } from '../services/supabaseClient';
 import { Course, CourseBlueprint } from '../types';
 import { useTranslation } from '../contexts/I18nContext';
 import { Loader2, X, FileText } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { uploadCourseFile } from '../services/fileStorageService';
 
 interface UploadBlueprintModalProps {
   isOpen: boolean;
@@ -13,6 +15,7 @@ interface UploadBlueprintModalProps {
 
 const UploadBlueprintModal: React.FC<UploadBlueprintModalProps> = ({ isOpen, onClose, course, onBlueprintReady }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +39,25 @@ const UploadBlueprintModal: React.FC<UploadBlueprintModalProps> = ({ isOpen, onC
       const bp = typeof data.content === 'string' ? JSON.parse(data.content) : data.content;
       const { error: upErr } = await supabase.from('courses').update({ blueprint: bp }).eq('id', course.id);
       if (upErr) throw upErr;
+
+      const { error: dirtyError } = await supabase
+        .from('course_modules')
+        .update({ is_dirty: true })
+        .eq('course_id', course.id);
+      if (dirtyError) {
+        console.warn('Failed to mark modules as dirty after upload blueprint analyze:', dirtyError);
+      }
+
+      if (user) {
+        try {
+          const blob = new Blob([text], { type: 'text/plain' });
+          const syntheticFile = new File([blob], 'pasted.txt', { type: 'text/plain' });
+          await uploadCourseFile(course.id, syntheticFile, user.id);
+        } catch (e) {
+          console.warn('Failed to save pasted blueprint text as course file:', e);
+        }
+      }
+
       onBlueprintReady(bp);
     } catch (e: any) {
       setError(e?.message || 'Analysis failed');

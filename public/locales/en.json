@@ -82,6 +82,8 @@
   "dna.edit.humor.none": "None",
   "dna.edit.humor.light": "Light",
   "dna.edit.humor.heavy": "Heavy",
+  "dna.edit.auto_fill": "Auto-Fill",
+  "dna.edit.generate_save": "Generate & Save",
   "dna.edit.save": "Save DNA",
   "dna.edit.cancel": "Cancel",
   "dna.edit.parseError": "Inconsistency detected in DNA structure. Please check the Advanced Editor tab.",
