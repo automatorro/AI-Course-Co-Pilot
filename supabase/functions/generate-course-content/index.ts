@@ -196,6 +196,7 @@ You are an expert **Instructional Designer**. Generate a single "Golden JSON" ob
 ### 1. CORE CONTEXT
 - **Module**: {{moduleTitle}} ({{durationMinutes}} min)
 - **Environment**: {{environment}}
+- **Environment Specs**: {{envConstraints}}
 - **Language**: {{language}}
 - **Protagonist**: {{protagonistName}} (Stage: {{protagonistState}})
 - **Audience**: {{targetAudience}}
@@ -691,6 +692,26 @@ export interface GoldenModuleData {
   moduleTitle: string;
   moduleDurationMinutes: number;
   environment: CourseEnvironment;
+  localizedLabels: {
+    duration: string;
+    format: string;
+    section: string;
+    theory: string;
+    keyTakeaways: string;
+    actionPlan: string;
+    reflection: string;
+    trainerInstructions: string;
+    method: string;
+    logistics: string;
+    script: string;
+    activity: string;
+    objective: string;
+    instructionsParticipant: string;
+    instructionsFacilitator: string;
+    debrief: string;
+    example: string;
+    videoScript: string;
+  };
   narrativeContext: {
     protagonistName: string;
     storyArcStage: string;
@@ -894,9 +915,11 @@ export const getDepthSpecs = (language: string, type: 'live' | 'online' = 'live'
     ` 
     : `
     **ENVIRONMENT: LIVE (IN-PERSON WORKSHOP)**
-    - **INTERACTION**: "Turn to your neighbor", "Physical Flipcharts", "Room Movement", "Gallery Walk".
-    - **CONSTRAINTS**: Standard attention spans. Physical handouts allowed.
-    - **MATERIALS**: Printed Workbooks, Sticky Notes, Markers.
+    - **INTERACTION**: EXCLUSIVE face-to-face activities: "Turn to your neighbor", "Physical Flipcharts", "Room Movement", "Gallery Walk", "Role Play in room", "Group Discussions", "Physical Exercises".
+    - **CONSTRAINTS**: 
+      *   Standard attention spans. Physical handouts allowed.
+      *   **FORBIDDEN**: DO NOT mention videos, webinars, online dashboards, virtual forums, zoom links, or screen sharing.
+    - **MATERIALS**: Printed Workbooks, Sticky Notes, Markers, Flipchart paper.
     `;
 
   return {
@@ -1574,13 +1597,11 @@ function inferProtagonistFromAudience(audienceDescription: string, language: str
 }
 
 function buildMandatoryContext(course: Course): string {
-  const lang = (course.language || 'ro').toLowerCase();
-  const isRo = lang.startsWith('ro') || lang.includes('roman');
-  
   const title = course.title || "Untitled Course";
   const audience = course.target_audience || "General Audience";
   const environment = course.environment || "LIVE";
-  const objectives = course.learning_objectives || (isRo ? "Nu sunt specificate." : "Not specified.");
+  const objectives = course.learning_objectives || "Not specified.";
+  const lang = course.language || "Romanian";
   
   // Calculate module count safely
   let moduleCount = 0;
@@ -1588,18 +1609,86 @@ function buildMandatoryContext(course: Course): string {
       moduleCount = course.blueprint.modules.length;
   }
   
-  const header = isRo ? "CONTEXT OBLIGATORIU CURS" : "MANDATORY COURSE CONTEXT";
-  
+  let moduleListStr = "";
+  if (course.blueprint && Array.isArray(course.blueprint.modules)) {
+      moduleListStr = course.blueprint.modules.map((m: any, i: number) => `${i + 1}. ${m.title}`).join('\n');
+  }
+
+  // Use ENGLISH for meta-labels (LLM instructions), but the content variables are passed as is.
+  // The LLM is instructed to generate output in the Target Language.
   return `
-=== ${header} ===
+=== MANDATORY COURSE CONTEXT ===
 1. Course Title: ${title}
-2. Target Audience: ${audience}
-3. Delivery Environment: ${environment}
-4. Module Count: ${moduleCount}
-5. Learning Objectives:
+2. Target Language: ${lang}
+3. Target Audience: ${audience}
+4. Delivery Environment: ${environment}
+5. Module Count: ${moduleCount}
+6. Module List:
+${moduleListStr}
+7. Learning Objectives:
 ${objectives}
 ================================
 `.trim();
+}
+
+function extractModulesFromMarkdown(markdown: string): string[] {
+  const modules: string[] = [];
+  const lines = markdown.split('\n');
+  let insideTable = false;
+  
+  for (const line of lines) {
+    // Detect table start based on standard pipe characters, not specific headers
+    if (line.trim().startsWith('|') && line.split('|').length > 3) {
+      // Check if it's a header row or separator
+      if (line.includes('---')) {
+        insideTable = true;
+        continue;
+      }
+      
+      // If we are inside table (after separator)
+      if (insideTable) {
+         const parts = line.split('|').map(s => s.trim());
+         // We assume "Topic" / "Subject" is usually the 3rd column (index 2) in our standard agenda structure
+         // | Time | Topic | Method ...
+         if (parts.length > 2) {
+           const topic = parts[2];
+           // Heuristic: ignore common header terms in various languages if they accidentally get parsed
+           const lower = topic.toLowerCase();
+           const ignoreTerms = ['topic', 'subiect', 'tema', 'subject', 'sujet', 'themen', 'asunto'];
+           
+           if (topic && !ignoreTerms.some(t => lower.includes(t)) && topic.length > 2) {
+                const cleanTopic = topic.replace(/\*\*/g, '').replace(/\*/g, '').trim();
+                modules.push(cleanTopic);
+           }
+         }
+      }
+    } else {
+      if (insideTable && line.trim() === '') {
+        insideTable = false;
+      }
+    }
+  }
+  return modules;
+}
+
+function isValidGoldenData(data: any): boolean {
+  if (!data || typeof data !== 'object') return false;
+  
+  // 1. Check Root Fields
+  const required = ['moduleId', 'moduleTitle', 'moduleDurationMinutes', 'environment', 'narrativeContext', 'sections', 'localizedLabels'];
+  for (const field of required) {
+    if (!(field in data)) return false;
+  }
+  
+  // 2. Check Narrative Context
+  if (!data.narrativeContext || typeof data.narrativeContext !== 'object') return false;
+  // We don't strictly enforce protagonistName here if it's optional in some contexts, 
+  // but for Golden Master it should be there.
+  
+  // 3. Check Sections
+  if (!Array.isArray(data.sections) || data.sections.length === 0) return false;
+  
+  return true;
 }
 
 async function handleGoldenStep(
@@ -1631,10 +1720,17 @@ async function handleGoldenStep(
 
   let goldenData: GoldenModuleData | null = moduleData.content_data;
 
-  const shouldRegenerate = !goldenData || isDirty;
+  // STRICT VALIDATION: Check if existing Golden Data is valid
+  // If it's missing OR invalid, we MUST regenerate it before proceeding to any specific deliverable.
+  const isInvalid = !isValidGoldenData(goldenData);
+  const shouldRegenerate = isInvalid || isDirty;
 
   if (shouldRegenerate) {
-    Logger.info(`Generating Golden Data for Module: ${moduleData.title}`);
+    if (isInvalid && !isDirty) {
+      Logger.info(`Golden Data is invalid or missing for Module: ${moduleData.title}. Triggering auto-generation.`);
+    } else {
+      Logger.info(`Generating Golden Data for Module: ${moduleData.title} (Dirty flag: true)`);
+    }
     
     // ENSURE FRESH START: Explicitly nullify previous data to prevent any risk of concatenation
     goldenData = null; 
@@ -1714,10 +1810,26 @@ async function handleGoldenStep(
 
     const mandatoryContext = buildMandatoryContext(course);
 
+    const envConstraints = (course.environment || 'LIVE').toUpperCase() === 'ONLINE'
+      ? `**ENVIRONMENT: ONLINE (VIRTUAL CLASSROOM - ZOOM/TEAMS)**
+         - **INTERACTION**: Must use "Breakout Rooms", "Chat Polls", "Miro Board links", "Screen Share".
+         - **CONSTRAINTS**: Max 10 min monologues (Zoom Fatigue). Frequent "Type in chat" prompts.
+         - **MATERIALS**: PDFs, Digital Workbooks, Online Quizzes.
+         - **ADAPTATION**: Ensure all activities are suitable for a virtual setting.
+         - **LANGUAGE**: All instructions and content must be in the target language.`
+      : `**ENVIRONMENT: LIVE (IN-PERSON WORKSHOP)**
+         - **INTERACTION**: EXCLUSIVE face-to-face activities: "Turn to your neighbor", "Physical Flipcharts", "Room Movement", "Gallery Walk", "Role Play in room", "Group Discussions", "Physical Exercises".
+         - **CONSTRAINTS**: 
+           *   Standard attention spans. Physical handouts allowed.
+           *   **FORBIDDEN**: DO NOT mention videos, webinars, online dashboards, virtual forums, zoom links, or screen sharing.
+         - **MATERIALS**: Printed Workbooks, Sticky Notes, Markers, Flipchart paper.
+         - **LANGUAGE**: All instructions and content must be in the target language.`;
+
     let prompt = fillPromptTemplate(GOLDEN_MASTER_PROMPT, {
       moduleTitle: moduleData.title,
       durationMinutes: moduleData.duration_minutes || 60, 
       environment: course.environment,
+      envConstraints: envConstraints,
       language: course.language || "Romanian",
       protagonistName: protagonistName,
       protagonistState: currentStoryStage,
@@ -1728,6 +1840,9 @@ async function handleGoldenStep(
 
     // Inject mandatory context at the very beginning
     prompt = `${mandatoryContext}\n\n${prompt}`;
+    
+    // Add explicit instruction for language enforcement at the end of the prompt
+    prompt += `\n\n**CRITICAL INSTRUCTION**: The output JSON content (titles, narratives, scripts, questions) MUST be in ${course.language || "Romanian"}. Do not output English unless the course language is English.`;
 
     // VERIFICATION LOG: Print the start of the prompt to confirm context injection
     Logger.info("--- FINAL PROMPT PREVIEW (First 500 chars) ---");
@@ -1736,13 +1851,11 @@ async function handleGoldenStep(
 
     const approvedObjectives = String((course as any).learning_objectives || '').trim();
     if (approvedObjectives) {
-      prompt = `${prompt}\n\n${(course.language || 'ro').toLowerCase().includes('ro') ? '**Obiective aprobate de utilizator**' : '**User-approved objectives**'}:\n${approvedObjectives}\n${(course.language || 'ro').toLowerCase().includes('ro') ? 'Aliniază secțiunile, exercițiile și exemplele cu aceste obiective.' : 'Align sections, exercises and examples with these objectives.'}`;
+      prompt = `${prompt}\n\n**User-approved objectives**:\n${approvedObjectives}\nAlign sections, exercises and examples with these objectives.`;
     }
     
     if (knowledgeBase.trim().length > 0) {
-      const kbHeader = (course.language || 'ro').toLowerCase().includes('ro')
-        ? '### Context din fișiere încărcate (Knowledge Base)'
-        : '### Knowledge Base Context (Uploaded Files)';
+      const kbHeader = '### Knowledge Base Context (Uploaded Files)';
       prompt = `${prompt}\n\n${kbHeader}\n${knowledgeBase}`;
     }
 
@@ -1750,6 +1863,11 @@ async function handleGoldenStep(
     const enforcedJson = ProtagonistEnforcer.enforce(rawJson, protagonistName, bannedNamesFromDNA);
     
     goldenData = repairAndParseJson<GoldenModuleData>(enforcedJson);
+
+    // FINAL VALIDATION: Ensure the generated data is valid before saving
+    if (!isValidGoldenData(goldenData)) {
+      throw new Error("Generated Golden Master JSON failed validation check. Please try again.");
+    }
     
     await supabase
       .from('course_modules')
@@ -1825,28 +1943,19 @@ async function getOrCreateStoryArc(supabase: any, course: Course, moduleIndex?: 
     } catch (e2) {
       Logger.error("Fallback Story Arc generation also failed. Using static map.", e2);
     }
-    const isRo = lang.startsWith('ro') || lang.includes('roman');
-    return isRo
-      ? {
-          "1": "Entuziast, dar copleșit de conceptele noi.",
-          "2": "Se confruntă cu primul obstacol major.",
-          "3": "Începe să înțeleagă logica de bază.",
-          "4": "Încearcă să aplice cunoștințele și greșește uneori.",
-          "5": "Obține primul succes vizibil.",
-          "6": "Câștigă încredere și ritm.",
-          "7": "Stăpânește nuanțele și cazurile dificile.",
-          "8": "Este pe deplin competent și pregătit să-i ajute și pe alții."
-        }
-      : {
-          "1": "Enthusiastic but overwhelmed by the new concepts.",
-          "2": "Encountering the first major obstacle.",
-          "3": "Beginning to understand the core logic.",
-          "4": "Attempting to apply the knowledge, making mistakes.",
-          "5": "Achieving the first small win.",
-          "6": "Gaining confidence and flow.",
-          "7": "Mastering the nuances.",
-          "8": "Fully competent and ready to teach others."
-        };
+    
+    // Final fallback if all LLM calls fail. Return English (system default).
+    // The consuming prompts will handle translation/adaptation if necessary.
+    return {
+      "1": "Enthusiastic but overwhelmed by the new concepts.",
+      "2": "Encountering the first major obstacle.",
+      "3": "Beginning to understand the core logic.",
+      "4": "Attempting to apply the knowledge, making mistakes.",
+      "5": "Achieving the first small win.",
+      "6": "Gaining confidence and flow.",
+      "7": "Mastering the nuances.",
+      "8": "Fully competent and ready to teach others."
+    };
   }
 }
 
@@ -1869,10 +1978,9 @@ async function buildKnowledgeBaseContext(
       return '';
     }
 
-    const isRo = (language || '').toLowerCase().includes('ro');
     const pieces: string[] = [];
     for (const f of data) {
-      const title = f.filename || (isRo ? 'Fișier' : 'File');
+      const title = f.filename || 'File';
       const text = String(f.extracted_text || '').trim();
       if (!text) continue;
       const truncated = text.length > maxCharsPerFile ? text.slice(0, maxCharsPerFile) + '...' : text;
@@ -1881,9 +1989,8 @@ async function buildKnowledgeBaseContext(
 
     if (pieces.length === 0) return '';
 
-    const guidance = isRo
-      ? 'Folosește contextul de mai jos pentru a alinia exemplele, terminologia și scenariile. Evită contradicțiile.'
-      : 'Use the context below to align examples, terminology and scenarios. Avoid contradictions.';
+    // Instruction is in English (System Language), but directs behavior for the Target Language.
+    const guidance = `Use the context below to align examples, terminology and scenarios. Avoid contradictions. Target Language: ${language}`;
 
     return `${guidance}\n${pieces.join('\n')}`;
   } catch (e) {
@@ -1959,49 +2066,90 @@ async function handleLegacyStep(
      }
      const approvedObjectives = String((course as any).learning_objectives || '').trim();
      const lang = course.language || "Romanian";
-     const isRo = (lang.toLowerCase().startsWith('ro') || lang.toLowerCase().includes('roman'));
-     const titleText = isRo ? `Structură și Agendă: ${course.title}` : `Structure and Agenda: ${course.title}`;
-     const objectivesHeader = isRo ? `Obiectivele cursului (4–6)` : `Course Objectives (4–6)`;
-     const agendaHeader = isRo ? `Agenda la minut` : `Minute-by-minute Agenda`;
-     const tableHeader = isRo
-       ? `| Ora | Subiectul | Metoda folosita | Material | Ce face trainerul | Obiectiv activitate | Ce vor face participantii | Cu ce ii ajuta pe participanti la munca |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |`
-       : `| Time | Topic | Method | Material | Trainer Action | Activity Objective | Participant Action | On-the-job Benefit |\n| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |`;
+     
      const blueprintBlock = (explicitModuleList && String(explicitModuleList).trim().length > 0)
-       ? `\n${isRo ? '**BLUEPRINT APROBAT (sursa supremă de adevăr)**' : '**APPROVED BLUEPRINT (supreme source of truth)**'}:\n${explicitModuleList}\n`
-       : (modulesList ? `\n${isRo ? '**BLUEPRINT APROBAT (sursa supremă de adevăr)**' : '**APPROVED BLUEPRINT (supreme source of truth)**'}:\n${modulesList}\n` : '');
+       ? `\n**APPROVED BLUEPRINT (supreme source of truth)**:\n${explicitModuleList}\n`
+       : (modulesList ? `\n**APPROVED BLUEPRINT (supreme source of truth)**:\n${modulesList}\n` : '');
      const objectivesBlock = approvedObjectives
-       ? `\n${isRo ? '**Obiective aprobate de utilizator**' : '**User-approved objectives**'}:\n${approvedObjectives}\n`
+       ? `\n**User-approved objectives**:\n${approvedObjectives}\n`
        : '';
-     const constraints = isRo
-       ? `- Nu depăși 1000 de cuvinte.\n- Nu adăuga introduceri sau concluzii.\n- Scrie telegrafic, 1–2 fraze pe celulă.\n- Fiecare rând din agendă trebuie să susțină cel puțin un obiectiv.\n- Folosește blocuri de 10–30 minute.\n- Respectă mediul: ${course.environment}.`
-       : `- Do not exceed 1000 words.\n- No introductions or conclusions.\n- Telegraphic style, 1–2 sentences per cell.\n- Each agenda row must support at least one objective.\n- Use 10–30 minute blocks.\n- Respect environment: ${course.environment}.`;
-     const instructions = isRo
-       ? `1) Generează exact 4–6 obiective concise în formatul „La finalul cursului, participanții vor ști să …”, utilizând nivelul Bloom corespunzător audienței.\n2) Construiește tabelul de agendă la minut cu coloanele indicate.`
-       : `1) Generate exactly 4–6 concise objectives in the form “By the end, participants will be able to …”, using the appropriate Bloom level.\n2) Build the minute-by-minute agenda table with the indicated columns.`;
+     
+     const envConstraint = (course.environment || 'LIVE').toUpperCase() === 'ONLINE'
+        ? "ONLINE (VIRTUAL)"
+        : "LIVE (IN-PERSON)";
+
      const prompt = `
-        ${isRo ? '**SARCINĂ**' : '**TASK**'}: ${isRo ? 'Proiectează Structura și Agenda cursului' : 'Design the Course Structure & Agenda'}.
-        ${isRo ? '**LIMBĂ**' : '**LANGUAGE**'}: ${lang}.
-        ${isRo ? '**MEDIUL**' : '**ENVIRONMENT**'}: ${course.environment}.
+        **TASK**: Design the Course Structure & Agenda.
+        **TARGET LANGUAGE**: ${lang} (ALL OUTPUT MUST BE IN THIS LANGUAGE)
+        **ENVIRONMENT**: ${envConstraint}
         ${blueprintBlock}${objectivesBlock}
-        ${isRo ? '**INSTRUCȚIUNI**' : '**INSTRUCTIONS**'}:
-        ${instructions}
-        ${isRo ? '**CONSTRÂNGERI**' : '**CONSTRAINTS**'}:
-        ${constraints}
         
-        ${isRo ? 'Returnează DOAR Markdown-ul următor:' : 'Return ONLY the following Markdown:'}
+        **INSTRUCTIONS**:
+        1. Generate exactly 4-6 concise objectives in the form "By the end, participants will be able to..." (translated to ${lang}).
+        2. **GOLDEN RULE**: If specific data is missing, INVENT realistic and plausible values for the context (e.g., "15% increase" not "X% increase"). Be concrete. NO PLACEHOLDERS like "X%", "Y dollars".
+        3. Build the minute-by-minute agenda table.
+        4. Respect the environment constraints (e.g. Breakout Rooms for Online, Physical activities for Live).
         
-        # ${titleText}
+        **CONSTRAINTS**:
+        - Do not exceed 1000 words.
+        - No introductions or conclusions.
+        - Telegraphic style, 1-2 sentences per cell.
+        - Each agenda row must support at least one objective.
+        - Use 10-30 minute blocks.
+        - **STRICTLY FORBIDDEN**: Never use placeholders like "X%", "Y dollars", "Z clients".
+
+        **OUTPUT FORMAT**:
+        Return ONLY Markdown.
         
-        ### ${objectivesHeader}
+        # [Course Title in ${lang}]
+        
+        ### [Objectives Header in ${lang}]
         - ...
         - ...
         
-        ### ${agendaHeader}
-        ${tableHeader}
-        | 09:00 - 09:15 | Introducere | Discuție ghidată | Slide 1 | Deschide sesiunea, setează așteptările | Aliniere obiective | Împărtășesc așteptări | Clarifică așteptările și focusul la job |
+        ### [Agenda Header in ${lang}]
+        | Time | Topic | Method | Material | Trainer Action | Activity Objective | Participant Action | On-the-job Benefit |
+        | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+        | 09:00 - 09:15 | [Topic in ${lang}] | [Method in ${lang}] | [Material in ${lang}] | ... | ... | ... | ... |
      `;
      
      const rawResponse = await callLLM(prompt, course.language || 'ro');
+
+     // EXTRACT AND SAVE MODULES
+     try {
+        const extractedModules = extractModulesFromMarkdown(rawResponse);
+
+        if (extractedModules.length > 0) {
+          Logger.info(`Extracted ${extractedModules.length} modules from generated Agenda. Updating Blueprint...`);
+          
+          const currentBlueprint = course.blueprint || {};
+          // Map to minimal module structure
+          const newModules = extractedModules.map(title => ({ 
+            title, 
+            sections: [], // Initialize empty sections
+            duration: "45 min" // Default
+          }));
+          
+          const updatedBlueprint = {
+            ...currentBlueprint,
+            modules: newModules
+          };
+
+          // Update DB
+          await supabase
+            .from('courses')
+            .update({ blueprint: updatedBlueprint })
+            .eq('id', course.id);
+            
+          // Update local course object reference just in case
+          course.blueprint = updatedBlueprint;
+        } else {
+          Logger.warn("Could not extract modules from Agenda markdown.");
+        }
+     } catch (e) {
+       Logger.error("Failed to extract/save modules from Agenda", e);
+     }
+
      return rawResponse; // Return Markdown directly
   }
 
@@ -2048,44 +2196,56 @@ async function handleLegacyStep(
   }
 
   if (step_type === 'course.steps.slides' || step_type === 'slides') {
+      let moduleListStr = "";
+      if (course.blueprint && Array.isArray(course.blueprint.modules)) {
+          moduleListStr = course.blueprint.modules.map((m: any, i: number) => `${i + 1}. ${m.title}`).join('\n');
+      }
+
       const prompt = `
       **TASK**: Create a Course Kick-off Presentation (Slide Deck).
       **COURSE**: "${course.title}"
-      **LANGUAGE**: ${course.language}
+      **TARGET LANGUAGE**: ${course.language} (ALL OUTPUT MUST BE IN THIS LANGUAGE)
       **CONTEXT**: ${course.description}
       
+      **COURSE OUTLINE (MODULES)**:
+      ${moduleListStr}
+
       **GOAL**: A sequence of 8-12 slides to introduce the course, objectives, and structure to the participants.
       
       **OUTPUT FORMAT**: 
       Markdown with clear slide delimiters.
       
       **TEMPLATE PER SLIDE**:
-      ## Slide [N]: [Title]
-      **Visual Description:** [Instruction for designer/AI]
+      ## Slide [N]: [Title in ${course.language}]
+      **Visual Description:** [Instruction for designer/AI in English or ${course.language}]
       **Key Points:**
-      - [Bullet 1]
-      - [Bullet 2]
-      - [Bullet 3]
-      **Speaker Notes:** [What the trainer says - conversational and engaging]
+      - [Bullet 1 in ${course.language}]
+      - [Bullet 2 in ${course.language}]
+      - [Bullet 3 in ${course.language}]
+      **Speaker Notes:** [What the trainer says - conversational and engaging in ${course.language}]
       
       **REQUIRED SLIDES**:
       1. Title Slide
       2. Welcome & Icebreaker
       3. Why this course? (WIIFM - What's in it for me?)
       4. Key Learning Objectives (Summarized)
-      5. High-level Agenda/Roadmap
+      5. High-level Agenda/Roadmap (Use the COURSE OUTLINE provided above)
       6. Rules of Engagement / Logistics
-      7-11. Brief intro to key modules (1 slide per major topic)
+      7-11. Brief intro to key modules (1 slide per major topic from the OUTLINE)
       12. Closing & Q&A
       `;
       return await callLLM(prompt);
   }
 
 
+  const mandatoryContext = buildMandatoryContext(course);
   
   const prompt = `
     Generate content for ${step_type} for course "${course.title}".
     Language: ${course.language}.
+    
+    ${mandatoryContext}
+    
     Context: ${context || "None"}.
   `;
   return await callLLM(prompt);
@@ -2248,15 +2408,19 @@ async function handleCompleteSectionsForImport(blueprint: any, environment: stri
   const prompt = `
   **TASK**: Ensure that every module in the Course Blueprint has a well-defined list of sections.
   **ENVIRONMENT**: ${environment}
-  **LANGUAGE**: ${lang}
   **BLUEPRINT**: ${JSON.stringify(blueprint).substring(0, 5000)}
+
+  **LANGUAGE INSTRUCTION**: 
+  The provided Blueprint modules are likely in "${lang}". 
+  HOWEVER, if they appear to be in another language, YOU MUST DETECT IT and generate the new content in that SAME language.
+  Do not mix languages.
 
   **GOAL**:
   - For each module, if "sections" is missing, null or empty, generate 3-7 sections.
   - If sections exist but are incomplete, fix them (fill missing fields).
 
   Each section must have:
-  - "title": concise, clear, in ${lang}
+  - "title": concise, clear, in the detected language of the module
   - "content_type": one of "theory", "exercise", "quiz", "reflection", "video_script", "summary"
   - "estimated_duration": short text like "10-15 min"
   - "goal": what the participant will achieve in this section

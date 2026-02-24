@@ -12,9 +12,11 @@ export const getDepthSpecs = (language: string, type: 'live' | 'online' = 'live'
     ` 
     : `
     **ENVIRONMENT: LIVE (IN-PERSON WORKSHOP)**
-    - **INTERACTION**: "Turn to your neighbor", "Physical Flipcharts", "Room Movement", "Gallery Walk".
-    - **CONSTRAINTS**: Standard attention spans. Physical handouts allowed.
-    - **MATERIALS**: Printed Workbooks, Sticky Notes, Markers.
+    - **INTERACTION**: EXCLUSIVE face-to-face activities: "Turn to your neighbor", "Physical Flipcharts", "Room Movement", "Gallery Walk", "Role Play in room", "Group Discussions", "Physical Exercises".
+    - **CONSTRAINTS**: 
+      *   Standard attention spans. Physical handouts allowed.
+      *   **FORBIDDEN**: DO NOT mention videos, webinars, online dashboards, virtual forums, zoom links, or screen sharing.
+    - **MATERIALS**: Printed Workbooks, Sticky Notes, Markers, Flipchart paper.
     `;
 
   return {

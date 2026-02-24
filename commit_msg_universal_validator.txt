@@ -1,8 +1,0 @@
-feat: add universal AI content validator for all languages
-
-- Implemented `isContentValidByAI` function using LLM as Judge to detect refusals/apologies in ANY language.
-- Updated `callLLM` to use a 2-phase validation strategy:
-  1. Fast Static Check (Regex/Banned Phrases) for major languages (RO, EN, FR, DE, ES, IT).
-  2. Universal AI Check (LLM Judge) for all languages if static check passes.
-- Added strict retry logic when AI Validator rejects content.
-- Optimized AI check to analyze only the first 500 characters (where refusals usually occur).

@@ -46,6 +46,8 @@ This JSON will be the Single Source of Truth for generating 7 distinct deliverab
 5.  **LANGUAGE CONSISTENCY**:
     - All generated content (Theory, Scripts, Slides) must be in **{{language}}**.
     - Field names (keys) remain in English (e.g., \`participantContent\`), but string values must be in {{language}}.
+6.  **MODULE CONSISTENCY**: Refer to the "Module List" in the MANDATORY CONTEXT. Ensure your content fits this specific slot in the sequence. Do not duplicate content from other modules.
+7.  **LOCALIZATION**: You MUST generate \`localizedLabels\` in {{language}} for all UI/Header elements (e.g., "Duration", "Trainer Instructions", "Key Takeaways"). NO HARDCODED ENGLISH allowed in output unless {{language}} is English.
 
 ### 3. CONTENT GUIDELINES
 - **Theory (Workbook)**: Use Markdown inside string fields. Use bolding (**text**) for emphasis. Be concise. Action-oriented.
@@ -66,6 +68,27 @@ interface GoldenModuleData {
   moduleTitle: string; // Use "{{moduleTitle}}"
   moduleDurationMinutes: number; // Use {{durationMinutes}}
   environment: "{{environment}}";
+
+  localizedLabels: {
+    duration: string;         // e.g. "Durata"
+    format: string;           // e.g. "Format"
+    section: string;          // e.g. "Secțiunea"
+    theory: string;           // e.g. "Teorie & Concepte"
+    keyTakeaways: string;     // e.g. "Idei Principale"
+    actionPlan: string;       // e.g. "Plan de Acțiune"
+    reflection: string;       // e.g. "Reflecție"
+    trainerInstructions: string; // e.g. "Instrucțiuni Trainer"
+    method: string;           // e.g. "Metodă"
+    logistics: string;        // e.g. "Logistică"
+    script: string;           // e.g. "Script"
+    activity: string;         // e.g. "Activitate"
+    objective: string;        // e.g. "Obiectiv"
+    instructionsParticipant: string; // e.g. "Instrucțiuni Participant"
+    instructionsFacilitator: string; // e.g. "Instrucțiuni Facilitator"
+    debrief: string;          // e.g. "Debrief"
+    example: string;          // e.g. "Exemplu"
+    videoScript: string;      // e.g. "Script Video"
+  };
 
   narrativeContext: {
     protagonistName: string;

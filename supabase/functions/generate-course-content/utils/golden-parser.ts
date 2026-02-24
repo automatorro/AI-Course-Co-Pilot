@@ -17,35 +17,56 @@ export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget): 
   let output = '';
 
   // 1. Header Global
+  const labels = data.localizedLabels || {
+    duration: "Duration",
+    format: "Format",
+    section: "Section",
+    theory: "Theory & Concepts",
+    keyTakeaways: "Key Takeaways",
+    actionPlan: "Action Plan",
+    reflection: "Reflection",
+    trainerInstructions: "Trainer Instructions",
+    method: "Method",
+    logistics: "Logistics",
+    script: "Script",
+    activity: "Activity",
+    objective: "Objective",
+    instructionsParticipant: "Participant Instructions",
+    instructionsFacilitator: "Facilitator Instructions",
+    debrief: "Debrief Questions",
+    example: "Example",
+    videoScript: "Video Script"
+  };
+
   output += `# ${data.moduleTitle}\n`;
-  output += `**Duration:** ${data.moduleDurationMinutes} min | **Format:** ${data.environment}\n\n`;
+  output += `**${labels.duration}:** ${data.moduleDurationMinutes} min | **${labels.format}:** ${data.environment}\n\n`;
 
   if (target === 'EXAMPLES') {
-      return renderExamplesLibrary(data);
+      return renderExamplesLibrary(data, labels);
   }
 
   // 2. Iterate through sections
   data.sections.forEach((section, index) => {
     output += `---\n\n`; // Section separator
-    output += `## Section ${index + 1}: ${section.title} (${section.durationMinutes} min)\n\n`;
+    output += `## ${labels.section} ${index + 1}: ${section.title} (${section.durationMinutes} min)\n\n`;
 
     switch (target) {
       case 'WORKBOOK':
-        output += renderWorkbookSection(section);
+        output += renderWorkbookSection(section, labels);
         break;
       case 'MANUAL':
-        output += renderManualSection(section, data.narrativeContext.protagonistName);
+        output += renderManualSection(section, data.narrativeContext.protagonistName, labels);
         break;
       case 'EXERCISES':
         if (section.exercisesDetailed) {
-           output += renderExerciseSheet(section.exercisesDetailed);
+           output += renderExerciseSheet(section.exercisesDetailed, labels);
         } else {
             output += `*(No detailed exercises in this section)*\n\n`;
         }
         break;
        case 'VIDEO_SCRIPT':
          if (section.videoScript) {
-             output += renderVideoScript(section.videoScript);
+             output += renderVideoScript(section.videoScript, labels);
          }
          break;
     }
@@ -58,27 +79,27 @@ export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget): 
 /**
  * Renders the Workbook content (Participant facing).
  */
-const renderWorkbookSection = (section: GoldenSection): string => {
+const renderWorkbookSection = (section: GoldenSection, labels: any): string => {
   const content = section.participantContent;
-  let md = `### Theory & Concepts\n\n`;
+  let md = `### ${labels.theory}\n\n`;
   
   // Unwrap the markdown content
   md += `${content.theoryMarkdown}\n\n`;
 
   if (content.keyTakeaways && content.keyTakeaways.length > 0) {
-    md += `### 🔑 Key Takeaways\n`;
+    md += `### 🔑 ${labels.keyTakeaways}\n`;
     content.keyTakeaways.forEach(pt => md += `- ${pt}\n`);
     md += `\n`;
   }
 
   if (content.actionableSteps && content.actionableSteps.length > 0) {
-    md += `### 🚀 Action Plan\n`;
+    md += `### 🚀 ${labels.actionPlan}\n`;
     content.actionableSteps.forEach((step, i) => md += `${i + 1}. ${step}\n`);
     md += `\n`;
   }
 
   if (content.reflectionQuestions && content.reflectionQuestions.length > 0) {
-    md += `### 🤔 Reflection\n`;
+    md += `### 🤔 ${labels.reflection}\n`;
     content.reflectionQuestions.forEach(q => md += `> **Question:** ${q}\n\n*(Write your answer here)*\n\n\n`);
   }
 
@@ -88,14 +109,14 @@ const renderWorkbookSection = (section: GoldenSection): string => {
 /**
  * Renders the Trainer Manual (Instructor facing).
  */
-const renderManualSection = (section: GoldenSection, protagonistName: string): string => {
+const renderManualSection = (section: GoldenSection, protagonistName: string, labels: any): string => {
   const instr = section.trainerInstructions;
-  let md = `### 👨‍🏫 Trainer Instructions\n`;
-  md += `**Method:** ${instr.deliveryMethod}\n\n`;
+  let md = `### 👨‍🏫 ${labels.trainerInstructions}\n`;
+  md += `**${labels.method}:** ${instr.deliveryMethod}\n\n`;
 
   // Logistics
   if (instr.logistics && instr.logistics.length > 0) {
-      md += `**🛠️ Logistics:** ${instr.logistics.join(', ')}\n\n`;
+      md += `**🛠️ ${labels.logistics}:** ${instr.logistics.join(', ')}\n\n`;
   }
 
   // Live vs Online Specifics
@@ -113,7 +134,7 @@ const renderManualSection = (section: GoldenSection, protagonistName: string): s
   }
 
   // The Script
-  md += `#### 🗣️ Script (Verbatim)\n`;
+  md += `#### 🗣️ ${labels.script} (Verbatim)\n`;
   md += `> ${instr.script.replace(/\n/g, '\n> ')}\n\n`;
 
   // Visual Reference (Thumbnail text)
@@ -130,15 +151,15 @@ const renderManualSection = (section: GoldenSection, protagonistName: string): s
 /**
  * Renders the Exercises Sheet (Detailed).
  */
-const renderExerciseSheet = (exercise: NonNullable<GoldenSection['exercisesDetailed']>): string => {
-    let md = `### 🏋️ Activity: ${exercise.title}\n`;
-    md += `**Objective:** ${exercise.objective}\n`;
+const renderExerciseSheet = (exercise: NonNullable<GoldenSection['exercisesDetailed']>, labels: any): string => {
+    let md = `### 🏋️ ${labels.activity}: ${exercise.title}\n`;
+    md += `**${labels.objective}:** ${exercise.objective}\n`;
     md += `**Time:** ${exercise.durationMinutes} min\n\n`;
 
-    md += `#### Instructions (Participant)\n${exercise.instructionsParticipant}\n\n`;
-    md += `#### Instructions (Facilitator)\n${exercise.instructionsFacilitator}\n\n`;
+    md += `#### ${labels.instructionsParticipant}\n${exercise.instructionsParticipant}\n\n`;
+    md += `#### ${labels.instructionsFacilitator}\n${exercise.instructionsFacilitator}\n\n`;
     
-    md += `#### Debriefing Questions\n`;
+    md += `#### ${labels.debrief}\n`;
     exercise.debriefingQuestions.forEach(q => md += `- ${q}\n`);
     
     if (exercise.adaptationNotes) {
@@ -151,12 +172,12 @@ const renderExerciseSheet = (exercise: NonNullable<GoldenSection['exercisesDetai
 /**
  * Renders the Examples Library (File 6).
  */
-const renderExamplesLibrary = (data: GoldenModuleData): string => {
+const renderExamplesLibrary = (data: GoldenModuleData, labels: any): string => {
     let md = `# Examples Library for ${data.moduleTitle}\n`;
     md += `*Context: ${data.narrativeContext.protagonistName} is in stage: "${data.narrativeContext.storyArcStage}"*\n\n`;
     
     data.narrativeContext.examplesLibrary.forEach(ex => {
-        md += `## Example: ${ex.title}\n`;
+        md += `## ${labels.example}: ${ex.title}\n`;
         md += `**When to use:** ${ex.applicationContext}\n\n`;
         md += `"${ex.storyContent}"\n\n`;
         md += `---\n\n`;
@@ -165,10 +186,10 @@ const renderExamplesLibrary = (data: GoldenModuleData): string => {
     return md;
 };
 
-const renderVideoScript = (video: NonNullable<GoldenSection['videoScript']>): string => {
-    let md = `### 🎥 Video Script\n`;
+const renderVideoScript = (video: NonNullable<GoldenSection['videoScript']>, labels: any): string => {
+    let md = `### 🎥 ${labels.videoScript}\n`;
     md += `**Scene:** ${video.sceneDescription}\n\n`;
-    md += `**Script:**\n${video.scriptContent}\n\n`;
+    md += `**${labels.script}:**\n${video.scriptContent}\n\n`;
     
     if(video.visualOverlays && video.visualOverlays.length > 0) {
         md += `**Overlays:**\n`;
