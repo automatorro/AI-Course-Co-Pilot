@@ -540,9 +540,93 @@ class AIOrchestrator {
 // Global Orchestrator Instance
 const orchestrator = new AIOrchestrator();
 
-// Helper wrapper for existing business logic
-async function callLLM(prompt: string): Promise<string> {
-  return await orchestrator.execute(prompt);
+// ==========================================
+// POST-PROCESSOR & VALIDATION
+// ==========================================
+
+const BANNED_PHRASES: Record<string, string[]> = {
+  'ro': [
+    'din păcate', 'din pacate', 'nu am suficient context', 'nu am suficiente informații',
+    'sper că această propunere', 'sper ca aceasta propunere', 'vă rog să îmi oferiți',
+    'va rog sa imi oferiti', 'acesta este un schelet general', 'dacă doriți să aprofundez',
+    'daca doriti sa aprofundez', 'ca model de limbaj', 'ca un model de limbaj',
+    'nu pot genera', 'nu pot crea'
+  ],
+  'en': [
+    'i apologize', 'i do not have enough context', 'please provide more details',
+    'this is a general outline', 'let me know if you need', 'as an ai language model',
+    'unfortunately', 'i cannot generate', 'i cannot create', 'cannot fulfill'
+  ],
+  'fr': [
+        'je m\'excuse', 'je n\'ai pas assez de contexte', 'veuillez fournir plus de détails',
+        'ceci est un plan général', 'faites-moi savoir si vous avez besoin', 'en tant que modèle de langage',
+        'malheureusement', 'je ne peux pas générer'
+    ],
+    'de': [
+        'ich entschuldige mich', 'ich habe nicht genügend kontext', 'bitte geben sie weitere details an',
+        'dies ist ein allgemeiner überblick', 'lassen sie mich wissen', 'als ki-sprachmodell',
+        'leider', 'ich kann nicht generieren'
+    ],
+    'es': [
+        'lo siento', 'no tengo suficiente contexto', 'por favor proporcione más detalles',
+        'este es un esquema general', 'hágamelo saber si necesita', 'como modelo de lenguaje',
+        'desafortunadamente', 'no puedo generar'
+    ],
+    'it': [
+        'mi scuso', 'non ho abbastanza contesto', 'si prega di fornire maggiori dettagli',
+        'questa è una bozza generale', 'fammi sapere se hai bisogno', 'come modello linguistico',
+        'purtroppo', 'non posso generare'
+    ]
+};
+
+function containsBannedPhrases(content: string, language: string = 'ro'): boolean {
+  const lower = content.toLowerCase();
+  
+  // 1. Check specific language
+  const langPhrases = BANNED_PHRASES[language] || [];
+  if (langPhrases.some(phrase => lower.includes(phrase))) return true;
+
+  // 2. ALWAYS check English (system fallback)
+  if (language !== 'en') {
+      const enPhrases = BANNED_PHRASES['en'];
+      if (enPhrases.some(phrase => lower.includes(phrase))) return true;
+  }
+
+  return false;
+}
+
+// Helper wrapper for existing business logic with RETRY & CLEANUP
+async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean = false): Promise<string> {
+  let response = await orchestrator.execute(prompt);
+
+  if (containsBannedPhrases(response, language)) {
+    if (isRetry) {
+      Logger.warn("Content still contains banned phrases after retry. Returning best effort.");
+      return response;
+    }
+
+    Logger.warn(`Banned phrases detected (Lang: ${language}). Retrying with STRICT instructions.`);
+    const strictInstruction = `
+    \n\n
+    *** CRITICAL INSTRUCTION - STRICT MODE ***
+    The previous output contained apologetic or meta-conversational phrases (e.g., "I apologize", "I need more context", "This is a draft").
+    
+    YOU MUST FOLLOW THESE RULES:
+    1. DO NOT apologize.
+    2. DO NOT ask for more context or details.
+    3. DO NOT say "I hope this helps" or "Let me know".
+    4. DO NOT provide a "skeleton" or "outline" - generate the FULL CONTENT.
+    5. IF context is missing, IMPROVISE realistic and high-quality details that fit the scenario.
+    6. ACT as the expert. Be confident.
+    7. OUTPUT ONLY THE CONTENT in the requested language (${language}).
+    
+    GENERATE THE CONTENT NOW.
+    `;
+    
+    return callLLM(prompt + strictInstruction, language, true);
+  }
+
+  return response;
 }
 
 // ==========================================
@@ -1501,6 +1585,9 @@ async function handleGoldenStep(
   if (shouldRegenerate) {
     Logger.info(`Generating Golden Data for Module: ${moduleData.title}`);
     
+    // ENSURE FRESH START: Explicitly nullify previous data to prevent any risk of concatenation
+    goldenData = null; 
+
     let protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name as string | undefined;
 
     if (!protagonistName || String(protagonistName).trim().length === 0) {
@@ -1608,7 +1695,7 @@ async function handleGoldenStep(
       prompt = `${prompt}\n\n${kbHeader}\n${knowledgeBase}`;
     }
 
-    const rawJson = await callLLM(prompt);
+    const rawJson = await callLLM(prompt, course.language || 'ro');
     const enforcedJson = ProtagonistEnforcer.enforce(rawJson, protagonistName, bannedNamesFromDNA);
     
     goldenData = repairAndParseJson<GoldenModuleData>(enforcedJson);
@@ -1660,7 +1747,7 @@ async function getOrCreateStoryArc(supabase: any, course: Course, moduleIndex?: 
   `;
 
   try {
-    const rawJson = await callLLM(prompt);
+    const rawJson = await callLLM(prompt, course.language || 'ro');
     const storyArc = repairAndParseJson<Record<string, string>>(rawJson);
 
     await supabase
@@ -1681,7 +1768,7 @@ async function getOrCreateStoryArc(supabase: any, course: Course, moduleIndex?: 
         **OUTPUT**: JSON { "1": "...", "2": "...", "3": "...", "4": "...", "5": "...", "6": "...", "7": "...", "8": "..." }
         Return ONLY JSON in the specified language.
       `;
-      const rawFallback = await callLLM(fallbackPrompt);
+      const rawFallback = await callLLM(fallbackPrompt, course.language || 'ro');
       const arc = repairAndParseJson<Record<string, string>>(rawFallback);
       return arc;
     } catch (e2) {
@@ -1801,7 +1888,7 @@ async function handleLegacyStep(
       
       try {
         Logger.info(`[LegacyStep] Invoking LLM for CourseDNA...`);
-        const response = await callLLM(prompt);
+        const response = await callLLM(prompt, course.language || 'ro');
         Logger.info(`[LegacyStep] CourseDNA LLM Response received (length: ${response.length})`);
         return response;
       } catch (e: any) {
@@ -1863,7 +1950,7 @@ async function handleLegacyStep(
         | 09:00 - 09:15 | Introducere | Discuție ghidată | Slide 1 | Deschide sesiunea, setează așteptările | Aliniere obiective | Împărtășesc așteptări | Clarifică așteptările și focusul la job |
      `;
      
-     const rawResponse = await callLLM(prompt);
+     const rawResponse = await callLLM(prompt, course.language || 'ro');
      return rawResponse; // Return Markdown directly
   }
 
@@ -1879,7 +1966,7 @@ async function handleLegacyStep(
     - NO introductory text. NO closing text.
     - DO NOT categorize (e.g. Verbal, Non-verbal). Just a single list of the most critical skills.
     `;
-    return await callLLM(prompt);
+    return await callLLM(prompt, course.language || 'ro');
   }
 
   if (step_type === 'course.steps.course_objectives' || step_type === 'course_objectives') {
@@ -1893,7 +1980,7 @@ async function handleLegacyStep(
     - NO bullet points.
     - NO repetition of performance objectives.
     `;
-    return await callLLM(prompt);
+    return await callLLM(prompt, course.language || 'ro');
   }
 
   if (step_type === 'course.steps.timing_and_flow' || step_type === 'timing_and_flow') {
@@ -1906,7 +1993,7 @@ async function handleLegacyStep(
       - Max 3-5 tips on how to manage the energy and flow of this course.
       - Do NOT repeat the agenda/schedule.
       `;
-      return await callLLM(prompt);
+      return await callLLM(prompt, course.language || 'ro');
   }
 
   if (step_type === 'course.steps.slides' || step_type === 'slides') {
@@ -2178,7 +2265,7 @@ async function handleChatOnboarding(chat_history: any[], course: any): Promise<s
     `;
 
     Logger.info("Step 1: Running Conversation Analyst...");
-    const rawAnalyst = await callLLM(analystPrompt);
+    const rawAnalyst = await callLLM(analystPrompt, lang);
     Logger.info("Step 1: Raw Analyst Response", rawAnalyst);
     let analystData;
     
@@ -2241,7 +2328,7 @@ async function handleChatOnboarding(chat_history: any[], course: any): Promise<s
     Return ONLY valid JSON.
     `;
 
-    const rawBlueprint = await callLLM(architectPrompt);
+    const rawBlueprint = await callLLM(architectPrompt, lang);
     let blueprintData;
     try {
         blueprintData = repairAndParseJson(rawBlueprint);
