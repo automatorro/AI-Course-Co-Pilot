@@ -2160,6 +2160,8 @@ async function handleChatOnboarding(chat_history: any[], course: any): Promise<s
     **DECISION LOGIC**:
     - IF information is missing: Generate a polite, short question in ${lang} to ask for it.
     - IF information is sufficient: Set status to "READY" and summarize the gathered requirements.
+    - **CRITICAL**: If the user says "Am toate informațiile necesare" or similar confirmation, set status to "READY" IMMEDIATELY.
+    - **CRITICAL**: If the conversation history shows the user has already provided Audience, Objectives, and Duration, DO NOT ASK AGAIN. Set status to "READY".
 
     **OUTPUT FORMAT (JSON ONLY)**:
     {
@@ -2177,10 +2179,12 @@ async function handleChatOnboarding(chat_history: any[], course: any): Promise<s
 
     Logger.info("Step 1: Running Conversation Analyst...");
     const rawAnalyst = await callLLM(analystPrompt);
+    Logger.info("Step 1: Raw Analyst Response", rawAnalyst);
     let analystData;
     
     try {
         analystData = repairAndParseJson<{status: string, message: string, gathered_requirements: any}>(rawAnalyst);
+        Logger.info("Step 1: Parsed Analyst Data", analystData);
     } catch (e) {
         Logger.error("Failed to parse Analyst response", e);
         // Fallback: Assume we need more info if AI failed to format correctly
