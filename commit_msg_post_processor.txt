@@ -1,7 +1,0 @@
-feat: add multi-language post-processor for banned phrases
-
-- Added `BANNED_PHRASES` dictionary for RO, EN, FR, DE, ES, IT.
-- Updated `callLLM` to accept `language` parameter.
-- Implemented `containsBannedPhrases` to check target language + English fallback.
-- Updated `handleGoldenStep`, `handleLegacyStep`, `handleChatOnboarding` to pass course language.
-- Added strict retry logic when banned phrases are detected.

@@ -579,10 +579,47 @@ const BANNED_PHRASES: Record<string, string[]> = {
     ]
 };
 
+// Universal Validator for ALL languages (using LLM as Judge)
+// This is slower but covers the "long tail" of languages.
+async function isContentValidByAI(content: string): Promise<{ valid: boolean, reason?: string }> {
+  // Optimization: Only check short/suspicious content or if we want max safety.
+  // We check the first 500 chars as refusals are usually at the start.
+  const sample = content.substring(0, 500);
+  
+  const validationPrompt = `
+  **TASK**: Analyze the text below and determine if it contains an AI refusal, apology, or meta-commentary.
+  
+  **TEXT SAMPLE**:
+  "${sample}..."
+
+  **CRITERIA FOR "INVALID"**:
+  1. Contains apologies (e.g. "I apologize", "I'm sorry", or translations).
+  2. Refuses to generate content (e.g. "I cannot generate", "I don't have enough context").
+  3. Contains AI meta-commentary (e.g. "As an AI language model", "I am a text-based AI").
+  4. Asks the user for more info instead of generating (e.g. "Please provide more details").
+  5. Offers a "skeleton" or "outline" instead of full content (e.g. "Here is a general structure").
+
+  **OUTPUT JSON ONLY**:
+  {
+    "valid": boolean, // true if content looks like actual course material, false if it's a refusal/apology
+    "reason": "short explanation if false"
+  }
+  `;
+
+  try {
+    const raw = await orchestrator.execute(validationPrompt);
+    const result = repairAndParseJson<{ valid: boolean, reason?: string }>(raw);
+    return result;
+  } catch (e) {
+    Logger.warn("AI Validation failed, assuming valid to avoid blocking.", e);
+    return { valid: true };
+  }
+}
+
 function containsBannedPhrases(content: string, language: string = 'ro'): boolean {
   const lower = content.toLowerCase();
   
-  // 1. Check specific language
+  // 1. Check specific language (Fast Path)
   const langPhrases = BANNED_PHRASES[language] || [];
   if (langPhrases.some(phrase => lower.includes(phrase))) return true;
 
@@ -599,13 +636,30 @@ function containsBannedPhrases(content: string, language: string = 'ro'): boolea
 async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean = false): Promise<string> {
   let response = await orchestrator.execute(prompt);
 
+  // Phase 1: Fast Static Check
   if (containsBannedPhrases(response, language)) {
     if (isRetry) {
       Logger.warn("Content still contains banned phrases after retry. Returning best effort.");
       return response;
     }
+    Logger.warn(`Banned phrases detected (Static Check - Lang: ${language}). Retrying...`);
+    return retryWithStrictInstructions(prompt, language);
+  }
 
-    Logger.warn(`Banned phrases detected (Lang: ${language}). Retrying with STRICT instructions.`);
+  // Phase 2: AI Validator (Universal Check) - Only if static check passed
+  // We skip this check for retries to avoid infinite loops and extra cost, unless critical.
+  if (!isRetry) {
+      const aiValidation = await isContentValidByAI(response);
+      if (!aiValidation.valid) {
+          Logger.warn(`AI Validator rejected content: ${aiValidation.reason}. Retrying...`);
+          return retryWithStrictInstructions(prompt, language);
+      }
+  }
+
+  return response;
+}
+
+async function retryWithStrictInstructions(prompt: string, language: string): Promise<string> {
     const strictInstruction = `
     \n\n
     *** CRITICAL INSTRUCTION - STRICT MODE ***
@@ -624,9 +678,6 @@ async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean
     `;
     
     return callLLM(prompt + strictInstruction, language, true);
-  }
-
-  return response;
 }
 
 // ==========================================
