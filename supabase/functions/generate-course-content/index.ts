@@ -934,12 +934,19 @@ export function repairAndParseJson<T>(text: string): T {
 
 type RenderTarget = 'WORKBOOK' | 'MANUAL' | 'EXERCISES' | 'EXAMPLES' | 'VIDEO_SCRIPT';
 
-export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget): string => {
+export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget, contextInfo?: string): string => {
   let output = '';
 
   // 1. Header Global
   output += `# ${data.moduleTitle}\n`;
   output += `**Duration:** ${data.moduleDurationMinutes} min | **Format:** ${data.environment}\n\n`;
+
+  if (target === 'MANUAL' && contextInfo) {
+      output += `> **COURSE CONTEXT (VERIFICATION)**\n`;
+      output += `> This content was generated based on the following constraints:\n`;
+      output += `> ${contextInfo.replace(/\n/g, '\n> ')}\n\n`;
+      output += `---\n\n`;
+  }
 
   if (target === 'EXAMPLES') {
       return renderExamplesLibrary(data);
@@ -1431,6 +1438,35 @@ function inferProtagonistFromAudience(audienceDescription: string, language: str
   return null;
 }
 
+function buildMandatoryContext(course: Course): string {
+  const lang = (course.language || 'ro').toLowerCase();
+  const isRo = lang.startsWith('ro') || lang.includes('roman');
+  
+  const title = course.title || "Untitled Course";
+  const audience = course.target_audience || "General Audience";
+  const environment = course.environment || "LIVE";
+  const objectives = course.learning_objectives || (isRo ? "Nu sunt specificate." : "Not specified.");
+  
+  // Calculate module count safely
+  let moduleCount = 0;
+  if (course.blueprint && Array.isArray(course.blueprint.modules)) {
+      moduleCount = course.blueprint.modules.length;
+  }
+  
+  const header = isRo ? "CONTEXT OBLIGATORIU CURS" : "MANDATORY COURSE CONTEXT";
+  
+  return `
+=== ${header} ===
+1. Course Title: ${title}
+2. Target Audience: ${audience}
+3. Delivery Environment: ${environment}
+4. Module Count: ${moduleCount}
+5. Learning Objectives:
+${objectives}
+================================
+`.trim();
+}
+
 async function handleGoldenStep(
   supabase: any, 
   course: Course, 
@@ -1538,6 +1574,8 @@ async function handleGoldenStep(
 
     const knowledgeBase = await buildKnowledgeBaseContext(supabase, course.id, course.language || "Romanian");
 
+    const mandatoryContext = buildMandatoryContext(course);
+
     let prompt = fillPromptTemplate(GOLDEN_MASTER_PROMPT, {
       moduleTitle: moduleData.title,
       durationMinutes: moduleData.duration_minutes || 60, 
@@ -1549,6 +1587,15 @@ async function handleGoldenStep(
       styleBlock: getStyleBlock(course.target_audience || "General Audience"),
       moduleId: module_id
     });
+
+    // Inject mandatory context at the very beginning
+    prompt = `${mandatoryContext}\n\n${prompt}`;
+
+    // VERIFICATION LOG: Print the start of the prompt to confirm context injection
+    Logger.info("--- FINAL PROMPT PREVIEW (First 500 chars) ---");
+    Logger.info(prompt.substring(0, 500));
+    Logger.info("------------------------------------------------");
+
     const approvedObjectives = String((course as any).learning_objectives || '').trim();
     if (approvedObjectives) {
       prompt = `${prompt}\n\n${(course.language || 'ro').toLowerCase().includes('ro') ? '**Obiective aprobate de utilizator**' : '**User-approved objectives**'}:\n${approvedObjectives}\n${(course.language || 'ro').toLowerCase().includes('ro') ? 'Aliniază secțiunile, exercițiile și exemplele cu aceste obiective.' : 'Align sections, exercises and examples with these objectives.'}`;
@@ -1576,7 +1623,7 @@ async function handleGoldenStep(
     case 'course.steps.workbook':
       return renderToMarkdown(goldenData, 'WORKBOOK');
     case 'course.steps.manual':
-      return renderToMarkdown(goldenData, 'MANUAL');
+      return renderToMarkdown(goldenData, 'MANUAL', mandatoryContext);
     case 'course.steps.exercises':
       return renderToMarkdown(goldenData, 'EXERCISES');
     case 'course.steps.slides':
