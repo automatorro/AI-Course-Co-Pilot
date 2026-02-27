@@ -551,7 +551,8 @@ const BANNED_PHRASES: Record<string, string[]> = {
     'sper că această propunere', 'sper ca aceasta propunere', 'vă rog să îmi oferiți',
     'va rog sa imi oferiti', 'acesta este un schelet general', 'dacă doriți să aprofundez',
     'daca doriti sa aprofundez', 'ca model de limbaj', 'ca un model de limbaj',
-    'nu pot genera', 'nu pot crea'
+    'nu pot genera', 'nu pot crea',
+    'sper că e util', 'sper sa fie util', 'dacă aveți nevoie', 'daca aveti nevoie'
   ],
   'en': [
     'i apologize', 'i do not have enough context', 'please provide more details',
@@ -583,15 +584,24 @@ const BANNED_PHRASES: Record<string, string[]> = {
 // Universal Validator for ALL languages (using LLM as Judge)
 // This is slower but covers the "long tail" of languages.
 async function isContentValidByAI(content: string): Promise<{ valid: boolean, reason?: string }> {
-  // Optimization: Only check short/suspicious content or if we want max safety.
-  // We check the first 500 chars as refusals are usually at the start.
-  const sample = content.substring(0, 500);
+  // Optimization: Check both START and END of the content.
+  // Refusals are usually at the start, but "Hope this helps" is at the end.
+  const startSample = content.substring(0, 500);
+  const endSample = content.length > 500 ? content.substring(content.length - 500) : "";
+  
+  const sample = `
+  --- START ---
+  ${startSample}
+  ...
+  --- END ---
+  ${endSample}
+  `;
   
   const validationPrompt = `
-  **TASK**: Analyze the text below and determine if it contains an AI refusal, apology, or meta-commentary.
+  **TASK**: Analyze the text fragments below and determine if the content contains an AI refusal, apology, or meta-commentary.
   
-  **TEXT SAMPLE**:
-  "${sample}..."
+  **TEXT SAMPLES**:
+  ${sample}
 
   **CRITERIA FOR "INVALID"**:
   1. Contains apologies (e.g. "I apologize", "I'm sorry", or translations).
@@ -784,251 +794,8 @@ export interface GoldenSection {
 // 4. PROMPTS & TEMPLATES
 // ==========================================
 
-export const GOLDEN_SAMPLES = {
-  objectives: `
-# [Course Title]
-**Total Duration:** [Hours]
-**Target Audience:** [Specific Audience]
-**Format:** [Live Workshop OR Online Course]
 
----
 
-## 🎯 LEARNING OBJECTIVES (BLOOM'S TAXONOMY)
-
-At the end of this course, participants will be able to:
-
-### 1. **ANALYZE** (Bloom: Analyze)
-To identify [Key Problem/Pattern] using [Specific Framework/Tool] and justify the diagnosis with concrete evidence from [Context].
-
-**Success Criteria:**
-- Correctly classifies [X]% of [Scenarios]
-- Provides minimum [Y] evidence points for each classification
-
----
-
-### 2. **APPLY** (Bloom: Apply)
-To adapt [Method/Technique] depending on [Variable A] and [Variable B], using the [Step-by-Step Process] learned in Module [N].
-
-**Success Criteria:**
-- Solves correctly [X]/[Y] practical scenarios
-- Develops an action plan for a real-world situation
-
----
-
-### 3. **CREATE** (Bloom: Create)
-To develop a personalized [Strategy/Plan/Project] for [Target], with specific milestones and [KPIs].
-
-**Success Criteria:**
-- The plan contains specific actions (not vague wishes)
-- Includes [Specific Component A] and [Specific Component B]
-
----
-`,
-
-  workbook_online: `
-## Module [N]: [Module Title]
-
-### 1. Why this matters (The Hook)
-[Compelling Intro]: Start with a relatable pain point or myth.
-"Most people believe that [Common Myth about Topic]. But in reality, [Truth]."
-"Have you ever felt [Pain Point]? You are not alone."
-
-### 2. Core Concept: [Concept Name]
-**Definition:** [Clear, jargon-free definition]
-
-**The Framework ([Acronym/Model]):**
-1. **[Step 1]:** [Explanation]
-2. **[Step 2]:** [Explanation]
-3. **[Step 3]:** [Explanation]
-
-> **Pro Tip:** [Actionable insight or "Cheat Code"]
-
-### 3. Real World Example (Narrative Arc)
-**The Story of [Protagonist Name]:**
-[Protagonist] faced [Challenge related to Module].
-At first, they tried [Wrong Approach]. Result: [Negative Outcome].
-Then, they applied [Core Concept].
-**Result:** [Positive Outcome].
-
-### 4. Practical Exercise [N].1
-**Objective:** Apply [Concept] to a personal scenario.
-**Instructions:**
-1. Identify [X].
-2. Apply [Y].
-3. Write down [Z].
-
-**Workspace:**
-[____________________]
-[____________________]
-`,
-
-  workbook_live: `
-## Module [N]: [Module Title] (Live Workshop Edition)
-
-### 1. Group Discussion Starter
-**Question:** "[Provocative Question about Topic]?"
-**Activity:** Turn to your neighbor (2 min) and discuss.
-
-### 2. Core Framework: [Concept Name]
-[Visual Diagram Placeholder]
-- **[Component A]:** [Description]
-- **[Component B]:** [Description]
-
-### 3. The "Aha!" Moment
-> **Key Takeaway:** [The most important insight of the module]
-
-### 4. Group Activity [N].1: [Activity Name]
-**Format:** Groups of [X]
-**Time:** [Y] minutes
-**Instructions:**
-1. Select a [Role/Scenario].
-2. Practice [Technique].
-`,
-  
-  structure_live: `
-[
-  {
-    "title": "Module 1: Foundations",
-    "duration": "60 min",
-    "description": "Introduction to core concepts...",
-    "topics": ["Topic A", "Topic B"]
-  },
-  {
-    "title": "Module 2: Advanced Application",
-    "duration": "90 min",
-    "description": "Deep dive into complex scenarios...",
-    "topics": ["Case Study X", "Roleplay Y"]
-  }
-]
-`
-};
-
-// GOLDEN_MASTER_PROMPT imported from ./prompts/golden-master.ts
-
-export const getDepthSpecs = (language: string, type: 'live' | 'online' = 'live', practicePercent: number = 80) => {
-  const envSpecs = type === 'online' 
-    ? `
-    **ENVIRONMENT: ONLINE (VIRTUAL CLASSROOM - ZOOM/TEAMS)**
-    - **INTERACTION**: Must use "Breakout Rooms", "Chat Polls", "Miro Board links", "Screen Share".
-    - **CONSTRAINTS**: Max 10 min monologues (Zoom Fatigue). Frequent "Type in chat" prompts.
-    - **MATERIALS**: PDFs, Digital Workbooks, Online Quizzes.
-    ` 
-    : `
-    **ENVIRONMENT: LIVE (IN-PERSON WORKSHOP)**
-    - **INTERACTION**: EXCLUSIVE face-to-face activities: "Turn to your neighbor", "Physical Flipcharts", "Room Movement", "Gallery Walk", "Role Play in room", "Group Discussions", "Physical Exercises".
-    - **CONSTRAINTS**: 
-      *   Standard attention spans. Physical handouts allowed.
-      *   **FORBIDDEN**: DO NOT mention videos, webinars, online dashboards, virtual forums, zoom links, or screen sharing.
-    - **MATERIALS**: Printed Workbooks, Sticky Notes, Markers, Flipchart paper.
-    `;
-
-  return {
-    workbook: `
-    **DEPTH SPECIFICATIONS (Workbook):**
-    - **LENGTH**: Comprehensive workbook (target 40+ pages).
-    - **PEDAGOGY (ACTION-FIRST)**:
-      *   **No Fluff**: Do not explain "definitions" unless critical. Go straight to "How to apply".
-      *   **Step-by-Step**: Use numbered lists for actions. "Step 1: Do X. Step 2: Do Y."
-      *   **Checklists**: Include "Am I doing it right?" checklists for every concept.
-    - **CONTENT PER MODULE**:
-      *   **Explanatory Text**: 800-1200 words. Conversational.
-      *   **Stories**: Include at least 1-2 distinct stories/analogies per section (Hero -> Problem -> Solution).
-      *   **Case Studies**: Full case studies (1 page each) with the Course Protagonist.
-      *   **Exercises**: Every exercise must have: Objective, Instructions, Formatted answer space (tables/boxes).
-    - **FORMATTING**: Markdown headers, Blockquotes for takeaways, Bold for emphasis.
-    - **LANGUAGE**: All content must be in **${language}**.
-    ${envSpecs}
-  `,
-    slides: `
-    **DEPTH SPECIFICATIONS (Slides):**
-    - **QUANTITY**: 1 slide per 6-8 minutes.
-    - **STORYTELLING FLOW**:
-      *   Slide 1: The Hook (Problem/Story).
-      *   Slide 2: The Solution (Concept).
-      *   Slide 3: The Framework (Visual Model).
-      *   Slide 4: Practical Application.
-    - **VISUALS**: Describe specific imagery (e.g., "Photo of a frustrated manager looking at a clock").
-    - **LANGUAGE**: All content must be in **${language}**.
-    ${envSpecs}
-  `,
-    exercises: `
-    **DEPTH SPECIFICATIONS (Exercises):**
-    - **QUANTITY**: Ensure approximately **${practicePercent}%** of the course time is practical (based on User's Blueprint).
-    - **REALITY CHECK**:
-      *   **Scenario-Based**: Never ask "What is X?". Ask "Client Y is yelling. What do you say?".
-      *   **Red Flags**: Always include "What could go wrong?" sections.
-    - **DETAIL**:
-      *   **Timing**: Specify exact duration.
-      *   **Facilitator Instructions**: Step-by-step guide.
-      *   **Debriefing**: 3-5 specific questions (Factual, Analytical, Applicative).
-    - **LANGUAGE**: All content must be in **${language}**.
-    ${envSpecs}
-  `,
-    manual: `
-    **DEPTH SPECIFICATIONS (Trainer Manual):**
-    - **FLOW TABLE**: Minute-by-minute agenda.
-    - **SCRIPTS**: Full conversational scripts. NO "Say hello to participants". WRITE exactly what to say.
-    - **STORYTELLING**: The trainer is a storyteller. Scripts must include personal anecdotes placeholders.
-    - **METHODOLOGY**:
-      *   **Feedback**: SBI Model only.
-      *   **Problem Solving**: Ishikawa / 5 Whys.
-    - **STRUCTURĂ**: ONE coherent manual.
-    - **LANGUAGE**: All content must be in **${language}**.
-    ${envSpecs}
-  `
-  };
-};
-
-export const getPromptTemplates = (language: string) => {
-  return {
-    workbook_section: `
-    ## Module [N]: [Title] ([Duration])
-
-    ### [Translate to ${language}: "Why this matters"] (200-300 words)
-    [Intro paragraph explaining importance. Hook the reader with a relatable problem.]
-
-    ### [Section Title]
-    #### Core Concept (300-500 words)
-    [Full explanation. Define terms, provide context. NO academic tone - use "buddy-to-buddy" tone.]
-
-    **[Translate to ${language}: "Real World Example"]:** (200-300 words)
-    [Story. Context -> Challenge -> Action -> Result]
-
-    ---
-    🎯 **[Translate to ${language}: "Practical Exercise"] [N]**
-    **[Translate to ${language}: "Objective"]:** [What specific skill will be practiced]
-    **[Translate to ${language}: "Duration"]:** [Time] min
-
-    **[Translate to ${language}: "Instructions"]:**
-    1. [Clear Step 1]
-    2. [Clear Step 2]
-
-    **[Translate to ${language}: "Workspace"]:**
-    [Insert ample space for writing/answering]
-
-    **[Translate to ${language}: "Success Checklist"]:**
-    - [ ] [Item 1]
-    - [ ] [Item 2]
-    ---
-
-    ### [Translate to ${language}: "Recap"] [N]
-    > **[Translate to ${language}: "Remember"]:** [Key takeaway 1]
-    > **[Translate to ${language}: "Remember"]:** [Key takeaway 2]
-  `,
-    slide: `
-    <SLIDE_BEGIN id="[N]">
-    <TITLE>[Title]</TITLE>
-    <!-- slide-layout: EXPLAINER -->
-    <VISUAL>[Visual description]</VISUAL>
-    <CONTENT>
-    - [Bullet 1]
-    - [Bullet 2]
-    </CONTENT>
-    <NOTES>[Script]</NOTES>
-    <SLIDE_END id="[N]">
-    `
-  };
-};
 
 // ==========================================
 // 5. UTILS (PARSER & REPAIR)
@@ -1316,9 +1083,7 @@ export const renderToXml = (data: GoldenModuleData): string => {
   return xmlOutput;
 };
 
-export const renderExercises = (data: GoldenModuleData): string => {
-    return renderToMarkdown(data, 'EXERCISES');
-};
+
 
 const cleanMarkdown = (text: string): string => {
   return text
@@ -1488,12 +1253,25 @@ serve(async (req) => {
 
     let result = "";
 
-    // A. Structure / Legacy Steps (Global)
-    if (step_type === 'course.steps.structure' || step_type === 'course_dna' || !module_id) {
+    // A. Global Steps (Course Level)
+    const GLOBAL_STEPS = [
+      'course.steps.structure',
+      'course_dna',
+      'course.steps.performance_objectives',
+      'course.steps.course_objectives',
+      'course.steps.timing_and_flow'
+    ];
+
+    const isGlobalSlides = step_type === 'course.steps.slides' && !module_id;
+
+    if (GLOBAL_STEPS.includes(step_type) || isGlobalSlides) {
        result = await handleLegacyStep(supabase, course, step_type, context, blueprint_duration, explicit_module_list);
     } 
     // B. Golden Path (Module Level Content)
     else {
+      if (!module_id) {
+         throw new Error(`[CRITICAL] module_id is required for step '${step_type}'. Frontend must provide it.`);
+      }
       result = await handleGoldenStep(supabase, course, module_id, step_type);
     }
 
@@ -1859,14 +1637,30 @@ async function handleGoldenStep(
       prompt = `${prompt}\n\n${kbHeader}\n${knowledgeBase}`;
     }
 
-    const rawJson = await callLLM(prompt, course.language || 'ro');
-    const enforcedJson = ProtagonistEnforcer.enforce(rawJson, protagonistName, bannedNamesFromDNA);
-    
-    goldenData = repairAndParseJson<GoldenModuleData>(enforcedJson);
+    let attempts = 0;
+    const maxAttempts = 2;
+    let success = false;
 
-    // FINAL VALIDATION: Ensure the generated data is valid before saving
-    if (!isValidGoldenData(goldenData)) {
-      throw new Error("Generated Golden Master JSON failed validation check. Please try again.");
+    while (attempts < maxAttempts && !success) {
+      attempts++;
+      try {
+        Logger.info(`Golden Path Generation - Attempt ${attempts}/${maxAttempts}`);
+        const rawJson = await callLLM(prompt, course.language || 'ro', attempts > 1);
+        const enforcedJson = ProtagonistEnforcer.enforce(rawJson, protagonistName, bannedNamesFromDNA);
+        
+        goldenData = repairAndParseJson<GoldenModuleData>(enforcedJson);
+
+        // FINAL VALIDATION: Ensure the generated data is valid before saving
+        if (isValidGoldenData(goldenData)) {
+          success = true;
+        } else {
+           Logger.warn(`Attempt ${attempts}: Invalid Golden Data structure.`);
+           if (attempts === maxAttempts) throw new Error("Generated Golden Master JSON failed validation check.");
+        }
+      } catch (e: any) {
+         Logger.warn(`Attempt ${attempts} Error: ${e.message}`);
+         if (attempts === maxAttempts) throw e;
+      }
     }
     
     await supabase
@@ -2007,7 +1801,6 @@ async function handleLegacyStep(
   explicitModuleList: string = ""
 ): Promise<string> {
   
-  const envSuffix = course.environment === 'ONLINE' ? 'online' : 'live';
 
   if (step_type === 'course_dna') {
       const prompt = `
