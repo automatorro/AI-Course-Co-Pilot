@@ -1279,11 +1279,16 @@ serve(async (req) => {
     // A. Global Steps (Course Level)
     const GLOBAL_STEPS = [
       'course.steps.structure',
+      'structure',
       'course_dna',
       'course.steps.performance_objectives',
+      'performance_objectives',
       'course.steps.course_objectives',
+      'course_objectives',
       'course.steps.timing_and_flow',
-      'course.steps.course_slides'
+      'timing_and_flow',
+      'course.steps.course_slides',
+      'course_slides'
     ];
 
     if (GLOBAL_STEPS.includes(step_type)) {
