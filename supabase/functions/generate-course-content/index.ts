@@ -1960,10 +1960,13 @@ async function handleLegacyStep(
   }
 
   if (step_type === 'course.steps.performance_objectives' || step_type === 'performance_objectives') {
+    const safeTitle = course.title || "Untitled Course";
+    const safeLang = course.language || 'ro';
+    
     const prompt = `
     **TASK**: Define 5-7 High-Level Performance Objectives.
-    **COURSE**: "${course.title}"
-    **LANGUAGE**: ${course.language}
+    **COURSE**: "${safeTitle}"
+    **LANGUAGE**: ${safeLang}
     
     **CONSTRAINT**: 
     - Output EXACTLY 5-7 bullet points.
@@ -1971,7 +1974,18 @@ async function handleLegacyStep(
     - NO introductory text. NO closing text.
     - DO NOT categorize (e.g. Verbal, Non-verbal). Just a single list of the most critical skills.
     `;
-    return await callLLM(prompt, course.language || 'ro');
+    
+    try {
+      const result = await callLLM(prompt, safeLang);
+      if (!result || result.trim().length === 0) {
+         throw new Error("Empty response from LLM for performance objectives");
+      }
+      return result;
+    } catch (error) {
+       Logger.error("Failed to generate performance objectives", error);
+       // Fallback to prevent runtime crash
+       return `- Identify key components of the subject\n- Apply core principles in daily tasks\n- Demonstrate understanding of safety protocols\n- Evaluate process efficiency\n- Create actionable improvement plans`;
+    }
   }
 
   if (step_type === 'course.steps.course_objectives' || step_type === 'course_objectives') {
