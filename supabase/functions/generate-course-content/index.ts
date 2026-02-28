@@ -913,7 +913,7 @@ const renderWorkbookSection = (section: GoldenSection, labels: GoldenModuleData[
   const exercise = section.exercisesDetailed;
 
   if (!content && !exercise) {
-      return `> Missing content for section "${section.title}". Please regenerate this module.`;
+      return `> Missing content for section "${section.title}". Please regenerate this module.\n`;
   }
 
   let md = `### ${section.title}\n\n`;
@@ -922,7 +922,7 @@ const renderWorkbookSection = (section: GoldenSection, labels: GoldenModuleData[
     md += `${content.theoryMarkdown}\n\n`;
   }
 
-  if (content && content.keyTakeaways && content.keyTakeaways.length > 0) {
+  if (content && content.keyTakeaways && Array.isArray(content.keyTakeaways) && content.keyTakeaways.length > 0) {
     md += `#### 🔑 ${labels?.keyTakeaways || 'Key Takeaways'}\n`;
     content.keyTakeaways.forEach(pt => {
       md += `- ${pt}\n`;
@@ -930,20 +930,20 @@ const renderWorkbookSection = (section: GoldenSection, labels: GoldenModuleData[
     md += `\n`;
   }
 
-  if (content && content.actionableSteps && content.actionableSteps.length > 0) {
+  if (content && content.actionableSteps && Array.isArray(content.actionableSteps) && content.actionableSteps.length > 0) {
     md += `#### 🚀 ${labels?.actionPlan || 'Action Plan'}\n`;
     content.actionableSteps.forEach((step, i) => {
       md += `${i + 1}. ${step}\n`;
     });
     md += `\n\n`;
-    md += `\n\n`;
   }
 
   if (exercise) {
+    const activityLabel = labels?.activity || 'Practical Exercise';
     if (exercise.title) {
-      md += `#### 🎯 ${labels?.activity || 'Practical Exercise'}: ${exercise.title}\n\n`;
+      md += `#### 🎯 ${activityLabel}: ${exercise.title}\n\n`;
     } else {
-      md += `#### 🎯 ${labels?.activity || 'Practical Exercise'}\n\n`;
+      md += `#### 🎯 ${activityLabel}\n\n`;
     }
 
     if (exercise.objective) {
@@ -962,7 +962,7 @@ const renderWorkbookSection = (section: GoldenSection, labels: GoldenModuleData[
     md += `**${labels?.activity || 'Workspace'}:**\n\n`;
     md += `\n\n\n\n\n`;
 
-    if (exercise.successIndicators && exercise.successIndicators.length > 0) {
+    if (exercise.successIndicators && Array.isArray(exercise.successIndicators) && exercise.successIndicators.length > 0) {
       md += `**${labels?.debrief || 'Success Checklist'}:**\n`;
       exercise.successIndicators.forEach(item => {
         md += `- [ ] ${item}\n`;
@@ -971,7 +971,7 @@ const renderWorkbookSection = (section: GoldenSection, labels: GoldenModuleData[
     }
   }
 
-  if (content && content.reflectionQuestions && content.reflectionQuestions.length > 0) {
+  if (content && content.reflectionQuestions && Array.isArray(content.reflectionQuestions) && content.reflectionQuestions.length > 0) {
     md += `#### 🤔 ${labels?.reflection || 'Reflection'}\n`;
     content.reflectionQuestions.forEach(q => {
       md += `**${q}**\n\n`;
@@ -984,33 +984,41 @@ const renderWorkbookSection = (section: GoldenSection, labels: GoldenModuleData[
 
 const renderManualSection = (section: GoldenSection, protagonistName: string, labels: GoldenModuleData['localizedLabels']): string => {
   const instr = section.trainerInstructions;
-  let md = `### 👨‍🏫 ${labels?.trainerInstructions || 'Trainer Instructions'}\n`;
-  md += `**${labels?.method || 'Method'}:** ${instr.deliveryMethod}\n\n`;
+  if (!instr) {
+      return `> Missing trainer instructions for section "${section.title}"\n`;
+  }
 
-  if (instr.logistics && instr.logistics.length > 0) {
+  let md = `### 👨‍🏫 ${labels?.trainerInstructions || 'Trainer Instructions'}\n`;
+  md += `**${labels?.method || 'Method'}:** ${instr.deliveryMethod || 'N/A'}\n\n`;
+
+  if (instr.logistics && Array.isArray(instr.logistics) && instr.logistics.length > 0) {
       md += `**🛠️ Logistics:** ${instr.logistics.join(', ')}\n\n`;
   }
 
   if (instr.flipchartSketch) {
       md += `**🎨 FLIPCHART SKETCH:**\n`;
-      md += `*Title:* ${instr.flipchartSketch.title}\n`;
-      md += `*Draw:* ${instr.flipchartSketch.visualDescription}\n`;
-      md += `*Write:* \n${instr.flipchartSketch.bulletPoints.map(b => `  - ${b}`).join('\n')}\n\n`;
+      md += `*Title:* ${instr.flipchartSketch.title || 'Untitled'}\n`;
+      md += `*Draw:* ${instr.flipchartSketch.visualDescription || 'No description'}\n`;
+      if (instr.flipchartSketch.bulletPoints && Array.isArray(instr.flipchartSketch.bulletPoints)) {
+          md += `*Write:* \n${instr.flipchartSketch.bulletPoints.map(b => `  - ${b}`).join('\n')}\n\n`;
+      }
   }
 
   if (instr.breakoutRoomConfig) {
       md += `**💻 BREAKOUT ROOMS:**\n`;
-      md += `*Groups:* ${instr.breakoutRoomConfig.groupSize} pax | *Time:* ${instr.breakoutRoomConfig.duration} min\n`;
-      md += `*Task:* ${instr.breakoutRoomConfig.taskDescription}\n\n`;
+      md += `*Groups:* ${instr.breakoutRoomConfig.groupSize || 2} pax | *Time:* ${instr.breakoutRoomConfig.duration || 15} min\n`;
+      md += `*Task:* ${instr.breakoutRoomConfig.taskDescription || 'Discuss'}\n\n`;
   }
 
-  md += `#### 🗣️ ${labels?.script || 'Script (Verbatim)'}\n`;
-  md += `> ${instr.script.replace(/\n/g, '\n> ')}\n\n`;
+  if (instr.script) {
+    md += `#### 🗣️ ${labels?.script || 'Script (Verbatim)'}\n`;
+    md += `> ${instr.script.replace(/\n/g, '\n> ')}\n\n`;
+  }
 
-  if (section.visuals && section.visuals.slidesSequence.length > 0) {
+  if (section.visuals && section.visuals.slidesSequence && Array.isArray(section.visuals.slidesSequence) && section.visuals.slidesSequence.length > 0) {
       md += `#### 🖼️ Visuals Cue\n`;
       section.visuals.slidesSequence.forEach(slide => {
-          md += `- **[Slide ${slide.slideId}]:** ${slide.title} (Note: ${slide.speakerNotes.substring(0, 50)}...)\n`;
+          md += `- **[Slide ${slide.slideId || '?'}]:** ${slide.title || 'Untitled'} (Note: ${(slide.speakerNotes || '').substring(0, 50)}...)\n`;
       });
   }
 
@@ -1025,8 +1033,10 @@ const renderExerciseSheet = (exercise: NonNullable<GoldenSection['exercisesDetai
     md += `#### ${labels?.instructionsParticipant || 'Instructions (Participant)'}\n${exercise.instructionsParticipant}\n\n`;
     md += `#### ${labels?.instructionsFacilitator || 'Instructions (Facilitator)'}\n${exercise.instructionsFacilitator}\n\n`;
     
-    md += `#### ${labels?.debrief || 'Debriefing Questions'}\n`;
-    exercise.debriefingQuestions.forEach(q => md += `- ${q}\n`);
+    if (exercise.debriefingQuestions && Array.isArray(exercise.debriefingQuestions)) {
+      md += `#### ${labels?.debrief || 'Debriefing Questions'}\n`;
+      exercise.debriefingQuestions.forEach(q => md += `- ${q}\n`);
+    }
     
     if (exercise.adaptationNotes) {
         md += `\n**⚠️ Adaptation Note:** ${exercise.adaptationNotes}\n`;
@@ -1037,14 +1047,18 @@ const renderExerciseSheet = (exercise: NonNullable<GoldenSection['exercisesDetai
 
 const renderExamplesLibrary = (data: GoldenModuleData): string => {
     let md = `# Examples Library for ${data.moduleTitle}\n`;
-    md += `*Context: ${data.narrativeContext.protagonistName} is in stage: "${data.narrativeContext.storyArcStage}"*\n\n`;
+    const protagonist = data.narrativeContext?.protagonistName || 'Protagonist';
+    const stage = data.narrativeContext?.storyArcStage || 'N/A';
+    md += `*Context: ${protagonist} is in stage: "${stage}"*\n\n`;
     
-    data.narrativeContext.examplesLibrary.forEach(ex => {
-        md += `## Example: ${ex.title}\n`;
-        md += `**When to use:** ${ex.applicationContext}\n\n`;
-        md += `"${ex.storyContent}"\n\n`;
-        md += `---\n\n`;
-    });
+    if (data.narrativeContext && data.narrativeContext.examplesLibrary && Array.isArray(data.narrativeContext.examplesLibrary)) {
+      data.narrativeContext.examplesLibrary.forEach(ex => {
+          md += `## Example: ${ex.title}\n`;
+          md += `**When to use:** ${ex.applicationContext}\n\n`;
+          md += `"${ex.storyContent}"\n\n`;
+          md += `---\n\n`;
+      });
+    }
     
     return md;
 };
@@ -1054,7 +1068,7 @@ const renderVideoScript = (video: NonNullable<GoldenSection['videoScript']>, lab
     md += `**Scene:** ${video.sceneDescription}\n\n`;
     md += `**Script:**\n${video.scriptContent}\n\n`;
     
-    if(video.visualOverlays && video.visualOverlays.length > 0) {
+    if(video.visualOverlays && Array.isArray(video.visualOverlays) && video.visualOverlays.length > 0) {
         md += `**Overlays:**\n`;
         video.visualOverlays.forEach(o => md += `- [${o.timestamp}] ${o.description}\n`);
     }

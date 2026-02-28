@@ -46,32 +46,34 @@ export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget): 
   }
 
   // 2. Iterate through sections
-  data.sections.forEach((section, index) => {
-    output += `---\n\n`; // Section separator
-    output += `## ${labels.section} ${index + 1}: ${section.title} (${section.durationMinutes} min)\n\n`;
+  if (data.sections && Array.isArray(data.sections)) {
+    data.sections.forEach((section, index) => {
+      output += `---\n\n`; // Section separator
+      output += `## ${labels.section} ${index + 1}: ${section.title} (${section.durationMinutes} min)\n\n`;
 
-    switch (target) {
-      case 'WORKBOOK':
-        output += renderWorkbookSection(section, labels);
-        break;
-      case 'MANUAL':
-        output += renderManualSection(section, data.narrativeContext.protagonistName, labels);
-        break;
-      case 'EXERCISES':
-        if (section.exercisesDetailed) {
-           output += renderExerciseSheet(section.exercisesDetailed, labels);
-        } else {
-            output += `*(No detailed exercises in this section)*\n\n`;
-        }
-        break;
-       case 'VIDEO_SCRIPT':
-         if (section.videoScript) {
-             output += renderVideoScript(section.videoScript, labels);
-         }
-         break;
-    }
-    output += `\n\n`;
-  });
+      switch (target) {
+        case 'WORKBOOK':
+          output += renderWorkbookSection(section, labels);
+          break;
+        case 'MANUAL':
+          output += renderManualSection(section, data.narrativeContext?.protagonistName || 'Protagonist', labels);
+          break;
+        case 'EXERCISES':
+          if (section.exercisesDetailed) {
+            output += renderExerciseSheet(section.exercisesDetailed, labels);
+          } else {
+              output += `*(No detailed exercises in this section)*\n\n`;
+          }
+          break;
+        case 'VIDEO_SCRIPT':
+          if (section.videoScript) {
+              output += renderVideoScript(section.videoScript, labels);
+          }
+          break;
+      }
+      output += `\n\n`;
+    });
+  }
 
   return cleanMarkdown(output);
 };
@@ -81,10 +83,14 @@ export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget): 
  */
 const renderWorkbookSection = (section: GoldenSection, labels: any): string => {
   const content = section.participantContent;
+  if (!content) return `> Missing content for section "${section.title}"\n`;
+
   let md = `### ${labels.theory}\n\n`;
   
   // Unwrap the markdown content
-  md += `${content.theoryMarkdown}\n\n`;
+  if (content.theoryMarkdown) {
+    md += `${content.theoryMarkdown}\n\n`;
+  }
 
   if (content.keyTakeaways && content.keyTakeaways.length > 0) {
     md += `### 🔑 ${labels.keyTakeaways}\n`;
@@ -111,8 +117,10 @@ const renderWorkbookSection = (section: GoldenSection, labels: any): string => {
  */
 const renderManualSection = (section: GoldenSection, protagonistName: string, labels: any): string => {
   const instr = section.trainerInstructions;
+  if (!instr) return `> Missing trainer instructions for section "${section.title}"\n`;
+
   let md = `### 👨‍🏫 ${labels.trainerInstructions}\n`;
-  md += `**${labels.method}:** ${instr.deliveryMethod}\n\n`;
+  md += `**${labels.method}:** ${instr.deliveryMethod || 'N/A'}\n\n`;
 
   // Logistics
   if (instr.logistics && instr.logistics.length > 0) {
@@ -134,14 +142,16 @@ const renderManualSection = (section: GoldenSection, protagonistName: string, la
   }
 
   // The Script
-  md += `#### 🗣️ ${labels.script} (Verbatim)\n`;
-  md += `> ${instr.script.replace(/\n/g, '\n> ')}\n\n`;
+  if (instr.script) {
+    md += `#### 🗣️ ${labels.script} (Verbatim)\n`;
+    md += `> ${instr.script.replace(/\n/g, '\n> ')}\n\n`;
+  }
 
   // Visual Reference (Thumbnail text)
-  if (section.visuals && section.visuals.slidesSequence.length > 0) {
+  if (section.visuals && section.visuals.slidesSequence && section.visuals.slidesSequence.length > 0) {
       md += `#### 🖼️ Visuals Cue\n`;
       section.visuals.slidesSequence.forEach(slide => {
-          md += `- **[Slide ${slide.slideId}]:** ${slide.title} (Note: ${slide.speakerNotes.substring(0, 50)}...)\n`;
+          md += `- **[Slide ${slide.slideId}]:** ${slide.title} (Note: ${(slide.speakerNotes || '').substring(0, 50)}...)\n`;
       });
   }
 
@@ -152,15 +162,19 @@ const renderManualSection = (section: GoldenSection, protagonistName: string, la
  * Renders the Exercises Sheet (Detailed).
  */
 const renderExerciseSheet = (exercise: NonNullable<GoldenSection['exercisesDetailed']>, labels: any): string => {
-    let md = `### 🏋️ ${labels.activity}: ${exercise.title}\n`;
-    md += `**${labels.objective}:** ${exercise.objective}\n`;
-    md += `**Time:** ${exercise.durationMinutes} min\n\n`;
-
-    md += `#### ${labels.instructionsParticipant}\n${exercise.instructionsParticipant}\n\n`;
-    md += `#### ${labels.instructionsFacilitator}\n${exercise.instructionsFacilitator}\n\n`;
+    if (!exercise) return '';
     
-    md += `#### ${labels.debrief}\n`;
-    exercise.debriefingQuestions.forEach(q => md += `- ${q}\n`);
+    let md = `### 🏋️ ${labels.activity}: ${exercise.title || 'Untitled Activity'}\n`;
+    md += `**${labels.objective}:** ${exercise.objective || 'N/A'}\n`;
+    md += `**Time:** ${exercise.durationMinutes || 0} min\n\n`;
+
+    md += `#### ${labels.instructionsParticipant}\n${exercise.instructionsParticipant || ''}\n\n`;
+    md += `#### ${labels.instructionsFacilitator}\n${exercise.instructionsFacilitator || ''}\n\n`;
+    
+    if (exercise.debriefingQuestions && exercise.debriefingQuestions.length > 0) {
+      md += `#### ${labels.debrief}\n`;
+      exercise.debriefingQuestions.forEach(q => md += `- ${q}\n`);
+    }
     
     if (exercise.adaptationNotes) {
         md += `\n**⚠️ Adaptation Note:** ${exercise.adaptationNotes}\n`;
@@ -174,26 +188,30 @@ const renderExerciseSheet = (exercise: NonNullable<GoldenSection['exercisesDetai
  */
 const renderExamplesLibrary = (data: GoldenModuleData, labels: any): string => {
     let md = `# Examples Library for ${data.moduleTitle}\n`;
-    md += `*Context: ${data.narrativeContext.protagonistName} is in stage: "${data.narrativeContext.storyArcStage}"*\n\n`;
+    md += `*Context: ${data.narrativeContext?.protagonistName || 'Protagonist'} is in stage: "${data.narrativeContext?.storyArcStage || 'N/A'}"*\n\n`;
     
-    data.narrativeContext.examplesLibrary.forEach(ex => {
-        md += `## ${labels.example}: ${ex.title}\n`;
-        md += `**When to use:** ${ex.applicationContext}\n\n`;
-        md += `"${ex.storyContent}"\n\n`;
-        md += `---\n\n`;
-    });
+    if (data.narrativeContext?.examplesLibrary) {
+      data.narrativeContext.examplesLibrary.forEach(ex => {
+          md += `## ${labels.example}: ${ex.title}\n`;
+          md += `**When to use:** ${ex.applicationContext}\n\n`;
+          md += `"${ex.storyContent}"\n\n`;
+          md += `---\n\n`;
+      });
+    }
     
     return md;
 };
 
 const renderVideoScript = (video: NonNullable<GoldenSection['videoScript']>, labels: any): string => {
+    if (!video) return '';
+
     let md = `### 🎥 ${labels.videoScript}\n`;
-    md += `**Scene:** ${video.sceneDescription}\n\n`;
-    md += `**${labels.script}:**\n${video.scriptContent}\n\n`;
+    md += `**Scene:** ${video.sceneDescription || 'N/A'}\n\n`;
+    md += `**${labels.script}:**\n${video.scriptContent || ''}\n\n`;
     
     if(video.visualOverlays && video.visualOverlays.length > 0) {
         md += `**Overlays:**\n`;
-        video.visualOverlays.forEach(o => md += `- [${o.timestamp}] ${o.description}\n`);
+        video.visualOverlays.forEach(o => md += `- [${o.timestamp || '0:00'}] ${o.description}\n`);
     }
     return md;
 }
@@ -207,27 +225,33 @@ const renderVideoScript = (video: NonNullable<GoldenSection['videoScript']>, lab
 export const renderToXml = (data: GoldenModuleData): string => {
   let xmlOutput = '';
 
-  data.sections.forEach(section => {
-    section.visuals.slidesSequence.forEach(slide => {
-      xmlOutput += `<SLIDE_BEGIN id="${slide.slideId}">\n`;
-      xmlOutput += `<TITLE>${escapeXml(slide.title)}</TITLE>\n`;
-      
-      // We map our layout enum to the old comments if needed, 
-      // but for now we stick to the tag structure.
-      xmlOutput += `<!-- slide-layout: ${slide.layout} -->\n`;
-      
-      xmlOutput += `<VISUAL>${escapeXml(slide.visualDescription)}</VISUAL>\n`;
-      
-      xmlOutput += `<CONTENT>\n`;
-      slide.contentBullets.forEach(bullet => {
-        xmlOutput += `- ${escapeXml(bullet)}\n`;
-      });
-      xmlOutput += `</CONTENT>\n`;
-      
-      xmlOutput += `<NOTES>${escapeXml(slide.speakerNotes)}</NOTES>\n`;
-      xmlOutput += `<SLIDE_END id="${slide.slideId}">\n\n`;
+  if (data.sections && Array.isArray(data.sections)) {
+    data.sections.forEach(section => {
+      if (section.visuals && section.visuals.slidesSequence) {
+        section.visuals.slidesSequence.forEach(slide => {
+          xmlOutput += `<SLIDE_BEGIN id="${slide.slideId}">\n`;
+          xmlOutput += `<TITLE>${escapeXml(slide.title || '')}</TITLE>\n`;
+          
+          // We map our layout enum to the old comments if needed, 
+          // but for now we stick to the tag structure.
+          xmlOutput += `<!-- slide-layout: ${slide.layout || 'standard'} -->\n`;
+          
+          xmlOutput += `<VISUAL>${escapeXml(slide.visualDescription || '')}</VISUAL>\n`;
+          
+          xmlOutput += `<CONTENT>\n`;
+          if (slide.contentBullets) {
+            slide.contentBullets.forEach(bullet => {
+              xmlOutput += `- ${escapeXml(bullet)}\n`;
+            });
+          }
+          xmlOutput += `</CONTENT>\n`;
+          
+          xmlOutput += `<NOTES>${escapeXml(slide.speakerNotes || '')}</NOTES>\n`;
+          xmlOutput += `<SLIDE_END id="${slide.slideId}">\n\n`;
+        });
+      }
     });
-  });
+  }
 
   return xmlOutput;
 };
@@ -248,7 +272,7 @@ const cleanMarkdown = (text: string): string => {
  * Escapes special characters for XML.
  */
 const escapeXml = (unsafe: string): string => {
-  return unsafe.replace(/[<>&'"]/g, (c) => {
+  return (unsafe || '').replace(/[<>&'"]/g, (c) => {
     switch (c) {
       case '<': return '&lt;';
       case '>': return '&gt;';
