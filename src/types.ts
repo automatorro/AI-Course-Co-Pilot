@@ -27,6 +27,7 @@ export interface Course {
   user_id: string;
   created_at: string;
   title: string;
+  description?: string;
   subject: string;
   target_audience: string;
   environment: GenerationEnvironment;

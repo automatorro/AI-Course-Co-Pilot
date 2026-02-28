@@ -215,6 +215,7 @@ interface GoldenModuleData {
   moduleTitle: "{{moduleTitle}}";
   moduleDurationMinutes: number;
   environment: "{{environment}}";
+  localizedLabels: { [key: string]: string };
   narrativeContext: {
     protagonistName: string;
     storyArcStage: string;
@@ -247,6 +248,26 @@ interface GoldenModuleData {
   "moduleTitle": "{{moduleTitle}}",
   "moduleDurationMinutes": {{durationMinutes}},
   "environment": "{{environment}}",
+  "localizedLabels": {
+    "duration": "Duration",
+    "format": "Format",
+    "section": "Section",
+    "theory": "Theory",
+    "keyTakeaways": "Key Takeaways",
+    "actionPlan": "Action Plan",
+    "reflection": "Reflection",
+    "trainerInstructions": "Trainer Instructions",
+    "method": "Method",
+    "logistics": "Logistics",
+    "script": "Script",
+    "activity": "Activity",
+    "objective": "Objective",
+    "instructionsParticipant": "Instructions (Participant)",
+    "instructionsFacilitator": "Instructions (Facilitator)",
+    "debrief": "Debrief",
+    "example": "Example",
+    "videoScript": "Video Script"
+  },
   "narrativeContext": { ... },
   "sections": [ ... ]
 }
@@ -1088,8 +1109,9 @@ export const renderToXml = (data: GoldenModuleData): string => {
   let xmlOutput = '';
 
   data.sections.forEach(section => {
-    section.visuals.slidesSequence.forEach(slide => {
-      xmlOutput += `<SLIDE_BEGIN id="${slide.slideId}">\n`;
+    if (section.visuals && section.visuals.slidesSequence && Array.isArray(section.visuals.slidesSequence)) {
+      section.visuals.slidesSequence.forEach(slide => {
+        xmlOutput += `<SLIDE_BEGIN id="${slide.slideId}">\n`;
       xmlOutput += `<TITLE>${escapeXml(slide.title)}</TITLE>\n`;
       xmlOutput += `<!-- slide-layout: ${slide.layout} -->\n`;
       xmlOutput += `<VISUAL>${escapeXml(slide.visualDescription)}</VISUAL>\n`;
@@ -1100,7 +1122,8 @@ export const renderToXml = (data: GoldenModuleData): string => {
       xmlOutput += `</CONTENT>\n`;
       xmlOutput += `<NOTES>${escapeXml(slide.speakerNotes)}</NOTES>\n`;
       xmlOutput += `<SLIDE_END id="${slide.slideId}">\n\n`;
-    });
+      });
+    }
   });
 
   return xmlOutput;
@@ -1140,6 +1163,7 @@ const corsHeaders = {
 interface Course {
   id: string;
   title: string;
+  description?: string;
   target_audience: string;
   environment: 'LIVE' | 'ONLINE';
   language: string;
@@ -1278,18 +1302,30 @@ serve(async (req) => {
 
     // A. Global Steps (Course Level)
     const GLOBAL_STEPS = [
-      'course.steps.structure',
-      'structure',
-      'course_dna',
-      'course.steps.performance_objectives',
-      'performance_objectives',
-      'course.steps.course_objectives',
-      'course_objectives',
-      'course.steps.timing_and_flow',
-      'timing_and_flow',
-      'course.steps.course_slides',
-      'course_slides'
-    ];
+  'course.steps.structure',
+  'structure',
+  'course_dna',
+  'course.steps.performance_objectives',
+  'performance_objectives',
+  'course.steps.course_objectives',
+  'course_objectives',
+  'course.steps.timing_and_flow',
+  'timing_and_flow',
+  'course.steps.learning_methods',
+  'learning_methods',
+  'course.steps.course_slides',
+  'course_slides',
+  'exercises',
+  'examples_and_stories',
+  'facilitator_notes',
+  'slides',
+  'facilitator_manual',
+  'participant_workbook',
+  'video_scripts',
+  'cheat_sheets',
+  'projects',
+  'tests'
+];
 
     if (GLOBAL_STEPS.includes(step_type)) {
        result = await handleLegacyStep(supabase, course, step_type, context, blueprint_duration, explicit_module_list);
@@ -1703,6 +1739,10 @@ async function handleGoldenStep(
       .eq('id', module_id);
   }
 
+  if (!goldenData) {
+    throw new Error(`[CRITICAL] Golden Data is NULL for module ${module_id}. Cannot generate ${step_type}.`);
+  }
+
   switch (step_type) {
     case 'course.steps.workbook':
       return renderToMarkdown(goldenData, 'WORKBOOK');
@@ -2051,6 +2091,20 @@ async function handleLegacyStep(
       **CONSTRAINT**: 
       - Max 3-5 tips on how to manage the energy and flow of this course.
       - Do NOT repeat the agenda/schedule.
+      `;
+      return await callLLM(prompt, course.language || 'ro');
+  }
+
+  if (step_type === 'course.steps.learning_methods' || step_type === 'learning_methods') {
+      const prompt = `
+      **TASK**: Suggest appropriate Learning Methods & Delivery Strategies.
+      **COURSE**: "${course.title}"
+      **TARGET AUDIENCE**: "${course.target_audience}"
+      **LANGUAGE**: ${course.language}
+
+      **CONSTRAINT**:
+      - Recommend 3-5 specific teaching methods (e.g., Case Studies, Role Play, Direct Instruction) suitable for this content.
+      - Briefly explain why each is effective for this audience.
       `;
       return await callLLM(prompt, course.language || 'ro');
   }
