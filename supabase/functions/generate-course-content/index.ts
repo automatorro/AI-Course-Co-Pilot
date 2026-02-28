@@ -884,21 +884,21 @@ export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget, c
 
     switch (target) {
       case 'WORKBOOK':
-        output += renderWorkbookSection(section);
+        output += renderWorkbookSection(section, data.localizedLabels);
         break;
       case 'MANUAL':
-        output += renderManualSection(section, data.narrativeContext.protagonistName);
+        output += renderManualSection(section, data.narrativeContext.protagonistName, data.localizedLabels);
         break;
       case 'EXERCISES':
         if (section.exercisesDetailed) {
-           output += renderExerciseSheet(section.exercisesDetailed);
+           output += renderExerciseSheet(section.exercisesDetailed, data.localizedLabels);
         } else {
-            output += `*(No detailed exercises in this section)*\n\n`;
+            output += `*(${data.localizedLabels?.activity || 'No detailed exercises in this section'})*\n\n`;
         }
         break;
        case 'VIDEO_SCRIPT':
          if (section.videoScript) {
-             output += renderVideoScript(section.videoScript);
+             output += renderVideoScript(section.videoScript, data.localizedLabels);
          }
          break;
     }
@@ -908,7 +908,7 @@ export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget, c
   return cleanMarkdown(output);
 };
 
-const renderWorkbookSection = (section: GoldenSection): string => {
+const renderWorkbookSection = (section: GoldenSection, labels: GoldenModuleData['localizedLabels']): string => {
   const content = section.participantContent;
   const exercise = section.exercisesDetailed;
 
@@ -918,8 +918,12 @@ const renderWorkbookSection = (section: GoldenSection): string => {
 
   let md = `### ${section.title}\n\n`;
 
+  if (content && content.theoryMarkdown) {
+    md += `${content.theoryMarkdown}\n\n`;
+  }
+
   if (content && content.keyTakeaways && content.keyTakeaways.length > 0) {
-    md += `#### 🔑 Key Takeaways\n`;
+    md += `#### 🔑 ${labels?.keyTakeaways || 'Key Takeaways'}\n`;
     content.keyTakeaways.forEach(pt => {
       md += `- ${pt}\n`;
     });
@@ -927,7 +931,7 @@ const renderWorkbookSection = (section: GoldenSection): string => {
   }
 
   if (content && content.actionableSteps && content.actionableSteps.length > 0) {
-    md += `#### 🚀 Action Plan\n`;
+    md += `#### 🚀 ${labels?.actionPlan || 'Action Plan'}\n`;
     content.actionableSteps.forEach((step, i) => {
       md += `${i + 1}. ${step}\n`;
     });
@@ -937,29 +941,29 @@ const renderWorkbookSection = (section: GoldenSection): string => {
 
   if (exercise) {
     if (exercise.title) {
-      md += `#### 🎯 Practical Exercise: ${exercise.title}\n\n`;
+      md += `#### 🎯 ${labels?.activity || 'Practical Exercise'}: ${exercise.title}\n\n`;
     } else {
-      md += `#### 🎯 Practical Exercise\n\n`;
+      md += `#### 🎯 ${labels?.activity || 'Practical Exercise'}\n\n`;
     }
 
     if (exercise.objective) {
-      md += `**Objective:** ${exercise.objective}\n\n`;
+      md += `**${labels?.objective || 'Objective'}:** ${exercise.objective}\n\n`;
     }
 
     if (typeof exercise.durationMinutes === 'number' && exercise.durationMinutes > 0) {
-      md += `**Duration:** ${exercise.durationMinutes} min\n\n`;
+      md += `**${labels?.duration || 'Duration'}:** ${exercise.durationMinutes} min\n\n`;
     }
 
     if (exercise.instructionsParticipant) {
-      md += `**Instructions for you:**\n`;
+      md += `**${labels?.instructionsParticipant || 'Instructions for you'}:**\n`;
       md += `${exercise.instructionsParticipant}\n\n`;
     }
 
-    md += `**Workspace:**\n\n`;
+    md += `**${labels?.activity || 'Workspace'}:**\n\n`;
     md += `\n\n\n\n\n`;
 
     if (exercise.successIndicators && exercise.successIndicators.length > 0) {
-      md += `**Success Checklist:**\n`;
+      md += `**${labels?.debrief || 'Success Checklist'}:**\n`;
       exercise.successIndicators.forEach(item => {
         md += `- [ ] ${item}\n`;
       });
@@ -968,24 +972,20 @@ const renderWorkbookSection = (section: GoldenSection): string => {
   }
 
   if (content && content.reflectionQuestions && content.reflectionQuestions.length > 0) {
-    md += `#### 🤔 Reflection\n`;
+    md += `#### 🤔 ${labels?.reflection || 'Reflection'}\n`;
     content.reflectionQuestions.forEach(q => {
       md += `**${q}**\n\n`;
       md += `\n\n\n\n`;
     });
   }
 
-  if (content && (!content.keyTakeaways || content.keyTakeaways.length === 0) && (!content.actionableSteps || content.actionableSteps.length === 0) && content.theoryMarkdown) {
-    md += `${content.theoryMarkdown}\n\n`;
-  }
-
   return md;
 };
 
-const renderManualSection = (section: GoldenSection, protagonistName: string): string => {
+const renderManualSection = (section: GoldenSection, protagonistName: string, labels: GoldenModuleData['localizedLabels']): string => {
   const instr = section.trainerInstructions;
-  let md = `### 👨‍🏫 Trainer Instructions\n`;
-  md += `**Method:** ${instr.deliveryMethod}\n\n`;
+  let md = `### 👨‍🏫 ${labels?.trainerInstructions || 'Trainer Instructions'}\n`;
+  md += `**${labels?.method || 'Method'}:** ${instr.deliveryMethod}\n\n`;
 
   if (instr.logistics && instr.logistics.length > 0) {
       md += `**🛠️ Logistics:** ${instr.logistics.join(', ')}\n\n`;
@@ -1004,7 +1004,7 @@ const renderManualSection = (section: GoldenSection, protagonistName: string): s
       md += `*Task:* ${instr.breakoutRoomConfig.taskDescription}\n\n`;
   }
 
-  md += `#### 🗣️ Script (Verbatim)\n`;
+  md += `#### 🗣️ ${labels?.script || 'Script (Verbatim)'}\n`;
   md += `> ${instr.script.replace(/\n/g, '\n> ')}\n\n`;
 
   if (section.visuals && section.visuals.slidesSequence.length > 0) {
@@ -1017,15 +1017,15 @@ const renderManualSection = (section: GoldenSection, protagonistName: string): s
   return md;
 };
 
-const renderExerciseSheet = (exercise: NonNullable<GoldenSection['exercisesDetailed']>): string => {
-    let md = `### 🏋️ Activity: ${exercise.title}\n`;
-    md += `**Objective:** ${exercise.objective}\n`;
-    md += `**Time:** ${exercise.durationMinutes} min\n\n`;
+const renderExerciseSheet = (exercise: NonNullable<GoldenSection['exercisesDetailed']>, labels: GoldenModuleData['localizedLabels']): string => {
+    let md = `### 🏋️ ${labels?.activity || 'Activity'}: ${exercise.title}\n`;
+    md += `**${labels?.objective || 'Objective'}:** ${exercise.objective}\n`;
+    md += `**${labels?.duration || 'Time'}:** ${exercise.durationMinutes} min\n\n`;
 
-    md += `#### Instructions (Participant)\n${exercise.instructionsParticipant}\n\n`;
-    md += `#### Instructions (Facilitator)\n${exercise.instructionsFacilitator}\n\n`;
+    md += `#### ${labels?.instructionsParticipant || 'Instructions (Participant)'}\n${exercise.instructionsParticipant}\n\n`;
+    md += `#### ${labels?.instructionsFacilitator || 'Instructions (Facilitator)'}\n${exercise.instructionsFacilitator}\n\n`;
     
-    md += `#### Debriefing Questions\n`;
+    md += `#### ${labels?.debrief || 'Debriefing Questions'}\n`;
     exercise.debriefingQuestions.forEach(q => md += `- ${q}\n`);
     
     if (exercise.adaptationNotes) {
@@ -1049,8 +1049,8 @@ const renderExamplesLibrary = (data: GoldenModuleData): string => {
     return md;
 };
 
-const renderVideoScript = (video: NonNullable<GoldenSection['videoScript']>): string => {
-    let md = `### 🎥 Video Script\n`;
+const renderVideoScript = (video: NonNullable<GoldenSection['videoScript']>, labels: GoldenModuleData['localizedLabels']): string => {
+    let md = `### 🎥 ${labels?.videoScript || 'Video Script'}\n`;
     md += `**Scene:** ${video.sceneDescription}\n\n`;
     md += `**Script:**\n${video.scriptContent}\n\n`;
     
@@ -1259,12 +1259,11 @@ serve(async (req) => {
       'course_dna',
       'course.steps.performance_objectives',
       'course.steps.course_objectives',
-      'course.steps.timing_and_flow'
+      'course.steps.timing_and_flow',
+      'course.steps.course_slides'
     ];
 
-    const isGlobalSlides = step_type === 'course.steps.slides' && !module_id;
-
-    if (GLOBAL_STEPS.includes(step_type) || isGlobalSlides) {
+    if (GLOBAL_STEPS.includes(step_type)) {
        result = await handleLegacyStep(supabase, course, step_type, context, blueprint_duration, explicit_module_list);
     } 
     // B. Golden Path (Module Level Content)
@@ -1503,6 +1502,8 @@ async function handleGoldenStep(
   const isInvalid = !isValidGoldenData(goldenData);
   const shouldRegenerate = isInvalid || isDirty;
 
+  const mandatoryContext = buildMandatoryContext(course);
+
   if (shouldRegenerate) {
     if (isInvalid && !isDirty) {
       Logger.info(`Golden Data is invalid or missing for Module: ${moduleData.title}. Triggering auto-generation.`);
@@ -1586,8 +1587,6 @@ async function handleGoldenStep(
 
     const knowledgeBase = await buildKnowledgeBaseContext(supabase, course.id, course.language || "Romanian");
 
-    const mandatoryContext = buildMandatoryContext(course);
-
     const envConstraints = (course.environment || 'LIVE').toUpperCase() === 'ONLINE'
       ? `**ENVIRONMENT: ONLINE (VIRTUAL CLASSROOM - ZOOM/TEAMS)**
          - **INTERACTION**: Must use "Breakout Rooms", "Chat Polls", "Miro Board links", "Screen Share".
@@ -1645,7 +1644,7 @@ async function handleGoldenStep(
       attempts++;
       try {
         Logger.info(`Golden Path Generation - Attempt ${attempts}/${maxAttempts}`);
-        const rawJson = await callLLM(prompt, course.language || 'ro', attempts > 1);
+        const rawJson = await callLLM(prompt, course.language || 'ro', false);
         const enforcedJson = ProtagonistEnforcer.enforce(rawJson, protagonistName, bannedNamesFromDNA);
         
         goldenData = repairAndParseJson<GoldenModuleData>(enforcedJson);
@@ -1988,7 +1987,7 @@ async function handleLegacyStep(
       return await callLLM(prompt, course.language || 'ro');
   }
 
-  if (step_type === 'course.steps.slides' || step_type === 'slides') {
+  if (step_type === 'course.steps.course_slides' || step_type === 'slides') {
       let moduleListStr = "";
       if (course.blueprint && Array.isArray(course.blueprint.modules)) {
           moduleListStr = course.blueprint.modules.map((m: any, i: number) => `${i + 1}. ${m.title}`).join('\n');

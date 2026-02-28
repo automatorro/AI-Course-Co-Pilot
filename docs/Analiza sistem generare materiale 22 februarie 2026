@@ -1,0 +1,339 @@
+🎓
+Analiză Detaliată
+Sistemul AI de Generare Conținut pentru Cursuri
+Calitate · Consistență · Legătura cu Inputurile Utilizatorilor
+
+
+
+Versiunea analizată: v3.0-MODULAR  |  Arhitectura: Class-based, Multi-Provider, Resilient
+generate-course-content / index.ts + module auxiliare
+
+ 
+1. Privire de Ansamblu: Arhitectura Sistemului
+Sistemul funcționează pe un pipeline în 3 straturi, fiecare cu responsabilitate distinctă. Înțelegerea acestei structuri este esențială pentru a evalua calitatea output-urilor.
+
+Strat	Componente	Responsabilitate	Impact asupra Calității
+1. Input Layer	User inputs, uploaduri, chat	Colectare cerințe, blueprint, DNA	Direct — lipsa inputurilor duce la output generic
+2. AI Orchestration	GeminiProvider + MoonshotProvider	Fallback automat, retry cu backoff	Indirect — afectează disponibilitatea, nu calitatea text
+3. Rendering Layer	renderToMarkdown, renderToXml	Mapare Golden JSON → documente	Direct — formatare finală a materialelor
+
+1.1. Fluxul Central: Golden Path
+Inima sistemului este un concept cheie: "Golden JSON" — un singur obiect generat per modul care servește drept sursă unică de adevăr pentru toate cele 6 tipuri de materiale.
+
+Etapă	Detaliu tehnic
+① Cerere utilizator	step_type trimis din frontend (ex: course.steps.workbook)
+② Fetch modul din DB	SELECT * FROM course_modules WHERE id = module_id
+③ Generare Golden JSON	callLLM(GOLDEN_MASTER_PROMPT cu variabile injectate)
+④ ProtagonistEnforcer	Înlocuiește automat nume interzise cu protagonistul definit
+⑤ repairAndParseJson	Extrage JSON din XML wrapper, curăță markdown fences
+⑥ Salvare în DB	UPDATE course_modules SET content_data = goldenData
+⑦ Rendering	Switch pe step_type → renderToMarkdown sau renderToXml
+
+⚠️  Implicație de Arhitectură
+OBSERVAȚIE CRITICĂ: Golden JSON-ul este generat O SINGURĂ DATĂ și reutilizat pentru toate materialele ulterioare (workbook, manual, slides, exerciții). Aceasta este atât un avantaj major de consistență, cât și un risc — calitatea unui singur apel AI determină toate output-urile.
+
+ 
+2. Analiza Calității Materialelor Generate
+2.1. Scorecard General de Calitate
+Evaluare pe 10 dimensiuni, bazată pe analiza codului prompt-urilor, a regulilor pedagogice și a mecanismelor de validare implementate.
+
+Dimensiune de Calitate	Scor	Justificare
+Adâncimea conținutului	7/10	Specificații detaliate: 800-1200 cuvinte/modul, 40+ pagini workbook, scripts verbatim
+Acuratețea pedagogică	8/10	Bloom's Taxonomy integrat în toate prompt-urile; obiective orientate pe outcome
+Adaptarea la audiență	8/10	5 niveluri de audiență cu reguli stricte de vocabular (STYLE_BLOCKS)
+Adaptarea la mediu (Live/Online)	8/10	Branching explicit: flipchartSketch vs breakoutRoomConfig, videoScript null/prezent
+Consistența narativă	7/10	ProtagonistEnforcer + Story Arc + DNA definit; risc la generări paralele
+Calitatea exercițiilor	7/10	7 elemente obligatorii per exercițiu; scenarii reale; indicatori de succes
+Calitatea slide-urilor	6/10	Template XML structurat; risc: slides generate din workbook s-ar putea desincroniza
+Fiabilitate tehnică (uptime)	8/10	Retry cu exponential backoff; fallback Gemini→Moonshot; rate limit handling
+Controlul limbii	7/10	Validare heuristică limbă; glosar i18n; risc la termeni tehnici netranslatati
+Legătura cu inputurile user	7/10	DNA + Blueprint + Story Arc + learning_objectives injectate; risc: cache poate servi date vechi
+
+2.2. Calitatea per Tip de Material
+
+Workbook (Participanți)
+•	Conținut generat: theoryMarkdown, keyTakeaways, actionableSteps, reflectionQuestions, exercisesDetailed
+•	Formatare: Markdown structural cu emoji pentru secțiuni (🔑, 🚀, 🤔, 🎯)
+•	Target: 1500 cuvinte/modul generat iterativ (batch de 3 module în paralel)
+•	Validare activă: validateModule() verifică lungimea minimă și prezența exercițiilor
+•	Risc identificat: dacă exercisesDetailed lipsește din JSON, secțiunea apare goală — fără regenerare automată la nivel de secțiune
+
+Trainer Manual
+•	Conținut generat: deliveryMethod, script verbatim, logistics, flipchartSketch/breakoutRoomConfig
+•	Scripturile sunt scrise verbatim — trainerul poate citi direct, fără interpretare
+•	Referință vizuală la slides integrată (cue-uri per slideId)
+•	Specificații: SBI pentru feedback, Ishikawa/5 Whys pentru problem solving
+•	Risc: Script-urile pot fi lungi și greoaie dacă moduleTitle este generic sau audiența nedefinită
+
+Slides (XML → PPTX)
+•	Format: XML proprietar <SLIDE_BEGIN>…<SLIDE_END> cu 5 câmpuri structurate
+•	Conținut per slide: layout, title, visualDescription, contentBullets, speakerNotes
+•	Slides generate din GoldenJSON — consistente cu workbook-ul acelui modul
+•	Risc major: slides nu sunt regenerate dacă GoldenJSON există deja — modificările manuale în workbook nu se reflectă în slides
+
+Exerciții (Fișe Separate)
+•	7 elemente obligatorii: title, objective, durationMinutes, instructionsParticipant, instructionsFacilitator, debriefingQuestions, successIndicators
+•	adaptationNotes permite ajustarea pentru Live ↔ Online
+•	Validare: validateGeneratedContent verifică protagonist și limbă
+
+Video Scripts (Online Only)
+•	Generat doar dacă environment = ONLINE și type = VIDEO_LESSON
+•	3 câmpuri: sceneDescription, scriptContent, visualOverlays cu timestamps
+•	Risc: dacă GoldenJSON a fost generat pentru LIVE, videoScript = null și nu există mecanism de regenerare selectivă
+
+Examples Library
+•	Separat de flow — bibliotecă ad-hoc cu contexte de utilizare
+•	Legat de protagonistul definit în narrativeContext
+•	Util pentru trainer în situații spontane
+
+ 
+3. Mecanisme de Consistență
+Sistemul implementează mai multe straturi de consistență, de la nivel de date (JSON unic) până la nivel de text (ProtagonistEnforcer).
+
+3.1. Arhitectura Golden JSON — Sursa Unică de Adevăr
+Mecanismul fundamental: un singur apel AI generează întreaga structură a modulului, salvată în course_modules.content_data. Toate renderingurile ulterioare citesc din același obiect.
+
+✅  Punct Forte: Consistență Internă per Modul
+Dacă Golden JSON există deja în DB pentru un modul, NU se mai face un nou apel AI — se reutilizează ce există. Aceasta garantează că workbook-ul, manualul și slides-urile pentru același modul sunt MEREU derivate din aceeași generare.
+
+3.2. Course DNA — Consistență Globală
+DNA-ul cursului definește elementele comune pentru TOATE modulele. Injectat în fiecare prompt prin getFullDNAContext():
+
+Element DNA	Câmp în cod	Efect asupra Output-ului
+Terminologie	dna.terminology	Participant/Trainer/Exercițiu — folosite consistent în tot conținutul
+Protagonistul	dna.narrativeUniverse.protagonists[0]	Numele apare în exemple, studii de caz, scripturi
+Ton & Voce	dna.voiceProfile	Formality, humorLevel, signaturePhrases, forbiddenPhrases
+Master Timeline	dna.masterTimeline	Durată module, buffers, tipuri activități
+Fraze Interzise	dna.voiceProfile.forbiddenPhrases	AI-ul evită explicit aceste expresii
+
+3.3. Story Arc — Consistența Narativă Inter-Module
+getOrCreateStoryArc() generează sau recuperează un arc narativ global (module 1-10) care definește starea emoțională/profesională a protagonistului în fiecare modul. Injectat în prompt ca protagonistState.
+
+Comportament Dacă Arc Există	Comportament Dacă Arc Lipsește
+Citit din courses.story_arc	Generat prin callLLM cu protagonist + obiective curs
+Fiecare modul primește stage-ul corect	Salvat în DB pentru reutilizare
+Coerență emoțională pe tot cursul	Fallback la map static ro/en dacă LLM eșuează
+
+3.4. ProtagonistEnforcer — Consistența Numelor
+Un mecanism post-procesare aplicat pe raw JSON înainte de parsare. Detectează și înlocuiește automat 11 nume românești comune (Ion, Maria, Ana, Bogdan etc.) cu protagonistul definit în DNA.
+
+🔧  Mecanism de Corectare Automată
+LLM-urile au tendința să folosească nume implicite din datele de training (Ion, Maria, Elena). ProtagonistEnforcer rezolvă această problemă sistematic prin regex case-insensitive pe tot conținutul generat, înainte ca JSON-ul să fie salvat.
+
+Limitare importantă: Lista de nume interzise este hardcodată (11 nume). Dacă LLM folosește un alt nume nelistat (ex: "Gheorghe", "Florin"), acesta va rămâne neschimbat în output.
+
+3.5. Tabel Rezumativ: Riscuri de Inconsistență
+
+Risc	Severitate	Detaliu
+Module diferite generate în sesiuni diferite	Medie	DNA poate fi actualizat între generări; modulele vechi nu se regenerează
+Workbook modificat manual ≠ Slides	Medie	Slides vin din GoldenJSON, nu din workbook editat de user
+Cache AI servind date vechi	Scăzută	ai_cache bazat pe sha256(prompt) — schimbarea DNA invalidează cache-ul
+Protagonist neinclus în JSON (bug LLM)	Scăzută	ProtagonistEnforcer & validateGeneratedContent detectează și retry
+Limbi amestecate în output	Medie	Validare heuristică, nu 100% precisă; risc la cursuri bilingve
+
+ 
+4. Legătura cu Inputurile Utilizatorilor
+Sistemul colectează inputuri din mai multe surse și le injectează în pipeline. Mai jos, traseul complet al fiecărui tip de input.
+
+4.1. Harta Completă a Inputurilor
+
+Input Utilizator	Unde se Stochează	Cum ajunge în Prompt	Impact Real
+Titlul cursului	courses.title	{{moduleTitle}} în GOLDEN_MASTER_PROMPT	Direct — apare în header și context general
+Audiența țintă	courses.target_audience	getStyleBlock() → {{styleBlock}}	Ridicat — determină complet tonul și vocabularul
+Mediul (Live/Online)	courses.environment	{{environment}} + branching în schema JSON	Critic — structurează tipul de activități generate
+Limba cursului	courses.language	{{language}} injectat în toate prompt-urile	Critic — tot conținutul text
+Blueprint aprobat	courses.blueprint.modules[]	explicitModuleList în prompt-urile Legacy	Ridicat — definește structura modulelor
+Obiective aprobate	courses.learning_objectives	Bloc suplimentar appended la prompt	Ridicat — aliniază conținutul cu obiectivele
+DNA generat	courses.dna (JSON)	getFullDNAContext() → injectat în prompt	Critic — protagonist, ton, terminologie, timeline
+Story Arc	courses.story_arc (JSON)	protagonistState per modul în prompt	Mediu — starea emoțională per modul
+Fișiere uploadate	course_files.extracted_text	fileContext — primele 800 chars per fișier	Mediu — limitat la snippet, nu full text
+Durată modul	course_modules.duration_minutes	{{durationMinutes}} în prompt	Direct — constrains conținutul la durată
+
+4.2. Fluxul de Onboarding: De la Zero la Blueprint
+Sistemul are un mecanism special de chat_onboarding bazat pe 2 faze AI independente:
+
+1.	ANALYST (Faza 1): Verifică dacă sunt disponibile: audiența țintă, obiectivele, durata, raportu teorie/practică. Dacă lipsesc, generează întrebări în limba cursului.
+2.	ARCHITECT (Faza 2): Activat doar când toate 4 cerințe sunt îndeplinite. Generează blueprint-ul complet cu module, secțiuni și content_type-uri.
+
+✅  Design Bun: Validare în 2 Etape
+Mecanismul este robust: chiar dacă LLM-ul nu formatează corect JSON-ul, există fallback cu mesaj de eroare explicit în română. "Status: READY" trebuie confirmat înainte de a genera blueprint-ul.
+
+4.3. Detectarea Audienței: STYLE_BLOCKS
+Unul dintre cele mai importante mecanisme pentru calitate. Funcția getStyleBlock() mapează descrierea audiențelor la 5 profile distincte:
+
+Nivel	Audiență	Exemple Cuvinte Cheie	Efect Principal
+LEVEL 1	Operational / Blue Collar	factory, operator, muncitor, bca, driver	Fraze scurte, acțiuni fizice, zero jargon corporate
+LEVEL 2	Clerical / Junior Mgmt	(default — fără match)	Procedural, profesional, cauze-efecte clare
+LEVEL 3	Strategic / C-Level	executive, director, manager, founder	ROI, scalabilitate, viziune, fără detalii tactice
+LEVEL 4	Commercial / Sales	sales, client, vanzari, support, agent	Persuasiv, empatic, scenarii de vânzare, obiecții
+LEVEL 5	Technical / R&D	developer, engineer, inginer, programator	Terminologie exactă, code snippets, edge cases
+
+⚠️  Limitare: Keyword Matching Simplu
+LIMITARE: Detectarea se face prin keyword matching simplu (string.includes). O descriere ca "Manageri care coordonează echipe de producție" ar fi clasificată LEVEL 3 (strategic) din cauza cuvântului "manageri", deși contextul industrial ar justifica LEVEL 1. Nu există clasificare ML sau semantic matching.
+
+ 
+5. Mecanisme de Reziliență și Calitate a Rețelei AI
+5.1. fetchWithRetry — Wrapper Rezistent
+Orice apel HTTP către API-urile AI trece prin fetchWithRetry cu configurarea implicită:
+
+Situație	Comportament	Detaliu
+429 Rate Limit	Retry cu Retry-After header	Respectă limita specificată de API, sau exponential backoff
+5xx Server Error	Retry × 3 cu 1s, 2s, 4s	Exponential backoff, maxDelay 10s
+4xx Client Error (401,403,404)	FAIL IMEDIAT	Nu reîncearcă — erori de configurare
+Network Error	Retry × 3	Capturează timeout-uri și erori DNS
+
+5.2. AIOrchestrator — Fallback Multi-Provider
+Dacă Gemini eșuează complet (după toate retry-urile interne), Orchestratorul trece automat la Moonshot/Kimi. Ordinea este configurabilă în constructorul clasei.
+
+•	Gemini 2.0-flash → Gemini 2.0-flash-lite (fallback intern GeminiProvider)
+•	Gemini (total failure) → Moonshot/Kimi (fallback extern AIOrchestrator)
+•	Moonshot failure → AI_ERROR agregat cu detalii per provider
+
+5.3. Validare și Retry la Nivel de Conținut
+Pe lângă reziliența rețelei, există validare a conținutului generat cu retry-uri țintite:
+
+Check	Trigger	Acțiune la Eșec
+Limbă incorectă	heuristică EN vs RO	Retry cu instrucțiune explicită de traducere
+Protagonist absent	name.includes() check	Retry cu instrucțiune "MUST use ${protagonistName}"
+Module lipsă din output	blueprint modules vs content	Retry cu lista completă de module obligatorii
+Content prea scurt	length < threshold	Retry cu cerință explicită de lungime
+JSON invalid	repairAndParseJson()	Încearcă reparare; dacă eșuează, aruncă eroare
+
+ 
+6. Puncte Forte și Vulnerabilități Identificate
+6.1. Puncte Forte Majore
+
+✅  Arhitectura Golden JSON
+Generare Single-Pass per Modul: Un singur apel LLM produce tot conținutul unui modul (workbook + manual + slides + exerciții + video script) ca un JSON unificat. Aceasta elimină inconsistențele între materiale și reduce latența totală.
+
+✅  Personalizare Pedagogică Reală
+STYLE_BLOCKS cu 5 niveluri de audiență, fiecare cu vocabular permis/interzis explicit, Bloom's Taxonomy mapping și exemple concrete de format. Aceasta înseamnă că un curs pentru muncitori de fabrică va suna fundamental diferit față de unul pentru executivi.
+
+✅  Reziliență în Profunzime
+Retry cu Exponential Backoff + Fallback Multi-Provider + Content Validation Retry = 3 straturi independente de reziliență. Probabilitatea unui eșec complet al generării este foarte scăzută.
+
+✅  Adaptare Structurală Live/Online
+Mediul Live vs Online nu este o simplă etichetă — schimbă structural tipul de conținut generat: flipchart instructions vs breakout rooms, printed workbooks vs digital assets, physical movement vs chat prompts.
+
+6.2. Vulnerabilități și Limitări
+
+⚠️  Detectare Audiență Fragilă
+Keyword matching pentru audiență (string.includes) poate genera clasificări greșite pentru descrieri complexe sau hibride. O descriere ca "Manageri de producție cu experiență operațională" ar activa LEVEL 3 (Strategic) deși conținutul ar trebui să fie LEVEL 1/2.
+
+⚠️  Lista Parțială de Nume Interzise
+ProtagonistEnforcer are o listă hardcodată de doar 11 nume interzise. Orice alt nume folosit de LLM va rămâne în output. Lista nu este extensibilă din UI și nu acoperă prenume din alte culturi (ex: cursuri în engleză sau altă limbă).
+
+⚠️  Desincronizare la Editări Manuale
+Dacă un user modifică manual workbook-ul sau manualul în interfață, modificările NU se reflectă în slides sau alte materiale (care sunt generate din GoldenJSON salvat). Nu există mecanism de "invalidare" sau "re-derivare" selectivă.
+
+⚠️  Context Limitat pentru Upload-uri
+Fișierele uploadate sunt trununchiate la 800 caractere per fișier în prompturi. Un document de 50+ pagini va fi reprezentat printr-un snippet nesemnificativ. Pentru analiză completă există chunking, dar acesta are propriile costuri de latență.
+
+ 
+7. Fluxul Complet: De la Input la Material Finit
+Vizualizare pas-cu-pas a traseului unui curs de la creare până la materialul final, cu toate punctele de injecție a inputurilor utilizatorului.
+
+#	Acțiune User	Sistem	Output / Efect
+1	Titlu, audiență, mediu, limbă	Salvare în courses	Baza cursului creată
+2	Chat onboarding (Q&A)	ANALYST → ARCHITECT AI	Blueprint JSON cu module și secțiuni
+3	Aprobare/editare blueprint	Salvare în courses.blueprint	explicitModuleList disponibil
+4	Generare Course DNA	callLLM → save courses.dna	Protagonist, ton, terminologie definite
+5	Definire obiective	Salvare în courses.learning_objectives	Injectat în toate prompt-urile viitoare
+6	Upload materiale (opțional)	OCR → course_files.extracted_text	Snippet disponibil în fileContext
+7	Request Workbook Modul 1	handleGoldenStep()	Check: content_data în DB?
+8	—	Dacă NU: fillPromptTemplate + callLLM	Golden JSON generat și salvat în DB
+9	—	ProtagonistEnforcer.enforce()	Corectare automată a numelor
+10	—	repairAndParseJson()	JSON valid extras și parsat
+11	—	renderToMarkdown(data, WORKBOOK)	Markdown formatat returnat userului
+12	Request Slides Modul 1	handleGoldenStep()	Check: content_data în DB? DA → skip AI
+13	—	renderToXml(data)	XML slides generat din ACELAȘI Golden JSON
+
+✅  Zero AI Calls pentru Materialele Secundare
+Pașii 12-13 demonstrează avantajul central al arhitecturii: slides-urile pentru Modulul 1 nu necesită un nou apel AI dacă workbook-ul a fost deja generat. Sunt derivate deterministc din același Golden JSON. Aceasta asigură consistența totală între materialele aceluiași modul.
+
+ 
+8. Recomandări de Îmbunătățire
+Pe baza analizei, sunt identificate 6 îmbunătățiri cu impact ridicat, ordonate după raportul impact/efort:
+
+#	Recomandare	Impact	Efort	Detaliu
+1	Semantic audience classification	Ridicat	Mediu	Înlocuieste keyword matching cu embedding similarity pentru STYLE_BLOCKS
+2	Invalidare selectivă Golden JSON	Ridicat	Scăzut	Flag "isDirty" pe course_modules la editări manuale → re-generare la next request
+3	ProtagonistEnforcer extensibil	Mediu	Scăzut	Mutat lista de banned_names în DB sau în DNA; suport multi-limbă
+4	Full-text context pentru upload-uri	Mediu	Mediu	Stocarea și indexarea completă a textului extras, nu snippet de 800 chars
+5	Versioning Golden JSON	Mediu	Mediu	Păstrarea istoricului versiunilor per modul pentru rollback și audit
+6	Validare limbă cu LLM micro-call	Scăzut	Scăzut	Înlocuiește heuristica cu un classifier rapid (flash-lite) pentru limbi non-europene
+
+Concluzie Finală
+Arhitectura v3.0-MODULAR este solidă din punct de vedere tehnic și pedagogic. Mecanismul Golden JSON + DNA + Story Arc + STYLE_BLOCKS creează o fundație consistentă pentru generarea de materiale profesionale. Principalele riscuri sunt la nivelul detectării semantice a audienței și al desincronizării la editări manuale — ambele rezolvabile cu îmbunătățiri incrementale fără refactorizare majoră.
+
+🎯  Avantaj Competitiv Central
+Cel mai important avantaj competitiv al sistemului este că materialele pentru același modul (workbook, slides, exerciții, manual) sunt GARANTAT derivate din aceeași generare AI, eliminând contradicțiile între documente — o problemă fundamentală a sistemelor care generează fiecare document independent.
+
+
+
+
+Ce se va intampla daca userul nu completeaza nimic in adn?
+Analizând codul, traseul este foarte clar — sistemul are fallback-uri la fiecare nivel:
+handleGoldenStep() — linia critică:
+javascript
+const protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name || "Alex";
+Protagonistul devine automat "Alex".
+Ce se întâmplă pe fiecare componentă:
+Componentă	Cu DNA	Fără DNA
+Protagonist	Cel definit de user	"Alex" (hardcodat)
+Ton & voce	Din voiceProfile	Arhetype "The Mentor" — profesional, cald
+Terminologie	Participant/Trainer custom	Termeni generici englezești
+Fraze interzise	Lista custom	Niciuna — AI are mână liberă
+Style (audiență)	Din DNA	Din target_audience → getStyleBlock()
+Story Arc	Din courses.story_arc	Generat separat prin AI, sau fallback static
+getFullDNAContext(dna) returnează string gol dacă DNA e null — deci blocul 🧬 COURSE DNA lipsește complet din prompt.
+Concret, materialele generate fără DNA vor fi:
+•	Funcționale — sistemul nu crapă, totul se generează
+•	Generice — ton "consultant profesional" fără personalitate specifică
+•	Inconsistente inter-module — fiecare modul poate inventa alt protagonist (LLM-ul alege liber), iar ProtagonistEnforcer doar blochează cele 11 nume din lista hardcodată, nu impune unul anume
+•	Fără terminologie unificată — "participant" în modul 1, "student" în modul 3, etc.
+Cel mai mare risc practic: fără DNA, Story Arc-ul fie se generează prin AI (1 apel suplimentar) fie cade pe map-ul static din cod — 8 etape generice, fără legătură cu conținutul real al cursului.
+Ce se poate imbunatati in acest sens, pentru ca userul sa nu fie in ceata?
+Feb 19
+Analizat probleme de claritate și formulat soluții de îmbunătățire
+Analizat probleme de claritate și formulat soluții de îmbunătățire
+1.	
+2.	
+3.	
+4.	
+Sunt 3 categorii de îmbunătățiri, de la simplu la sistemic:
+________________________________________
+1. UX — Utilizatorul să știe CE pierde
+Momentan DNA pare o secțiune opțională oarecare. Soluții concrete:
+•	Progress indicator vizual pe pagina DNA cu mesaj explicit: "Fără protagonist definit, modulele tale vor folosi un personaj generic. Consistența între module nu poate fi garantată."
+•	Preview comparativ — două exemple scurte side-by-side: cum arată un paragraf cu DNA complet vs. fără, direct în UI
+•	Warning banner la generarea primului material dacă DNA e incomplet, nu înainte — când userul vede materialul generic, înțelege imediat problema
+•	Câmpuri cu placeholder inteligent — în loc de input gol, să apară: "ex: Maria, manager de vânzări cu 5 ani experiență, frustrată de lipsa de timp" — userul înțelege ce se așteaptă
+________________________________________
+2. Sistem — DNA completat automat, nu lăsat gol
+Problema reală e că sistemul permite DNA nul fără consecință vizibilă. Soluții:
+•	DNA auto-generat din context existent — dacă userul a completat titlul, audiența și blueprint-ul, sistemul poate genera un DNA draft automat prin AI și să-l prezinte spre aprobare: "Am generat un protagonist sugerat pentru cursul tău. Modifică sau aprobă."
+•	DNA minimal obligatoriu — înainte de a permite generarea primului modul, validare că cel puțin protagonistName și language sunt completate. Un singur câmp, nu tot DNA-ul complet
+•	Inferență din onboarding — în chat-ul de onboarding, când userul descrie audiența, sistemul poate extrage automat un protagonist sugestiv și pre-popula DNA-ul
+________________________________________
+3. Cod — Fallback-uri mai inteligente
+Acum fallback-ul e "Alex" — un nume fără context. Îmbunătățiri tehnice:
+javascript
+// ACUM — bland și generic
+const protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name || "Alex";
+
+// ÎMBUNĂTĂȚIT — inferă din context
+const protagonistName = 
+  course.dna?.narrativeUniverse?.protagonists?.[0]?.name || 
+  inferProtagonistFromAudience(course.target_audience, course.language) ||
+  "Alex";
+Unde inferProtagonistFromAudience() ar returna, pe baza audienței:
+•	"muncitor de fabrică" → un nume și rol specific industriei
+•	"manager de vânzări" → alt profil
+•	Totul generat o singură dată și salvat în courses.dna pentru consistență ulterioară
+•	DNA version check — la fiecare generare de modul, verifică dacă DNA-ul s-a schimbat față de când a fost generat GoldenJSON. Dacă da, avertizează userul că modulele vechi sunt desincronizate
+•	DNA completeness score — un câmp calculat dna_completeness: 0-100 stocat în DB, folosit de UI pentru a afișa starea reală
+________________________________________
+Prioritizare practică
+Dacă ar fi să aleg un singur lucru cu impact maxim: auto-generarea DNA-ului draft imediat după finalizarea blueprint-ului, cu aprobare cu un click. Userul nu trebuie să știe ce e DNA — trebuie doar să confirme sau să modifice ce sistemul a dedus deja din informațiile pe care le-a dat deja.
+
