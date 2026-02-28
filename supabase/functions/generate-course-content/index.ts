@@ -1481,41 +1481,23 @@ ${objectives}
 
 function extractModulesFromMarkdown(markdown: string): string[] {
   const modules: string[] = [];
-  const lines = markdown.split('\n');
-  let insideTable = false;
-  
+  const sectionMatch = markdown.match(/###\s*MODULE_LIST_BEGIN\s*\n([\s\S]*?)\n\s*###\s*MODULE_LIST_END/);
+  if (!sectionMatch) {
+    Logger.warn('[extractModulesFromMarkdown] MODULE_LIST section not found. No modules extracted.');
+    return modules;
+  }
+  const listSection = sectionMatch[1];
+  const lines = listSection.split('\n');
   for (const line of lines) {
-    // Detect table start based on standard pipe characters, not specific headers
-    if (line.trim().startsWith('|') && line.split('|').length > 3) {
-      // Check if it's a header row or separator
-      if (line.includes('---')) {
-        insideTable = true;
-        continue;
-      }
-      
-      // If we are inside table (after separator)
-      if (insideTable) {
-         const parts = line.split('|').map(s => s.trim());
-         // We assume "Topic" / "Subject" is usually the 3rd column (index 2) in our standard agenda structure
-         // | Time | Topic | Method ...
-         if (parts.length > 2) {
-           const topic = parts[2];
-           // Heuristic: ignore common header terms in various languages if they accidentally get parsed
-           const lower = topic.toLowerCase();
-           const ignoreTerms = ['topic', 'subiect', 'tema', 'subject', 'sujet', 'themen', 'asunto'];
-           
-           if (topic && !ignoreTerms.some(t => lower.includes(t)) && topic.length > 2) {
-                const cleanTopic = topic.replace(/\*\*/g, '').replace(/\*/g, '').trim();
-                modules.push(cleanTopic);
-           }
-         }
-      }
-    } else {
-      if (insideTable && line.trim() === '') {
-        insideTable = false;
+    const match = line.match(/^\s*\d+[\.\)]\s+(.+)$/);
+    if (match) {
+      const title = match[1].replace(/\*\*/g, '').replace(/\*/g, '').trim();
+      if (title.length > 2) {
+        modules.push(title);
       }
     }
   }
+  Logger.info(`[extractModulesFromMarkdown] Extracted ${modules.length} modules from MODULE_LIST section.`);
   return modules;
 }
 
@@ -1997,43 +1979,65 @@ async function handleLegacyStep(
         | Time | Topic | Method | Material | Trainer Action | Activity Objective | Participant Action | On-the-job Benefit |
         | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
         | 09:00 - 09:15 | [Topic in ${lang}] | [Method in ${lang}] | [Material in ${lang}] | ... | ... | ... | ... |
+
+        ### MODULE_LIST_BEGIN
+        (List ONLY the main educational modules, numbered. 
+        Do NOT include breaks, lunch, intro/outro, or recap items.
+        Write each title in ${lang}.)
+        1. [Educational Module Title 1]
+        2. [Educational Module Title 2]
+        3. [Educational Module Title 3]
+        ### MODULE_LIST_END
      `;
      
      const rawResponse = await callLLM(prompt, course.language || 'ro');
 
      // EXTRACT AND SAVE MODULES
-     try {
-        const extractedModules = extractModulesFromMarkdown(rawResponse);
+     // FIX: Only extract modules if blueprint is empty. Do NOT overwrite existing verified blueprint with Agenda items.
+     // forceRegenerateModules can be sent from frontend when user explicitly
+     // requests a full structure regeneration (e.g. "Start Over" button)
+     const forceRegenerateModules = explicitModuleList && String(explicitModuleList).trim().length > 0;
+     const hasExistingModules = !forceRegenerateModules && 
+       course.blueprint && 
+       Array.isArray(course.blueprint.modules) && 
+       course.blueprint.modules.length > 0;
+     
+     if (!hasExistingModules) {
+         try {
+            const extractedModules = extractModulesFromMarkdown(rawResponse);
 
-        if (extractedModules.length > 0) {
-          Logger.info(`Extracted ${extractedModules.length} modules from generated Agenda. Updating Blueprint...`);
-          
-          const currentBlueprint = course.blueprint || {};
-          // Map to minimal module structure
-          const newModules = extractedModules.map(title => ({ 
-            title, 
-            sections: [], // Initialize empty sections
-            duration: "45 min" // Default
-          }));
-          
-          const updatedBlueprint = {
-            ...currentBlueprint,
-            modules: newModules
-          };
+            if (extractedModules.length > 0) {
+              Logger.info(`Extracted ${extractedModules.length} modules from generated Agenda. Updating Blueprint (was empty)...`);
+              
+              const currentBlueprint = course.blueprint || {};
+              // Map to minimal module structure
+              const newModules = extractedModules.map(title => ({ 
+                title, 
+                sections: [], // Initialize empty sections
+                duration: "45 min" // Default
+              }));
+              
+              const updatedBlueprint = {
+                ...currentBlueprint,
+                modules: newModules
+              };
 
-          // Update DB
-          await supabase
-            .from('courses')
-            .update({ blueprint: updatedBlueprint })
-            .eq('id', course.id);
-            
-          // Update local course object reference just in case
-          course.blueprint = updatedBlueprint;
-        } else {
-          Logger.warn("Could not extract modules from Agenda markdown.");
-        }
-     } catch (e) {
-       Logger.error("Failed to extract/save modules from Agenda", e);
+              // Update DB
+              await supabase
+                .from('courses')
+                .update({ blueprint: updatedBlueprint })
+                .eq('id', course.id);
+                
+              // Update local course object reference just in case
+              course.blueprint = updatedBlueprint;
+            } else {
+              Logger.warn("Could not extract modules from Agenda markdown.");
+            }
+         } catch (e) {
+           Logger.error("Failed to extract/save modules from Agenda", e);
+         }
+     } else {
+        Logger.info(`Skipping module extraction from Agenda because Blueprint already has ${course.blueprint?.modules?.length || 0} modules.`);
      }
 
      return rawResponse; // Return Markdown directly

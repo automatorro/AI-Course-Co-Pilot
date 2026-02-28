@@ -1,0 +1,192 @@
+const hasExistingModules = course.blueprint?.modules?.length > 0;
+if (!hasExistingModules) {
+   // extrage din tabel
+} else {
+   // ignoră complet
+}
+```
+
+Aceasta protejează blueprintul existent dar **nu repară parser-ul**. Dacă un utilizator nou creează un curs fără blueprint prealabil, va primi în continuare 14 module false inclusiv "Pauza de cafea".
+
+### ❌ A creat o problemă nouă: blueprintul e acum blocat
+
+Dacă utilizatorul vrea să regenereze structura unui curs existent (modifică obiectivele, adaugă module), codul nou **refuză să actualizeze** blueprintul pentru că `hasExistingModules = true`. Nu există nicio cale de a forța regenerarea din UI fără să ștergi manual modulele din baza de date.
+
+### ✅ Fix-ul oprește "sângerarea" imediată
+
+Singura valoare reală a modificării: blueprintul tău de 5 module nu va mai fi distrus la următoarea rulare. Trebuie păstrat ca gardian de siguranță.
+
+---
+
+## Cauza reală și soluția corectă
+
+Problema fundamentală este că `extractModulesFromMarkdown` și prompt-ul de structură sunt **incompatibile**:
+
+- **Prompt-ul** cere: tabel detaliat minut cu minut (`| Time | Topic | Method |`)
+- **Parser-ul** extrage: coloana 3 din tabel și o tratează ca listă de module
+- **Rezultat**: "Pauza de cafea" → Modul 12
+
+Soluția corectă are două componente:
+
+**Componenta 1 — Modificarea prompt-ului de structură** pentru a genera la final o secțiune explicită și separată de module, ușor de parsat și care ignoră pauzele:
+```
+### MODULE_LIST_BEGIN
+1. [Titlu Modul Educațional 1]
+2. [Titlu Modul Educațional 2]
+...
+### MODULE_LIST_END
+
+REGULĂ: Include DOAR module cu conținut educațional real. 
+Nu include pauze, intro-uri, recap-uri sau activități administrative.
+```
+
+**Componenta 2 — Reescrierea `extractModulesFromMarkdown`** pentru a citi EXCLUSIV din secțiunea `MODULE_LIST_BEGIN/END`, nu din tabel.
+
+---
+
+## Instrucțiuni exacte pentru agentul AI
+```
+REGULI OBLIGATORII:
+1. Nu modifica nimic până nu îmi confirmați că ați înțeles problema și soluția.
+2. Livrează modificările în format ȘTERS / ÎNLOCUIT CU.
+3. La final, rulează auditul de cod mort.
+
+---
+
+PROBLEMA: extractModulesFromMarkdown citește tabelul agendei și 
+tratează orice rând ca modul, inclusiv pauze. Fix-ul anterior 
+(hasExistingModules) e un gardian de urgență — îl păstrăm — 
+dar trebuie completat cu o soluție reală.
+
+FIX 1 — Modifică prompt-ul de structură din handleLegacyStep
+
+La finalul prompt-ului pentru 'course.steps.structure' / 'structure',
+după blocul OUTPUT FORMAT cu tabelul, adaugă:
+
+ȘTERS (ultimele linii din prompt-ul de structură):
+        | 09:00 - 09:15 | [Topic in ${lang}] | [Method in ${lang}] | [Material in ${lang}] | ... | ... | ... | ... |
+     `;
+
+ÎNLOCUIT CU:
+        | 09:00 - 09:15 | [Topic in ${lang}] | [Method in ${lang}] | [Material in ${lang}] | ... | ... | ... | ... |
+
+        ### MODULE_LIST_BEGIN
+        (List ONLY the main educational modules, numbered. 
+        Do NOT include breaks, lunch, intro/outro, or recap items.
+        Write each title in ${lang}.)
+        1. [Educational Module Title 1]
+        2. [Educational Module Title 2]
+        3. [Educational Module Title 3]
+        ### MODULE_LIST_END
+     `;
+
+---
+
+FIX 2 — Rescrie extractModulesFromMarkdown
+
+ȘTERS (funcția existentă completă):
+function extractModulesFromMarkdown(markdown: string): string[] {
+  const modules: string[] = [];
+  const lines = markdown.split('\n');
+  let insideTable = false;
+  
+  for (const line of lines) {
+    if (line.trim().startsWith('|') && line.split('|').length > 3) {
+      if (line.includes('---')) {
+        insideTable = true;
+        continue;
+      }
+      if (insideTable) {
+         const parts = line.split('|').map(s => s.trim());
+         if (parts.length > 2) {
+           const topic = parts[2];
+           const lower = topic.toLowerCase();
+           const ignoreTerms = ['topic', 'subiect', 'tema', 'subject', 'sujet', 'themen', 'asunto'];
+           if (topic && !ignoreTerms.some(t => lower.includes(t)) && topic.length > 2) {
+                const cleanTopic = topic.replace(/\*\*/g, '').replace(/\*/g, '').trim();
+                modules.push(cleanTopic);
+           }
+         }
+      }
+    } else {
+      if (insideTable && line.trim() === '') {
+        insideTable = false;
+      }
+    }
+  }
+  return modules;
+}
+
+ÎNLOCUIT CU:
+function extractModulesFromMarkdown(markdown: string): string[] {
+  // Extract ONLY from the dedicated MODULE_LIST_BEGIN/END section.
+  // Never parse the agenda table — it contains breaks, intros, outros
+  // which are not educational modules.
+  const modules: string[] = [];
+  
+  const sectionMatch = markdown.match(
+    /###\s*MODULE_LIST_BEGIN\s*\n([\s\S]*?)\n\s*###\s*MODULE_LIST_END/
+  );
+  
+  if (!sectionMatch) {
+    Logger.warn('[extractModulesFromMarkdown] MODULE_LIST section not found in markdown. No modules extracted.');
+    return modules;
+  }
+  
+  const listSection = sectionMatch[1];
+  const lines = listSection.split('\n');
+  
+  for (const line of lines) {
+    // Match numbered list items: "1. Title" or "1) Title"
+    const match = line.match(/^\s*\d+[\.\)]\s+(.+)$/);
+    if (match) {
+      const title = match[1]
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .trim();
+      if (title.length > 2) {
+        modules.push(title);
+      }
+    }
+  }
+  
+  Logger.info(`[extractModulesFromMarkdown] Extracted ${modules.length} modules from MODULE_LIST section.`);
+  return modules;
+}
+
+---
+
+FIX 3 — Îmbunătățește gardienii hasExistingModules pentru a permite regenerarea forțată
+
+Gardienii existenți sunt corecți dar prea rigizi. Adaugă suport pentru 
+un flag explicit de forțare din request.
+
+În handleLegacyStep, unde e definit hasExistingModules:
+
+ȘTERS:
+     const hasExistingModules = course.blueprint && Array.isArray(course.blueprint.modules) && course.blueprint.modules.length > 0;
+
+     if (!hasExistingModules) {
+
+ÎNLOCUIT CU:
+     // forceRegenerateModules can be sent from frontend when user explicitly
+     // requests a full structure regeneration (e.g. "Start Over" button)
+     const forceRegenerateModules = explicitModuleList && String(explicitModuleList).trim().length > 0;
+     const hasExistingModules = !forceRegenerateModules && 
+       course.blueprint && 
+       Array.isArray(course.blueprint.modules) && 
+       course.blueprint.modules.length > 0;
+
+     if (!hasExistingModules) {
+
+---
+
+AUDIT FINAL — răspunde DA sau NU la fiecare:
+
+1. Prompt-ul de structură conține blocul MODULE_LIST_BEGIN/END cu instrucțiunile corecte?
+2. extractModulesFromMarkdown citește EXCLUSIV din secțiunea MODULE_LIST_BEGIN/END și NU din tabelul agendei?
+3. extractModulesFromMarkdown returnează array gol (nu aruncă excepție) dacă secțiunea lipsește?
+4. Gardienii hasExistingModules permit regenerarea forțată când explicitModuleList e furnizat?
+5. Fix-ul anterior (hasExistingModules ca gardian) este păstrat și funcționează în continuare?
+6. Există vreo altă referință la parsing din tabelul agendei în cod? Dacă da, unde?
+7. Există cod mort introdus sau rămas nefolosit? Dacă da, listează și șterge.

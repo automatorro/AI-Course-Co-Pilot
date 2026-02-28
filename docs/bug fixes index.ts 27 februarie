@@ -1,0 +1,371 @@
+REGULI OBLIGATORII ÎNAINTE DE ORICE MODIFICARE:
+1. Când modifici un bloc, ȘTERGE complet versiunea veche. Zero cod comentat ca "backup".
+2. După fiecare modificare verifică că nu există variabile definite dar nefolosite.
+3. Nu inventa nume de funcții. Lucrează EXCLUSIV cu ce există în fișier.
+4. Livrează modificările în format ȘTERS / ÎNLOCUIT CU, nu fișierul complet.
+5. La final rulează auditul de cod mort descris la Pasul 6.
+
+---
+
+Există 5 buguri concrete în index.ts. Repară-le exact cum e descris, în ordinea de mai jos.
+
+---
+
+## BUG 1 — `mandatoryContext` scoping: variabila e undefined când modulul nu regenerează
+
+### Localizare
+În funcția `handleGoldenStep`, variabila `mandatoryContext` este declarată ÎNĂUNTRUL blocului `if (shouldRegenerate) { ... }`.
+Mai jos, în afara acestui bloc, în switch-ul de step_type, este folosită:
+```typescript
+case 'course.steps.manual':
+  return renderToMarkdown(goldenData, 'MANUAL', mandatoryContext);
+```
+Când `shouldRegenerate` este `false` (modulul are deja date valide), `mandatoryContext` este `undefined`.
+
+### Fix
+Mută declararea variabilei ÎNAINTE de blocul `if (shouldRegenerate)`, la același nivel cu `isDirty` și `goldenData`.
+
+ȘTERS (din interiorul blocului if):
+```typescript
+const mandatoryContext = buildMandatoryContext(course);
+```
+
+ÎNLOCUIT CU (adăugat înainte de `if (shouldRegenerate) {`):
+```typescript
+const mandatoryContext = buildMandatoryContext(course);
+```
+
+Verificare: după fix, `mandatoryContext` trebuie să fie declarată O SINGURĂ DATĂ în `handleGoldenStep`, înaintea oricărui `if`.
+
+---
+
+## BUG 2 — `theoryMarkdown` invizibil în Workbook
+
+### Localizare
+În funcția `renderWorkbookSection`, teoria apare NUMAI dacă `keyTakeaways` ȘI `actionableSteps` sunt ambele goale:
+```typescript
+if (content && (!content.keyTakeaways || content.keyTakeaways.length === 0) 
+    && (!content.actionableSteps || content.actionableSteps.length === 0) 
+    && content.theoryMarkdown) {
+  md += `${content.theoryMarkdown}\n\n`;
+}
+```
+În practică această condiție nu e niciodată adevărată când LLM-ul urmează schema, deci teoria nu apare niciodată.
+
+### Fix
+`theoryMarkdown` trebuie să apară ÎNTOTDEAUNA când există, INDIFERENT de keyTakeaways sau actionableSteps. Mută-l la începutul secțiunii, imediat după `let md = ...`.
+
+ȘTERS:
+```typescript
+if (content && (!content.keyTakeaways || content.keyTakeaways.length === 0) && (!content.actionableSteps || content.actionableSteps.length === 0) && content.theoryMarkdown) {
+  md += `${content.theoryMarkdown}\n\n`;
+}
+```
+
+ÎNLOCUIT CU (plasat imediat după `let md = \`### ${section.title}\n\n\``):
+```typescript
+if (content && content.theoryMarkdown) {
+  md += `${content.theoryMarkdown}\n\n`;
+}
+```
+
+Verificare: în `renderWorkbookSection`, `theoryMarkdown` trebuie să apară o singură dată, fără nicio condiție legată de `keyTakeaways` sau `actionableSteps`.
+
+---
+
+## BUG 3 — Etichetele de render sunt hardcodate în engleză, `localizedLabels` ignorat
+
+### Localizare
+`GoldenModuleData` conține câmpul `localizedLabels` generat de LLM în limba cursului, cu câmpurile:
+`keyTakeaways`, `actionPlan`, `reflection`, `trainerInstructions`, `script`, `activity`, `objective`, `instructionsParticipant`, `instructionsFacilitator`, `debrief`, `example`, `videoScript`.
+
+Funcțiile `renderWorkbookSection`, `renderManualSection`, `renderExerciseSheet`, `renderVideoScript` ignoră complet `localizedLabels` și folosesc texte fixe în engleză.
+
+Problema: `renderWorkbookSection` primește doar `section: GoldenSection`, nu are acces la `localizedLabels`. La fel celelalte funcții de render.
+
+### Fix — două modificări
+
+**Modificare 3a — Semnătura funcțiilor de render**
+
+ȘTERS:
+```typescript
+const renderWorkbookSection = (section: GoldenSection): string => {
+```
+ÎNLOCUIT CU:
+```typescript
+const renderWorkbookSection = (section: GoldenSection, labels: GoldenModuleData['localizedLabels']): string => {
+```
+
+ȘTERS:
+```typescript
+const renderManualSection = (section: GoldenSection, protagonistName: string): string => {
+```
+ÎNLOCUIT CU:
+```typescript
+const renderManualSection = (section: GoldenSection, protagonistName: string, labels: GoldenModuleData['localizedLabels']): string => {
+```
+
+ȘTERS:
+```typescript
+const renderExerciseSheet = (exercise: NonNullable<GoldenSection['exercisesDetailed']>): string => {
+```
+ÎNLOCUIT CU:
+```typescript
+const renderExerciseSheet = (exercise: NonNullable<GoldenSection['exercisesDetailed']>, labels: GoldenModuleData['localizedLabels']): string => {
+```
+
+ȘTERS:
+```typescript
+const renderVideoScript = (video: NonNullable<GoldenSection['videoScript']>): string => {
+```
+ÎNLOCUIT CU:
+```typescript
+const renderVideoScript = (video: NonNullable<GoldenSection['videoScript']>, labels: GoldenModuleData['localizedLabels']): string => {
+```
+
+**Modificare 3b — Apelurile din `renderToMarkdown`**
+
+ȘTERS:
+```typescript
+case 'WORKBOOK':
+  output += renderWorkbookSection(section);
+  break;
+case 'MANUAL':
+  output += renderManualSection(section, data.narrativeContext.protagonistName);
+  break;
+case 'EXERCISES':
+  if (section.exercisesDetailed) {
+     output += renderExerciseSheet(section.exercisesDetailed);
+  } else {
+      output += `*(No detailed exercises in this section)*\n\n`;
+  }
+  break;
+case 'VIDEO_SCRIPT':
+  if (section.videoScript) {
+      output += renderVideoScript(section.videoScript);
+  }
+  break;
+```
+
+ÎNLOCUIT CU:
+```typescript
+case 'WORKBOOK':
+  output += renderWorkbookSection(section, data.localizedLabels);
+  break;
+case 'MANUAL':
+  output += renderManualSection(section, data.narrativeContext.protagonistName, data.localizedLabels);
+  break;
+case 'EXERCISES':
+  if (section.exercisesDetailed) {
+     output += renderExerciseSheet(section.exercisesDetailed, data.localizedLabels);
+  } else {
+      output += `*(${data.localizedLabels?.activity || 'No detailed exercises in this section'})*\n\n`;
+  }
+  break;
+case 'VIDEO_SCRIPT':
+  if (section.videoScript) {
+      output += renderVideoScript(section.videoScript, data.localizedLabels);
+  }
+  break;
+```
+
+**Modificare 3c — Înlocuirea textelor hardcodate cu `labels`**
+
+În `renderWorkbookSection`, înlocuiește:
+```typescript
+md += `#### 🔑 Key Takeaways\n`;
+```
+cu:
+```typescript
+md += `#### 🔑 ${labels?.keyTakeaways || 'Key Takeaways'}\n`;
+```
+```typescript
+md += `#### 🚀 Action Plan\n`;
+```
+cu:
+```typescript
+md += `#### 🚀 ${labels?.actionPlan || 'Action Plan'}\n`;
+```
+```typescript
+md += `**Objective:** ${exercise.objective}\n\n`;
+```
+cu:
+```typescript
+md += `**${labels?.objective || 'Objective'}:** ${exercise.objective}\n\n`;
+```
+```typescript
+md += `**Duration:** ${exercise.durationMinutes} min\n\n`;
+```
+cu:
+```typescript
+md += `**${labels?.duration || 'Duration'}:** ${exercise.durationMinutes} min\n\n`;
+```
+```typescript
+md += `**Instructions for you:**\n`;
+```
+cu:
+```typescript
+md += `**${labels?.instructionsParticipant || 'Instructions'}:**\n`;
+```
+```typescript
+md += `**Workspace:**\n\n`;
+```
+cu:
+```typescript
+md += `**${labels?.activity || 'Workspace'}:**\n\n`;
+```
+```typescript
+md += `**Success Checklist:**\n`;
+```
+rămâne cu fallback:
+```typescript
+md += `**${labels?.debrief || 'Success Checklist'}:**\n`;
+```
+```typescript
+md += `#### 🤔 Reflection\n`;
+```
+cu:
+```typescript
+md += `#### 🤔 ${labels?.reflection || 'Reflection'}\n`;
+```
+
+În `renderManualSection`, înlocuiește:
+```typescript
+md += `### 👨‍🏫 Trainer Instructions\n`;
+```
+cu:
+```typescript
+md += `### 👨‍🏫 ${labels?.trainerInstructions || 'Trainer Instructions'}\n`;
+```
+```typescript
+md += `**Method:** ${instr.deliveryMethod}\n\n`;
+```
+cu:
+```typescript
+md += `**${labels?.method || 'Method'}:** ${instr.deliveryMethod}\n\n`;
+```
+```typescript
+md += `#### 🗣️ Script (Verbatim)\n`;
+```
+cu:
+```typescript
+md += `#### 🗣️ ${labels?.script || 'Script (Verbatim)'}\n`;
+```
+
+În `renderExerciseSheet`, înlocuiește:
+```typescript
+md += `#### Instructions (Participant)\n${exercise.instructionsParticipant}\n\n`;
+md += `#### Instructions (Facilitator)\n${exercise.instructionsFacilitator}\n\n`;
+md += `#### Debriefing Questions\n`;
+```
+cu:
+```typescript
+md += `#### ${labels?.instructionsParticipant || 'Instructions (Participant)'}\n${exercise.instructionsParticipant}\n\n`;
+md += `#### ${labels?.instructionsFacilitator || 'Instructions (Facilitator)'}\n${exercise.instructionsFacilitator}\n\n`;
+md += `#### ${labels?.debrief || 'Debriefing Questions'}\n`;
+```
+
+În `renderVideoScript`, înlocuiește:
+```typescript
+md += `### 🎥 Video Script\n`;
+```
+cu:
+```typescript
+md += `### 🎥 ${labels?.videoScript || 'Video Script'}\n`;
+```
+
+Verificare: după fix, niciun string literal în engleză de tip header ('Key Takeaways', 'Action Plan', 'Trainer Instructions', etc.) nu trebuie să mai apară în funcțiile de render fără fallback din `labels`.
+
+---
+
+## BUG 4 — `course.steps.slides` global: comportament ambiguu dacă frontend trimite `module_id`
+
+### Localizare
+```typescript
+const isGlobalSlides = step_type === 'course.steps.slides' && !module_id;
+```
+Dacă frontend-ul trimite `module_id` pentru slide-urile de introducere ale cursului (global kickoff deck), cererea intră în Golden Path și returnează XML cu `<SLIDE_BEGIN>` în loc de Markdown.
+
+### Fix
+Slide-urile de tip kickoff deck la nivel de curs sunt identificate prin `action` separat, nu prin absența `module_id`. Adaugă `course.steps.course_slides` ca step global explicit.
+
+ȘTERS:
+```typescript
+const isGlobalSlides = step_type === 'course.steps.slides' && !module_id;
+
+if (GLOBAL_STEPS.includes(step_type) || isGlobalSlides) {
+```
+
+ÎNLOCUIT CU:
+```typescript
+const GLOBAL_STEPS = [
+  'course.steps.structure',
+  'course_dna',
+  'course.steps.performance_objectives',
+  'course.steps.course_objectives',
+  'course.steps.timing_and_flow',
+  'course.steps.course_slides'
+];
+
+if (GLOBAL_STEPS.includes(step_type)) {
+```
+
+Și în `handleLegacyStep`, înlocuiește condiția pentru slides:
+ȘTERS:
+```typescript
+if (step_type === 'course.steps.slides' || step_type === 'slides') {
+```
+ÎNLOCUIT CU:
+```typescript
+if (step_type === 'course.steps.course_slides' || step_type === 'slides') {
+```
+
+Verificare: `course.steps.slides` fără `module_id` acum aruncă eroarea de la Fix 1 (module_id required). `course.steps.course_slides` merge pe legacy. `course.steps.slides` cu `module_id` merge corect pe Golden Path și returnează XML.
+
+---
+
+## BUG 5 — Al doilea attempt din retry sare validatorul AI
+
+### Localizare
+```typescript
+const rawJson = await callLLM(prompt, course.language || 'ro', attempts > 1);
+```
+Când `attempts > 1`, parametrul `isRetry = true` este trimis către `callLLM`. În `callLLM`, când `isRetry = true`, `isContentValidByAI` este sărit:
+```typescript
+if (!isRetry) {
+    const aiValidation = await isContentValidByAI(response);
+    ...
+}
+```
+Dacă al doilea attempt produce text conversațional în loc de JSON, trece nedetectat.
+
+### Fix
+În contextul Golden Path, retry-ul are un scop diferit față de retry-ul din `callLLM` — vrem să reîncercăm parsarea JSON, nu să sărim validarea. Apelează `callLLM` cu `isRetry: false` întotdeauna din Golden Path și lasă `callLLM` să-și gestioneze propriul retry intern.
+
+ȘTERS:
+```typescript
+const rawJson = await callLLM(prompt, course.language || 'ro', attempts > 1);
+```
+ÎNLOCUIT CU:
+```typescript
+const rawJson = await callLLM(prompt, course.language || 'ro', false);
+```
+
+Verificare: în `handleGoldenStep`, `callLLM` este apelat întotdeauna cu al treilea parametru `false`. Retry-ul din while loop gestionează eșecurile de parsare JSON. Retry-ul din `callLLM` gestionează eșecurile de conținut. Cele două mecanisme sunt independente.
+
+---
+
+## Pasul 6 — AUDIT OBLIGATORIU după toate modificările
+
+Verifică fiecare punct și confirmă explicit cu DA sau NU:
+
+1. `mandatoryContext` este declarată O SINGURĂ DATĂ în `handleGoldenStep`, înaintea oricărui `if`?
+2. `theoryMarkdown` apare în `renderWorkbookSection` fără nicio condiție legată de `keyTakeaways` sau `actionableSteps`?
+3. Toate funcțiile de render (`renderWorkbookSection`, `renderManualSection`, `renderExerciseSheet`, `renderVideoScript`) primesc `labels` ca parametru și îl folosesc cu fallback?
+4. `renderToMarkdown` pasează `data.localizedLabels` la toate apelurile funcțiilor de render?
+5. Niciun string literal header în engleză fără fallback nu mai există în funcțiile de render?
+6. `GLOBAL_STEPS` conține `course.steps.course_slides` și NU mai există `isGlobalSlides`?
+7. `handleLegacyStep` răspunde la `course.steps.course_slides`, nu la `course.steps.slides`?
+8. În `handleGoldenStep`, `callLLM` este apelat cu al treilea parametru `false`?
+9. Există vreo funcție definită în fișier care nu este apelată nicăieri? Dacă da, listeaz-o și șterge-o.
+10. Există vreo variabilă declarată dar nefolosită? Dacă da, listeaz-o și șterge-o.
