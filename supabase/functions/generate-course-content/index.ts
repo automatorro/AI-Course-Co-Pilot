@@ -310,12 +310,14 @@ interface RetryConfig {
   maxRetries: number;
   baseDelay: number; // ms
   maxDelay: number; // ms
+  timeout?: number; // ms
 }
 
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
-  maxRetries: 3,
+  maxRetries: 2, // Reduced to avoid global timeout
   baseDelay: 1000,
-  maxDelay: 10000
+  maxDelay: 10000,
+  timeout: 25000 // 25s timeout per request
 };
 
 /**
@@ -325,6 +327,7 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
  * 2. Rate Limiting (429 Retry-After)
  * 3. Server Errors (5xx)
  * 4. Network Glitches
+ * 5. Timeouts
  */
 async function fetchWithRetry(
   url: string, 
@@ -334,8 +337,13 @@ async function fetchWithRetry(
   let lastError: any;
   
   for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), config.timeout || 25000);
+    const fetchOptions = { ...options, signal: controller.signal };
+
     try {
-      const response = await fetch(url, options);
+      const response = await fetch(url, fetchOptions);
+      clearTimeout(timeoutId);
       
       // Success
       if (response.ok) {
@@ -375,6 +383,7 @@ async function fetchWithRetry(
       throw new Error(`Request failed with status ${response.status}: ${await response.text()}`);
 
     } catch (error: any) {
+      clearTimeout(timeoutId);
       lastError = error;
       
       // Don't retry if we just threw a non-retryable status error above
@@ -1294,8 +1303,15 @@ serve(async (req) => {
 
   } catch (error: any) {
     Logger.error("Main Handler Error", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    
+    // Return 200 with error details to allow client to display the message
+    // instead of a generic 500 FunctionsHttpError
+    return new Response(JSON.stringify({ 
+      error: error.message || "An unexpected error occurred",
+      details: error.stack,
+      context: "Main Handler Catch"
+    }), {
+      status: 200, // Intentional 200 to bypass Edge Function 500 trap
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
@@ -1857,7 +1873,26 @@ async function handleLegacyStep(
         return response;
       } catch (e: any) {
         Logger.error(`[LegacyStep] CourseDNA LLM Failed:`, e);
-        throw e;
+        
+        // Soft Fallback to prevent Edge Function timeout/crash from killing the UI flow
+        const isRo = (course.language || 'ro').toLowerCase().startsWith('ro');
+        return JSON.stringify({
+          terminology: {
+            participant: isRo ? "Participant" : "Participant",
+            exercise: isRo ? "Exercițiu" : "Exercise",
+            trainer: isRo ? "Trainer" : "Trainer",
+            mandatoryTerms: {}
+          },
+          narrativeUniverse: {
+            protagonists: [],
+            setting: isRo ? "Mediu Profesional Standard" : "Standard Professional Environment",
+            tone: isRo ? "Profesional și Încurajator" : "Professional and Encouraging"
+          },
+          learningPhilosophy: {
+            manifesto: isRo ? ["Învățare prin practică", "Implicare activă"] : ["Learning by Doing", "Interactive Engagement"],
+            rules_of_engagement: isRo ? ["Respect reciproc", "Participare activă"] : ["Mutual respect", "Active participation"]
+          }
+        });
       }
   }
 
