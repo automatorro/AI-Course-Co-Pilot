@@ -493,9 +493,9 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                      // Slides don't have Intro/Outro in this model, just modules.
                      const startIndex = parts.length;
                      
-                     // Batch processing (Concurrency = 2)
-                     const BATCH_SIZE = 2;
-                     for (let i = startIndex; i < modulesToProcess.length; i += BATCH_SIZE) {
+                     // Batch processing (Concurrency = 1 for Slides to prevent timeouts and improve feedback)
+                    const BATCH_SIZE = 1;
+                    for (let i = startIndex; i < modulesToProcess.length; i += BATCH_SIZE) {
                          if (isStoppedRef.current) break;
                          
                          const batch = modulesToProcess.slice(i, i + BATCH_SIZE);
@@ -530,7 +530,8 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                                      });
                                      if (modErr) throw modErr;
                                      modContent = modData.content;
-                                 } catch (e) {
+                                     if (!modContent) throw new Error("Received empty content from server");
+                                } catch (e) {
                                      console.warn(`Error generating slides module ${realIdx}, retry ${retries}`, e);
                                      retries++;
                                      await new Promise(r => setTimeout(r, 1500));
@@ -624,6 +625,7 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                                 });
                                 if (introError) throw introError;
                                 introContent = introData?.content;
+                                if (!introContent) throw new Error("Received empty intro content from server");
                             } catch (e) {
                                 console.warn(`Error generating Intro, retry ${introRetries}`, e);
                                 introRetries++;
@@ -644,9 +646,9 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                      // So start index for modules is parts.length - 1
                      const startIndex = Math.max(0, parts.length - 1);
                      
-                     // Batch processing (Concurrency = 2)
-                     const BATCH_SIZE = 2;
-                     for (let i = startIndex; i < modulesToProcess.length; i += BATCH_SIZE) {
+                     // Batch processing (Concurrency = 1 for Workbook to ensure Golden Data is generated reliably)
+                    const BATCH_SIZE = 1;
+                    for (let i = startIndex; i < modulesToProcess.length; i += BATCH_SIZE) {
                          if (isStoppedRef.current) break;
                          
                          const batch = modulesToProcess.slice(i, i + BATCH_SIZE);

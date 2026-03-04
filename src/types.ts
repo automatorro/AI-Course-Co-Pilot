@@ -38,6 +38,15 @@ export interface Course {
   blueprint?: CourseBlueprint;
   ai_refinement_history?: AIMessage[]; // NEW: Optional log of AI suggestions
   dna?: CourseDNA; // NEW: The Single Source of Truth for the course
+  macro_plan?: {
+    macroBlocks: Array<{
+      type: 'INTRO' | 'CONTENT_BLOCK' | 'BREAK' | 'WRAP_UP';
+      duration: number;
+      title?: string;
+      moduleRef?: string;
+      purpose?: string;
+    }>;
+  };
 }
 
 // === COURSE DNA (Global Source of Truth) ===
@@ -84,6 +93,17 @@ export interface CourseDNA {
     humorLevel: 'none' | 'light' | 'heavy';
     forbiddenPhrases: string[];
     signaturePhrases: string[];
+  };
+  learningPhilosophy?: {
+    manifesto?: string[];
+    rules_of_engagement?: string[];
+  };
+  domainContext?: {
+    industryTerms: Record<string, string>;
+    clientProfiles: Array<{ type: string; decisionLogic: string; approach: string }>;
+    productCatalog: Array<{ category: string; items: string[] }>;
+    competitorIntelligence: Array<{ name: string; weaknesses: string[]; counterStrategy: string }>;
+    negotiationFrameworks: Array<{ name: string; steps: string[] }>;
   };
 }
 

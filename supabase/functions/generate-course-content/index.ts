@@ -188,6 +188,421 @@ export function getStyleBlock(audienceDescription: string): string {
 }
 
 // --------------------------------------------------------------------------------
+// INLINED MODULE: Depth Specs (from templates.ts)
+// --------------------------------------------------------------------------------
+export const getDepthSpecs = (language: string, type: 'live' | 'online' = 'live', practicePercent: number = 80) => {
+  // PS-1: Universal Depth Specs with Dynamic Language Injection
+  // PS-11: Environment Adaptation (Live vs Online)
+  
+  const envSpecs = type === 'online' 
+    ? `
+    **ENVIRONMENT: ONLINE (VIRTUAL CLASSROOM - ZOOM/TEAMS)**
+    - **INTERACTION**: Must use "Breakout Rooms", "Chat Polls", "Miro Board links", "Screen Share".
+    - **CONSTRAINTS**: Max 10 min monologues (Zoom Fatigue). Frequent "Type in chat" prompts.
+    - **MATERIALS**: PDFs, Digital Workbooks, Online Quizzes.
+    ` 
+    : `
+    **ENVIRONMENT: LIVE (IN-PERSON WORKSHOP)**
+    - **INTERACTION**: EXCLUSIVE face-to-face activities: "Turn to your neighbor", "Physical Flipcharts", "Room Movement", "Gallery Walk", "Role Play in room", "Group Discussions", "Physical Exercises".
+    - **CONSTRAINTS**: 
+      *   Standard attention spans. Physical handouts allowed.
+      *   **FORBIDDEN**: DO NOT mention videos, webinars, online dashboards, virtual forums, zoom links, or screen sharing.
+    - **MATERIALS**: Printed Workbooks, Sticky Notes, Markers, Flipchart paper.
+    `;
+
+  return {
+    workbook: `
+    **DEPTH SPECIFICATIONS (Workbook):**
+    - **LENGTH**: Comprehensive workbook (target 40+ pages).
+    - **PEDAGOGY (ACTION-FIRST)**:
+      *   **No Fluff**: Do not explain "definitions" unless critical. Go straight to "How to apply".
+      *   **Step-by-Step**: Use numbered lists for actions. "Step 1: Do X. Step 2: Do Y."
+      *   **Checklists**: Include "Am I doing it right?" checklists for every concept.
+    - **CONTENT PER MODULE**:
+      *   **Explanatory Text**: 800-1200 words. Conversational.
+      *   **Stories**: Include at least 1-2 distinct stories/analogies per section (Hero -> Problem -> Solution).
+      *   **Case Studies**: Full case studies (1 page each) with the Course Protagonist.
+      *   **Exercises**: Every exercise must have: Objective, Instructions, Formatted answer space (tables/boxes).
+    - **FORMATTING**: Markdown headers, Blockquotes for takeaways, Bold for emphasis.
+      *   For any tabular content (timing breakdowns, comparisons, multi-column checklists), use standard GitHub-Flavored Markdown tables with a header row and separator row (| Col1 | Col2 | ... | / | --- | --- | ... |). Do NOT use HTML tables.
+    - **LANGUAGE**: All content must be in **${language}**.
+    ${envSpecs}
+  `,
+    slides: `
+    **DEPTH SPECIFICATIONS (Slides):**
+    - **QUANTITY**: 1 slide per 6-8 minutes.
+    - **STORYTELLING FLOW**:
+      *   Slide 1: The Hook (Problem/Story).
+      *   Slide 2: The Solution (Concept).
+      *   Slide 3: The Framework (Visual Model).
+      *   Slide 4: Practical Application.
+    - **VISUALS**: Describe specific imagery (e.g., "Photo of a frustrated manager looking at a clock").
+    - **LANGUAGE**: All content must be in **${language}**.
+    ${envSpecs}
+  `,
+    exercises: `
+    **DEPTH SPECIFICATIONS (Exercises):**
+    - **QUANTITY**: Ensure approximately **${practicePercent}%** of the course time is practical (based on User's Blueprint).
+    - **REALITY CHECK**:
+      *   **Scenario-Based**: Never ask "What is X?". Ask "Client Y is yelling. What do you say?".
+      *   **Red Flags**: Always include "What could go wrong?" sections.
+    - **DETAIL**:
+      *   **Timing**: Specify exact duration.
+      *   **Facilitator Instructions**: Step-by-step guide.
+      *   **Debriefing**: 3-5 specific questions (Factual, Analytical, Applicative).
+    - **TABULAR CONTENT**:
+      *   When describing timing breakdowns, comparison grids (Before/After, Do/Don't), or observer checklists with more than one column, always format them as standard GitHub-Flavored Markdown tables (header row + separator row + data rows). Example pattern: \`| Time | Activity | Method |\\n| --- | --- | --- |\\n| 10 min | Warm-up | Pair discussion |\`.
+      *   Do NOT use HTML \`<table>\` tags anywhere. Only Markdown tables.
+    - **LANGUAGE**: All content must be in **${language}**.
+    ${envSpecs}
+  `,
+    manual: `
+    **DEPTH SPECIFICATIONS (Trainer Manual):**
+    - **FLOW TABLE**: Minute-by-minute agenda written as a standard GitHub-Flavored Markdown table (header row, separator row, then one row per segment). Do NOT use HTML tables.
+    - **SCRIPTS**: Full conversational scripts. NO "Say hello to participants". WRITE exactly what to say.
+    - **STORYTELLING**: The trainer is a storyteller. Scripts must include personal anecdotes placeholders.
+    - **METHODOLOGY**:
+      *   **Feedback**: SBI Model only.
+      *   **Problem Solving**: Ishikawa / 5 Whys.
+    - **STRUCTURĂ**: ONE coherent manual.
+    - **LANGUAGE**: All content must be in **${language}**.
+    ${envSpecs}
+  `
+  };
+};
+
+// --------------------------------------------------------------------------------
+// INLINED MODULE: Golden Samples (from golden-samples.ts)
+// --------------------------------------------------------------------------------
+export const GOLDEN_SAMPLES = {
+  objectives: `
+# [Course Title]
+**Total Duration:** [Hours]
+**Target Audience:** [Specific Audience]
+**Format:** [Live Workshop OR Online Course]
+
+---
+
+## 🎯 LEARNING OBJECTIVES (BLOOM'S TAXONOMY)
+
+At the end of this course, participants will be able to:
+
+### 1. **ANALYZE** (Bloom: Analyze)
+To identify [Key Problem/Pattern] using [Specific Framework/Tool] and justify the diagnosis with concrete evidence from [Context].
+
+**Success Criteria:**
+- Correctly classifies [X]% of [Scenarios]
+- Provides minimum [Y] evidence points for each classification
+
+---
+
+### 2. **APPLY** (Bloom: Apply)
+To adapt [Method/Technique] depending on [Variable A] and [Variable B], using the [Step-by-Step Process] learned in Module [N].
+
+**Success Criteria:**
+- Solves correctly [X]/[Y] practical scenarios
+- Develops an action plan for a real-world situation
+
+---
+
+### 3. **CREATE** (Bloom: Create)
+To develop a personalized [Strategy/Plan/Project] for [Target], with specific milestones and [KPIs].
+
+**Success Criteria:**
+- The plan contains specific actions (not vague wishes)
+- Includes [Specific Component A] and [Specific Component B]
+
+---
+`,
+
+  workbook_online: `
+## Module [N]: [Module Title]
+
+### 1. Why this matters (The Hook)
+[Compelling Intro]: Start with a relatable pain point or myth.
+"Most people believe that [Common Myth about Topic]. But in reality, [Truth]."
+"Have you ever felt [Pain Point]? You are not alone."
+
+### 2. Core Concept: [Concept Name]
+**Definition:** [Clear, jargon-free definition]
+
+**The Framework ([Acronym/Model]):**
+1. **[Step 1]:** [Explanation]
+2. **[Step 2]:** [Explanation]
+3. **[Step 3]:** [Explanation]
+
+> **Pro Tip:** [Actionable insight or "Cheat Code"]
+
+### 3. Real World Example (Narrative Arc)
+**The Story of [Protagonist Name]:**
+[Protagonist] faced [Challenge related to Module].
+At first, they tried [Wrong Approach]. Result: [Negative Outcome].
+Then, they applied [Core Concept].
+**Result:** [Positive Outcome].
+
+### 4. Practical Exercise [N].1
+**Objective:** Apply [Concept] to a personal scenario.
+**Instructions:**
+1. Identify [X].
+2. Apply [Y].
+3. Write down [Z].
+
+**Workspace:**
+[____________________]
+[____________________]
+`,
+
+  workbook_live: `
+## Module [N]: [Module Title] (Live Workshop Edition)
+
+### 1. Group Discussion Starter
+**Question:** "[Provocative Question about Topic]?"
+**Activity:** Turn to your neighbor (2 min) and discuss.
+
+### 2. Core Framework: [Concept Name]
+[Visual Diagram Placeholder]
+- **[Component A]:** [Description]
+- **[Component B]:** [Description]
+
+### 3. The "Aha!" Moment
+> **Key Takeaway:** [The most important insight of the module]
+
+### 4. Group Activity [N].1: [Activity Name]
+**Format:** Groups of [X]
+**Time:** [Y] minutes
+**Instructions:**
+1. Select a [Role/Scenario].
+2. Practice [Technique].
+3. Debrief with the group.
+
+**Debrief Questions:**
+- What was difficult?
+- What surprised you?
+`,
+
+  structure_online: `
+# Detailed Structure: [Course Title] (Online)
+**Total:** [X] hours video + [Y] hours study
+**Format:** Self-paced Video Course
+
+---
+
+## 📚 Agenda Detaliată (Trainer Manual)
+
+### Minute-by-minute Agenda
+| Minut | Segment | Obiectiv Trainer | Activitatea Participanților |
+|-------|---------|------------------|-----------------------------|
+| 0-10  | Deschidere și context | Conectează tema cursului la realitatea participanților. | Răspund la întrebări scurte, împărtășesc situații proprii. |
+| 10-25 | Explicarea conceptului cheie | Clarifică modelul/abordarea cu exemple concrete. | Notează idei-cheie, pune întrebări de clarificare. |
+| 25-45 | Exercițiu aplicat | Dă instrucțiuni clare și observă dinamica. | Lucrează în grupuri/perechi la aplicația practică. |
+| 45-55 | Debrief și consolidare | Ghidează discuția și extrage învățămintele principale. | Împărtășește insight-uri, formulează concluzii. |
+| 55-60 | Wrap-up și următorii pași | Rezumă mesajele cheie și definește follow-up. | Notează angajamente personale și întrebări rămase. |
+
+> Notă: Ajustează timpii în funcție de durata totală a modulului și de nivelul grupului.
+`,
+
+  slides_live: `
+<SLIDE_BEGIN id="[N]">
+<TITLE>[Engaging Question or Strong Statement?]</TITLE>
+<!-- slide-layout: EXPLAINER -->
+<VISUAL>[Description of visual: Diagram/Chart/Metaphor]</VISUAL>
+<CONTENT>
+- **[Key Point 1]:** [Brief explanation]
+- **[Key Point 2]:** [Brief explanation]
+- **[Key Point 3]:** [Brief explanation]
+</CONTENT>
+<NOTES>
+**Hook:** Ask the audience: "[Question]?"
+**Explanation:** Explain that [Concept] is not about [Misconception], but about [Truth].
+**Story:** Share the story of [Protagonist] who [Scenario].
+**Interaction:** Ask for a show of hands for [Condition].
+</NOTES>
+<SLIDE_END id="[N]">
+
+<SLIDE_BEGIN id="[N+1]">
+<TITLE>The [Framework Name] Framework</TITLE>
+<!-- slide-layout: EXPLAINER -->
+<VISUAL>[Step-by-step Process Diagram]</VISUAL>
+<CONTENT>
+- **Step 1:** [Action]
+- **Step 2:** [Action]
+- **Step 3:** [Action]
+</CONTENT>
+<NOTES>
+Walk through each step.
+Give a concrete example for Step 1.
+Warn about the common pitfall in Step 2.
+</NOTES>
+<SLIDE_END id="[N+1]">
+`,
+
+  slides_online: `
+<SLIDE_BEGIN id="[N]">
+<TITLE>[Concept Name]</TITLE>
+<!-- slide-layout: EXPLAINER -->
+<VISUAL>[Clean, high-contrast visual for video overlay]</VISUAL>
+<CONTENT>
+- [Short bullet 1]
+- [Short bullet 2]
+</CONTENT>
+<NOTES>
+(Script is separate, these are visual cues)
+Focus on [Key Term].
+</NOTES>
+<SLIDE_END id="[N]">
+`,
+
+  quiz: `
+# FINAL ASSESSMENT: [Course Title]
+
+## PART 1: KNOWLEDGE CHECK (Multiple Choice)
+
+### ❓ QUESTION 1: [Concept A]
+**Which of the following best describes [Concept A]?**
+
+A) [Wrong Definition]
+B) [Wrong Definition]
+C) [Correct Definition] ✅
+D) [Wrong Definition]
+
+**Feedback if WRONG:**
+"Remember, [Concept A] is about [Key Distinction]. Option [X] refers to [Concept B]."
+
+---
+
+## PART 2: SCENARIO APPLICATION
+
+### ❓ QUESTION [N]: [Scenario Name]
+**Scenario:** [Protagonist] is facing [Situation]. They decided to [Action].
+**Question:** Was this the correct decision based on [Framework]?
+
+A) Yes, because...
+B) No, because [Reason 1] ✅
+C) No, because [Reason 2]
+
+**Justification:**
+[Protagonist]'s situation required [Approach X], but they used [Approach Y].
+
+---
+`,
+
+  video_script_online: `
+# VIDEO SCRIPT: Module [N] - [Topic]
+**Format:** Talking Head + B-Roll
+**Duration:** 3-5 minutes
+**Tone:** [Tone Adjectives: e.g., Professional, Encouraging, Direct]
+
+---
+
+**[SCENE 1: Talking Head - Hook]**
+**(Visual: Instructor looking at camera)**
+
+"Have you ever [Relatable Problem]?
+You try to [Action], but [Obstacle] happens.
+It's frustrating, right?
+
+Today, I'm going to show you how to fix that using [Concept Name]."
+
+---
+
+**[SCENE 2: Concept Explanation]**
+**(Visual: Animation of [Model/Framework])**
+
+"The secret is [The Core Mechanism].
+Most people think it's about [Misconception].
+But actually, it's about [Truth].
+
+Here are the 3 steps:
+1. **[Step 1]**
+2. **[Step 2]**
+3. **[Step 3]**"
+
+---
+
+**[SCENE 3: Real World Example]**
+**(Visual: B-Roll or Split Screen)**
+
+"Let's look at an example.
+Imagine [Scenario].
+If you use [Old Way], [Bad Result] happens.
+But if you use [Step 1] and [Step 2], look at the difference: [Good Result]."
+
+---
+
+**[SCENE 4: Call to Action]**
+**(Visual: Instructor)**
+
+"Now it's your turn.
+Pause this video.
+Go to your workbook and complete [Exercise Name].
+Don't skip this. It's where the learning happens."
+`,
+
+  exercises_live: `
+### Exercise: [Activity Name] ([Time] min)
+
+**Format:** [Pairs/Groups/Individual]
+**Objective:** Practice [Skill/Concept]
+
+**Timing Breakdown:**
+| Timp | Acțiune Facilitator | Acțiune Participant |
+|------|---------------------|---------------------|
+| 5 min | Prezintă scopul exercițiului și explică regulile. | Ascultă și pune întrebări de clarificare. |
+| 10 min | Observă interacțiunile și notează comportamente-cheie. | Lucrează în perechi/grup la sarcina dată. |
+| 5 min | Ghidează debrief-ul și extrage învățămintele principale. | Răspunde la întrebări și împărtășește observațiile. |
+
+**Instrucțiuni detaliate:**
+1. Formează grupuri de [X] persoane și atribuie roluri: [Role A], [Role B].
+2. Explică sarcina: [Descriere scurtă a sarcinii].
+3. Pornește cronometrul pentru fiecare etapă din tabel.
+4. La final, facilitează discuția de debrief pe baza observațiilor.
+
+**Observer Checklist:**
+- [ ] Did they use [Technique 1]?
+- [ ] Did they avoid [Pitfall]?
+`,
+
+  exercises_online: `
+### Individual Exercise: [Name] ([Time] min)
+
+**Format:** Individual Reflection
+**Objective:** Analyze [Personal Situation] using [Framework].
+
+**Instructions:**
+1. **Identify** a recent situation where [Context].
+2. **Apply** the [Method] to that situation.
+3. **Complete** the table below.
+
+**Template:**
+| Situation | My Initial Reaction | Better Approach (using Method) |
+|-----------|---------------------|--------------------------------|
+| [Describe]| [Describe]          | [Describe]                     |
+`,
+
+  case_study: `
+### Case Study: [Title]
+
+**Background:**
+[Company/Person Name] was facing [Critical Challenge].
+They had tried [Previous Attempt], but it failed because [Reason].
+
+**The Intervention:**
+They decided to implement [Course Concept].
+Specifically, they:
+1. Changed [X] to [Y].
+2. Adopted [Tool/Process].
+
+**The Results:**
+Within [Timeframe], they saw:
+- [Metric 1] improved by [X]%.
+- [Qualitative Result].
+
+**Key Lesson:**
+Success comes from [Core Principle], not just [Surface Level Action].
+`
+};
+
+// --------------------------------------------------------------------------------
 // INLINED MODULE: Golden Master Prompt
 // --------------------------------------------------------------------------------
 export const GOLDEN_MASTER_PROMPT = `
@@ -202,13 +617,16 @@ You are an expert **Instructional Designer**. Generate a single "Golden JSON" ob
 - **Audience**: {{targetAudience}}
 {{styleBlock}}
 
-### 2. GOLDEN RULES (STRICT)
+### 2. FEW-SHOT EXAMPLES (REFERENCE)
+{{goldenSamples}}
+
+### 3. GOLDEN RULES (STRICT)
 1. **XML ONLY**: Output <meta>...</meta> then <content_block>PURE JSON</content_block>.
 2. **NARRATIVE**: "{{protagonistName}}" appears ONLY in \`narrativeContext\` and \`theoryContent.hook\`.
 3. **CONSISTENCY**: All content in {{language}}. JSON keys in English.
 4. **NO HALLUCINATIONS**: Respect the duration. Do not invent modules.
 
-### 3. JSON TEMPLATE
+### 4. JSON TEMPLATE
 \`\`\`typescript
 interface GoldenModuleData {
   moduleId: "{{moduleId}}";
@@ -216,6 +634,14 @@ interface GoldenModuleData {
   moduleDurationMinutes: number;
   environment: "{{environment}}";
   localizedLabels: { [key: string]: string };
+  // --- DOMAIN CONTEXT (Optional) ---
+  domainContext?: {
+    industryTerms: Record<string, string>;
+    clientProfiles: Array<{ type: string; decisionLogic: string; approach: string }>;
+    productCatalog: Array<{ category: string; items: string[] }>;
+    competitorIntelligence: Array<{ name: string; weaknesses: string[]; counterStrategy: string }>;
+    negotiationFrameworks: Array<{ name: string; steps: string[] }>;
+  };
   narrativeContext: {
     protagonistName: string;
     storyArcStage: string;
@@ -226,17 +652,29 @@ interface GoldenModuleData {
     id: string;
     title: string;
     durationMinutes: number;
-    type: 'THEORY' | 'ACTIVITY' | 'DISCUSSION' | 'VIDEO_LESSON';
+    type: 'THEORY' | 'ACTIVITY' | 'DISCUSSION' | 'VIDEO_LESSON' | 'ICE_BREAKER' | 'BREAK' | 'TRANSITION' | 'WARM_UP' | 'DEBRIEF';
     participantContent: { theoryMarkdown: string; keyTakeaways: string[]; reflectionQuestions?: string[]; actionableSteps?: string[] };
     trainerInstructions: { deliveryMethod: string; script: string; logistics: string[]; flipchartSketch?: any; breakoutRoomConfig?: any };
     visuals: { slidesSequence: Array<{ slideId: string; layout: string; title: string; visualDescription: string; contentBullets: string[]; speakerNotes: string }> };
     exercisesDetailed?: { title: string; objective: string; durationMinutes: number; instructionsParticipant: string; instructionsFacilitator: string; materialsNeeded: string[]; debriefingQuestions: string[]; successIndicators: string[]; adaptationNotes: string };
+    // --- EXERCISE SEQUENCE (Optional) ---
+    exerciseSequence?: Array<{
+      title: string;
+      type: 'ROLE_PLAY' | 'GROUP_WORKSHOP' | 'INDIVIDUAL' | 'SCENARIO' | 'ZONE_MAPPING';
+      durationMinutes: number;
+      instructionsParticipant: string;
+      instructionsFacilitator: string;
+      materialsNeeded: string[];
+      debriefingQuestions: string[];
+      successIndicators: string[];
+      adaptationNotes?: string;
+    }>;
     videoScript?: { sceneDescription: string; scriptContent: string; visualOverlays: Array<{ timestamp: string; description: string }> };
   }>;
 }
 \`\`\`
 
-### 4. THINKING PROCESS
+### 5. THINKING PROCESS
 <meta>
 1. Analyze audience & tone.
 2. Define protagonist's struggle.
@@ -335,10 +773,10 @@ interface RetryConfig {
 }
 
 const DEFAULT_RETRY_CONFIG: RetryConfig = {
-  maxRetries: 2, // Reduced to avoid global timeout
+  maxRetries: 3, // Increased for robustness
   baseDelay: 1000,
   maxDelay: 10000,
-  timeout: 25000 // 25s timeout per request
+  timeout: 120000 // 120s timeout per request (increased for Golden Module generation)
 };
 
 /**
@@ -764,13 +1202,20 @@ export interface GoldenModuleData {
     }>;
   };
   sections: Array<GoldenSection>;
+  domainContext?: {
+    industryTerms: Record<string, string>;
+    clientProfiles: Array<{ type: string; decisionLogic: string; approach: string }>;
+    productCatalog: Array<{ category: string; items: string[] }>;
+    competitorIntelligence: Array<{ name: string; weaknesses: string[]; counterStrategy: string }>;
+    negotiationFrameworks: Array<{ name: string; steps: string[] }>;
+  };
 }
 
 export interface GoldenSection {
   id: string;
   title: string;
   durationMinutes: number;
-  type: 'THEORY' | 'ACTIVITY' | 'DISCUSSION' | 'VIDEO_LESSON';
+  type: 'THEORY' | 'ACTIVITY' | 'DISCUSSION' | 'VIDEO_LESSON' | 'ICE_BREAKER' | 'BREAK' | 'TRANSITION' | 'WARM_UP' | 'DEBRIEF';
   participantContent: {
     theoryMarkdown: string;
     keyTakeaways: string[];
@@ -813,6 +1258,16 @@ export interface GoldenSection {
     successIndicators: string[];
     adaptationNotes: string;
   };
+  exerciseSequence?: Array<{
+    title: string;
+    type: 'ROLE_PLAY' | 'GROUP_WORKSHOP' | 'INDIVIDUAL' | 'SCENARIO' | 'ZONE_MAPPING';
+    durationMinutes: number;
+    instructionsParticipant: string;
+    instructionsFacilitator: string;
+    materialsNeeded: string[];
+    debriefingQuestions: string[];
+    successIndicators: string[];
+  }>;
   videoScript?: {
     sceneDescription: string;
     scriptContent: string;
@@ -896,6 +1351,16 @@ export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget, c
   output += `# ${data.moduleTitle}\n`;
   output += `**Duration:** ${data.moduleDurationMinutes} min | **Format:** ${data.environment}\n\n`;
 
+  // --- DOMAIN CONTEXT ---
+  if (data.domainContext) {
+      output += `> **DOMAIN CONTEXT**\n`;
+      if (data.domainContext.industryTerms) {
+          const terms = Object.entries(data.domainContext.industryTerms).map(([k, v]) => `${k}: ${v}`).join('; ');
+          output += `> *Terms:* ${terms.substring(0, 100)}...\n`;
+      }
+      output += `\n`;
+  }
+
   if (target === 'MANUAL' && contextInfo) {
       output += `> **COURSE CONTEXT (VERIFICATION)**\n`;
       output += `> This content was generated based on the following constraints:\n`;
@@ -922,7 +1387,13 @@ export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget, c
       case 'EXERCISES':
         if (section.exercisesDetailed) {
            output += renderExerciseSheet(section.exercisesDetailed, data.localizedLabels);
-        } else {
+        }
+        if (section.exerciseSequence && Array.isArray(section.exerciseSequence)) {
+            section.exerciseSequence.forEach(ex => {
+                output += renderExerciseSequenceItem(ex, data.localizedLabels);
+            });
+        }
+        if (!section.exercisesDetailed && (!section.exerciseSequence || section.exerciseSequence.length === 0)) {
             output += `*(${data.localizedLabels?.activity || 'No detailed exercises in this section'})*\n\n`;
         }
         break;
@@ -939,10 +1410,15 @@ export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget, c
 };
 
 const renderWorkbookSection = (section: GoldenSection, labels: GoldenModuleData['localizedLabels']): string => {
+  // Special handling for BREAK type to avoid "Missing content" warning
+  if (section.type === 'BREAK') {
+      return `### ☕ ${section.title || 'Break'}\n\n*${labels?.duration || 'Duration'}: ${section.durationMinutes} min*\n\n`;
+  }
+
   const content = section.participantContent;
   const exercise = section.exercisesDetailed;
 
-  if (!content && !exercise) {
+  if (!content && !exercise && (!section.exerciseSequence || section.exerciseSequence.length === 0)) {
       return `> Missing content for section "${section.title}". Please regenerate this module.\n`;
   }
 
@@ -999,6 +1475,29 @@ const renderWorkbookSection = (section: GoldenSection, labels: GoldenModuleData[
       });
       md += `\n`;
     }
+  }
+
+  if (section.exerciseSequence && Array.isArray(section.exerciseSequence)) {
+      const typeLabel = labels?.activity || 'Activity';
+      section.exerciseSequence.forEach(ex => {
+           md += `#### 🔄 ${typeLabel}: ${ex.title} (${ex.type})\n\n`;
+           md += `**${labels?.duration || 'Duration'}:** ${ex.durationMinutes} min\n\n`;
+           
+           if (ex.instructionsParticipant) {
+             md += `**${labels?.instructionsParticipant || 'Instructions'}:**\n`;
+             md += `${ex.instructionsParticipant}\n\n`;
+           }
+           
+           md += `**${labels?.activity || 'Workspace'}:**\n\n\n\n\n`;
+           
+           if (ex.successIndicators && Array.isArray(ex.successIndicators)) {
+             md += `**${labels?.debrief || 'Success Checklist'}:**\n`;
+             ex.successIndicators.forEach(item => {
+               md += `- [ ] ${item}\n`;
+             });
+             md += `\n`;
+           }
+      });
   }
 
   if (content && content.reflectionQuestions && Array.isArray(content.reflectionQuestions) && content.reflectionQuestions.length > 0) {
@@ -1075,6 +1574,36 @@ const renderExerciseSheet = (exercise: NonNullable<GoldenSection['exercisesDetai
     return md;
 };
 
+const renderExerciseSequenceItem = (ex: any, labels: GoldenModuleData['localizedLabels']): string => {
+    let md = `### 🔄 ${labels?.activity || 'Sequence'}: ${ex.title} (${ex.type})\n`;
+    md += `**${labels?.duration || 'Time'}:** ${ex.durationMinutes} min\n\n`;
+
+    md += `#### ${labels?.instructionsParticipant || 'Instructions (Participant)'}\n${ex.instructionsParticipant}\n\n`;
+    md += `#### ${labels?.instructionsFacilitator || 'Instructions (Facilitator)'}\n${ex.instructionsFacilitator}\n\n`;
+    
+    if (ex.materialsNeeded && Array.isArray(ex.materialsNeeded) && ex.materialsNeeded.length > 0) {
+        md += `**Materials:** ${ex.materialsNeeded.join(', ')}\n\n`;
+    }
+
+    if (ex.debriefingQuestions && Array.isArray(ex.debriefingQuestions)) {
+      md += `#### ${labels?.debrief || 'Debriefing Questions'}\n`;
+      ex.debriefingQuestions.forEach((q: string) => md += `- ${q}\n`);
+    }
+    
+    if (ex.successIndicators && Array.isArray(ex.successIndicators)) {
+      md += `#### Success Indicators\n`;
+      ex.successIndicators.forEach((s: string) => md += `- [ ] ${s}\n`);
+    }
+
+    if (ex.adaptationNotes) {
+        md += `\n**⚠️ Adaptation Note:** ${ex.adaptationNotes}\n`;
+    }
+    
+    md += `\n---\n\n`;
+
+    return md;
+};
+
 const renderExamplesLibrary = (data: GoldenModuleData): string => {
     let md = `# Examples Library for ${data.moduleTitle}\n`;
     const protagonist = data.narrativeContext?.protagonistName || 'Protagonist';
@@ -1107,24 +1636,50 @@ const renderVideoScript = (video: NonNullable<GoldenSection['videoScript']>, lab
 
 export const renderToXml = (data: GoldenModuleData): string => {
   let xmlOutput = '';
+  let slideCount = 0;
 
-  data.sections.forEach(section => {
+  data.sections.forEach((section, sIndex) => {
     if (section.visuals && section.visuals.slidesSequence && Array.isArray(section.visuals.slidesSequence)) {
-      section.visuals.slidesSequence.forEach(slide => {
-        xmlOutput += `<SLIDE_BEGIN id="${slide.slideId}">\n`;
-      xmlOutput += `<TITLE>${escapeXml(slide.title)}</TITLE>\n`;
-      xmlOutput += `<!-- slide-layout: ${slide.layout} -->\n`;
-      xmlOutput += `<VISUAL>${escapeXml(slide.visualDescription)}</VISUAL>\n`;
-      xmlOutput += `<CONTENT>\n`;
-      slide.contentBullets.forEach(bullet => {
-        xmlOutput += `- ${escapeXml(bullet)}\n`;
-      });
-      xmlOutput += `</CONTENT>\n`;
-      xmlOutput += `<NOTES>${escapeXml(slide.speakerNotes)}</NOTES>\n`;
-      xmlOutput += `<SLIDE_END id="${slide.slideId}">\n\n`;
+      section.visuals.slidesSequence.forEach((slide, slIndex) => {
+        try {
+          xmlOutput += `<SLIDE_BEGIN id="${slide.slideId || `s_${sIndex}_${slIndex}`}">${'\n'}`;
+          xmlOutput += `<TITLE>${escapeXml(slide.title)}</TITLE>${'\n'}`;
+          xmlOutput += `<!-- slide-layout: ${slide.layout || 'BULLETS'} -->${'\n'}`;
+          xmlOutput += `<VISUAL>${escapeXml(slide.visualDescription)}</VISUAL>${'\n'}`;
+          xmlOutput += `<CONTENT>${'\n'}`;
+          if (Array.isArray(slide.contentBullets)) {
+            slide.contentBullets.forEach(bullet => {
+              xmlOutput += `- ${escapeXml(bullet)}${'\n'}`;
+            });
+          } else if (typeof slide.contentBullets === 'string') {
+             // Handle case where LLM returned a string instead of array
+             const bullets = (slide.contentBullets as string).split('\n').map(b => b.replace(/^-\s*/, '').trim()).filter(b => b.length > 0);
+             bullets.forEach(bullet => {
+               xmlOutput += `- ${escapeXml(bullet)}${'\n'}`;
+             });
+          }
+          xmlOutput += `</CONTENT>${'\n'}`;
+          xmlOutput += `<NOTES>${escapeXml(slide.speakerNotes)}</NOTES>${'\n'}`;
+          xmlOutput += `<SLIDE_END id="${slide.slideId || `s_${sIndex}_${slIndex}`}">${'\n'}${'\n'}`;
+          slideCount++;
+        } catch (e) {
+          Logger.warn(`Failed to render slide ${slIndex} in section ${sIndex}`, e);
+        }
       });
     }
   });
+
+  if (slideCount === 0) {
+    Logger.warn("[renderToXml] No slides were generated/found in Golden Data.");
+    // Fallback: Generate a title slide at least to avoid empty output
+    xmlOutput += `<SLIDE_BEGIN id="fallback_title">\n`;
+    xmlOutput += `<TITLE>${escapeXml(data.moduleTitle)}</TITLE>\n`;
+    xmlOutput += `<!-- slide-layout: TITLE -->\n`;
+    xmlOutput += `<VISUAL>Minimalist title slide with course branding</VISUAL>\n`;
+    xmlOutput += `<CONTENT>\n- ${escapeXml(data.localizedLabels?.duration || 'Duration')}: ${data.moduleDurationMinutes} min\n</CONTENT>\n`;
+    xmlOutput += `<NOTES>Welcome to the module.</NOTES>\n`;
+    xmlOutput += `<SLIDE_END id="fallback_title">\n\n`;
+  }
 
   return xmlOutput;
 };
@@ -1139,6 +1694,7 @@ const cleanMarkdown = (text: string): string => {
 };
 
 const escapeXml = (unsafe: string): string => {
+  if (!unsafe || typeof unsafe !== 'string') return '';
   return unsafe.replace(/[<>&'"]/g, (c) => {
     switch (c) {
       case '<': return '&lt;';
@@ -1171,6 +1727,15 @@ interface Course {
   learning_objectives?: string;
   dna?: any;
   story_arc?: Record<string, string>;
+  macro_plan?: {
+    macroBlocks: Array<{
+      type: 'INTRO' | 'CONTENT_BLOCK' | 'BREAK' | 'WRAP_UP';
+      duration: number;
+      title?: string;
+      moduleRef?: string;
+      purpose?: string;
+    }>;
+  };
 }
 
 serve(async (req) => {
@@ -1276,6 +1841,37 @@ serve(async (req) => {
         });
     }
 
+    // ==========================================
+    // NEW: Client-Side Iteration Handlers
+    // ==========================================
+
+    if (action === 'generate_workbook_part') {
+        const { part_type, course, module_data, module_index } = body;
+        
+        if (part_type === 'intro') {
+             const result = await generateWorkbookIntro(course);
+             return new Response(JSON.stringify({ content: result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        
+        if (part_type === 'outro') {
+             const result = await generateWorkbookOutro(course);
+             return new Response(JSON.stringify({ content: result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        
+        if (part_type === 'module') {
+             const targetModuleId = await resolveModuleId(supabase, course.id, module_data, module_index);
+             const result = await handleGoldenStep(supabase, course, targetModuleId, 'course.steps.workbook');
+             return new Response(JSON.stringify({ content: result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+    }
+
+    if (action === 'generate_slides_part') {
+        const { course, module_data, module_index } = body;
+        const targetModuleId = await resolveModuleId(supabase, course.id, module_data, module_index);
+        const result = await handleGoldenStep(supabase, course, targetModuleId, 'course.steps.slides');
+        return new Response(JSON.stringify({ content: result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     const { step_type, module_id, context, blueprint_duration, explicit_module_list } = body;
     const course_id = body.course_id || body.course?.id;
 
@@ -1313,6 +1909,8 @@ serve(async (req) => {
   'timing_and_flow',
   'course.steps.learning_methods',
   'learning_methods',
+  'course.steps.macro_structure',
+  'course_macro_structure',
   'course.steps.course_slides',
   'course_slides',
   'exercises',
@@ -1502,21 +2100,32 @@ function extractModulesFromMarkdown(markdown: string): string[] {
 }
 
 function isValidGoldenData(data: any): boolean {
-  if (!data || typeof data !== 'object') return false;
+  if (!data || typeof data !== 'object') {
+    Logger.warn("[Validation] Data is null or not an object");
+    return false;
+  }
   
   // 1. Check Root Fields
-  const required = ['moduleId', 'moduleTitle', 'moduleDurationMinutes', 'environment', 'narrativeContext', 'sections', 'localizedLabels'];
+  // Note: localizedLabels is checked separately and patched if missing, so we don't fail validation for it.
+  const required = ['moduleId', 'moduleTitle', 'moduleDurationMinutes', 'environment', 'narrativeContext', 'sections'];
   for (const field of required) {
-    if (!(field in data)) return false;
+    if (!(field in data)) {
+      Logger.warn(`[Validation] Missing required field: ${field}`);
+      return false;
+    }
   }
   
   // 2. Check Narrative Context
-  if (!data.narrativeContext || typeof data.narrativeContext !== 'object') return false;
-  // We don't strictly enforce protagonistName here if it's optional in some contexts, 
-  // but for Golden Master it should be there.
+  if (!data.narrativeContext || typeof data.narrativeContext !== 'object') {
+    Logger.warn("[Validation] narrativeContext is missing or invalid");
+    return false;
+  }
   
   // 3. Check Sections
-  if (!Array.isArray(data.sections) || data.sections.length === 0) return false;
+  if (!Array.isArray(data.sections) || data.sections.length === 0) {
+    Logger.warn("[Validation] sections is missing or empty");
+    return false;
+  }
   
   return true;
 }
@@ -1554,6 +2163,33 @@ async function handleGoldenStep(
   // If it's missing OR invalid, we MUST regenerate it before proceeding to any specific deliverable.
   const isInvalid = !isValidGoldenData(goldenData);
   const shouldRegenerate = isInvalid || isDirty;
+
+  if (!shouldRegenerate && goldenData) {
+      // Patch missing labels if valid but incomplete
+      if (!goldenData.localizedLabels) {
+          goldenData.localizedLabels = {
+            duration: "Duration",
+            format: "Format",
+            section: "Section",
+            theory: "Theory",
+            keyTakeaways: "Key Takeaways",
+            actionPlan: "Action Plan",
+            reflection: "Reflection",
+            trainerInstructions: "Trainer Instructions",
+            method: "Method",
+            logistics: "Logistics",
+            script: "Script",
+            activity: "Activity",
+            objective: "Objective",
+            instructionsParticipant: "Instructions (Participant)",
+            instructionsFacilitator: "Instructions (Facilitator)",
+            debrief: "Debrief",
+            example: "Example",
+            videoScript: "Video Script"
+          };
+          Logger.info("[GoldenPath] Patched missing localizedLabels in existing data.");
+      }
+  }
 
   const mandatoryContext = buildMandatoryContext(course);
 
@@ -1655,6 +2291,170 @@ async function handleGoldenStep(
          - **MATERIALS**: Printed Workbooks, Sticky Notes, Markers, Flipchart paper.
          - **LANGUAGE**: All instructions and content must be in the target language.`;
 
+    // T1: Inject Terminology from DNA
+    let terminologyBlock = "";
+    if (course.dna?.terminology) {
+       const t = course.dna.terminology;
+       terminologyBlock = `\n\n### TERMINOLOGY RULES (STRICT)\n` +
+         `- Participant: ${t.participant || "Participant"}\n` +
+         `- Exercise: ${t.exercise || "Exercise"}\n` +
+         `- Trainer: ${t.trainer || "Trainer"}`;
+         
+       if (t.mandatoryTerms && Object.keys(t.mandatoryTerms).length > 0) {
+          const termsList = Object.entries(t.mandatoryTerms).map(([k, v]: [string, any]) => {
+              if (typeof v === 'object' && v !== null && v.term) {
+                  return `${v.term} (${v.definition || ''})`;
+              }
+              return `${k} -> ${v}`;
+          }).join(', ');
+          terminologyBlock += `\n- Mandatory Terms: ${termsList}`;
+       }
+       terminologyBlock += `\n`;
+    }
+
+    // T2: Inject Voice Profile from DNA
+    let voiceProfileBlock = "";
+    if (course.dna?.voiceProfile) {
+       const v = course.dna.voiceProfile;
+       const formality = (v.formality || '').toLowerCase();
+
+       const ARCHETYPES = {
+         professional: `
+           **ARCHETYPE**: "The Mentor" (Professional & Warm)
+           - **Tone**: Authoritative but accessible. Like a senior colleague mentoring a junior.
+           - **Style**: Clear, structured, encouraging. Uses analogies.
+           - **Forbidden**: Slang, emojis (unless specified), academic jargon.
+         `,
+         energetic: `
+           **ARCHETYPE**: "The Coach" (Energetic & Motivational)
+           - **Tone**: High energy, punchy, action-oriented. "Let's do this!"
+           - **Style**: Short sentences, strong verbs, calls to action.
+           - **Forbidden**: Passive voice, long paragraphs, hesitation.
+         `,
+         casual: `
+           **ARCHETYPE**: "The Buddy" (Relaxed & Direct)
+           - **Tone**: Informal, peer-to-peer. "Hey guys, look at this."
+           - **Style**: Contractions ("n-am", "hai să"), humor, direct address ("tu").
+           - **Forbidden**: "Sir/Madam", stiff corporate speak.
+         `
+       };
+
+       let archetype = ARCHETYPES.professional;
+       if (formality.includes('casual') || formality.includes('buddy') || formality.includes('fun')) archetype = ARCHETYPES.casual;
+       if (formality.includes('energetic') || formality.includes('motivational')) archetype = ARCHETYPES.energetic;
+
+       voiceProfileBlock = `\n\n### VOICE & TONE (FROM DNA)\n${archetype}\n` +
+         `- Formality: ${v.formality || "Professional"}\n` +
+         `- Humor: ${v.humorLevel || (v as any).humor || "Light"}\n`; // Handle both keys for safety
+         
+       if (v.forbiddenPhrases && Array.isArray(v.forbiddenPhrases) && v.forbiddenPhrases.length > 0) {
+          voiceProfileBlock += `- Forbidden Phrases: ${v.forbiddenPhrases.join(', ')}\n`;
+       }
+       if (v.signaturePhrases && Array.isArray(v.signaturePhrases) && v.signaturePhrases.length > 0) {
+          voiceProfileBlock += `- Signature Phrases: ${v.signaturePhrases.join(', ')}\n`;
+       }
+       voiceProfileBlock += `\n`;
+    }
+
+    // T3: Inject Learning Philosophy from DNA
+    let philosophyBlock = "";
+    if (course.dna?.learningPhilosophy) {
+       const p = course.dna.learningPhilosophy;
+       philosophyBlock = `\n\n### LEARNING PHILOSOPHY & MANIFESTO\n`;
+       
+       if (p.manifesto && Array.isArray(p.manifesto) && p.manifesto.length > 0) {
+          philosophyBlock += `- Manifesto: ${p.manifesto.join('. ')}\n`;
+       }
+       if (p.rules_of_engagement && Array.isArray(p.rules_of_engagement) && p.rules_of_engagement.length > 0) {
+          philosophyBlock += `- Rules of Engagement: ${p.rules_of_engagement.join('. ')}\n`;
+       }
+       philosophyBlock += `\n`;
+    }
+
+    // T4: Inject Domain Context from DNA
+    let domainContextBlock = "";
+    if (course.dna?.domainContext) {
+        const d = course.dna.domainContext;
+        domainContextBlock = `\n\n### DOMAIN & INDUSTRY CONTEXT (CRITICAL)\n`;
+        
+        if (d.industryTerms && Object.keys(d.industryTerms).length > 0) {
+            domainContextBlock += `**Industry Terms**:\n`;
+            Object.entries(d.industryTerms).forEach(([term, def]) => {
+                domainContextBlock += `- ${term}: ${def}\n`;
+            });
+        }
+
+        if (d.clientProfiles && Array.isArray(d.clientProfiles) && d.clientProfiles.length > 0) {
+            domainContextBlock += `\n**Client Profiles**:\n`;
+            d.clientProfiles.forEach(cp => {
+                domainContextBlock += `- ${cp.type}: ${cp.decisionLogic} (Approach: ${cp.approach})\n`;
+            });
+        }
+
+        if (d.productCatalog && Array.isArray(d.productCatalog) && d.productCatalog.length > 0) {
+            domainContextBlock += `\n**Product Catalog**:\n`;
+            d.productCatalog.forEach(pc => {
+                domainContextBlock += `- ${pc.category}: ${pc.items.join(', ')}\n`;
+            });
+        }
+
+        if (d.competitorIntelligence && Array.isArray(d.competitorIntelligence) && d.competitorIntelligence.length > 0) {
+            domainContextBlock += `\n**Competitor Intelligence**:\n`;
+            d.competitorIntelligence.forEach(ci => {
+                domainContextBlock += `- ${ci.name} (Weakness: ${ci.weaknesses.join(', ')}) -> Counter: ${ci.counterStrategy}\n`;
+            });
+        }
+
+        if (d.negotiationFrameworks && Array.isArray(d.negotiationFrameworks) && d.negotiationFrameworks.length > 0) {
+             domainContextBlock += `\n**Negotiation Frameworks**:\n`;
+             d.negotiationFrameworks.forEach(nf => {
+                 domainContextBlock += `- ${nf.name}: ${nf.steps.join(' -> ')}\n`;
+             });
+        }
+        domainContextBlock += `\n`;
+    }
+
+    // T7: Inject Depth Specs
+    const specsObj = getDepthSpecs(course.language || 'ro', (course.environment || 'LIVE').toLowerCase() === 'online' ? 'online' : 'live');
+    const depthSpecs = `${specsObj.workbook}\n\n${specsObj.slides}\n\n${specsObj.exercises}\n\n${specsObj.manual}`;
+
+    // T8: Select Golden Samples based on environment
+    const isOnline = (course.environment || 'LIVE').toUpperCase() === 'ONLINE';
+    const goldenSamples = isOnline 
+        ? `${GOLDEN_SAMPLES.workbook_online}\n\n${GOLDEN_SAMPLES.video_script_online}\n\n${GOLDEN_SAMPLES.exercises_online}`
+        : `${GOLDEN_SAMPLES.workbook_live}\n\n${GOLDEN_SAMPLES.exercises_live}\n\n${GOLDEN_SAMPLES.case_study}`;
+
+    // T15: Consume macro_plan in Golden Path
+    let macroContext = "";
+    if (course.macro_plan && Array.isArray(course.macro_plan.macroBlocks)) {
+        const blocks = course.macro_plan.macroBlocks;
+        // Try to match by ID or Title
+        const currentBlockIndex = blocks.findIndex((b: any) => 
+            b.moduleRef === module_id || 
+            (b.title && moduleData.title && b.title.toLowerCase() === moduleData.title.toLowerCase())
+        );
+        
+        if (currentBlockIndex !== -1) {
+             const currentBlock = blocks[currentBlockIndex];
+             const prevBlock = currentBlockIndex > 0 ? blocks[currentBlockIndex - 1] : null;
+             const nextBlock = currentBlockIndex < blocks.length - 1 ? blocks[currentBlockIndex + 1] : null;
+             
+             macroContext = `\n**MACRO SCHEDULE CONTEXT (Timing & Flow)**:\n`;
+             macroContext += `- Current Position: Block #${currentBlockIndex + 1} of ${blocks.length}.\n`;
+             macroContext += `- Allocated Duration: ${currentBlock.duration} min (Strictly adhere to this).\n`;
+             
+             if (prevBlock) {
+                 macroContext += `- Previous Activity: ${prevBlock.type} ("${prevBlock.title || 'Untitled'}") - ${prevBlock.duration} min.\n`;
+                 if (prevBlock.type === 'BREAK') macroContext += `  (NOTE: Participants are fresh from a break. Start with high energy.)\n`;
+             }
+             
+             if (nextBlock) {
+                 macroContext += `- Next Activity: ${nextBlock.type} ("${nextBlock.title || 'Untitled'}") - ${nextBlock.duration} min.\n`;
+                 if (nextBlock.type === 'BREAK') macroContext += `  (NOTE: End strictly on time! Participants will be tired and needing a break.)\n`;
+             }
+        }
+    }
+
     let prompt = fillPromptTemplate(GOLDEN_MASTER_PROMPT, {
       moduleTitle: moduleData.title,
       durationMinutes: moduleData.duration_minutes || 60, 
@@ -1664,8 +2464,10 @@ async function handleGoldenStep(
       protagonistName: protagonistName,
       protagonistState: currentStoryStage,
       targetAudience: course.target_audience || "General Audience",
-      styleBlock: getStyleBlock(course.target_audience || "General Audience"),
-      moduleId: module_id
+      styleBlock: getStyleBlock(course.target_audience || "General Audience") + terminologyBlock + voiceProfileBlock + philosophyBlock + domainContextBlock + `\n\n${depthSpecs}`,
+      goldenSamples: goldenSamples,
+      moduleId: module_id,
+      macroContext: macroContext
     });
 
     // Inject mandatory context at the very beginning
@@ -1704,6 +2506,30 @@ async function handleGoldenStep(
 
         // FINAL VALIDATION: Ensure the generated data is valid before saving
         if (isValidGoldenData(goldenData)) {
+          // Patch missing labels if valid but incomplete
+          if (!goldenData.localizedLabels) {
+              goldenData.localizedLabels = {
+                  duration: "Duration",
+                  format: "Format",
+                  section: "Section",
+                  theory: "Theory",
+                  keyTakeaways: "Key Takeaways",
+                  actionPlan: "Action Plan",
+                  reflection: "Reflection",
+                  trainerInstructions: "Trainer Instructions",
+                  method: "Method",
+                  logistics: "Logistics",
+                  script: "Script",
+                  activity: "Activity",
+                  objective: "Objective",
+                  instructionsParticipant: "Instructions (Participant)",
+                  instructionsFacilitator: "Instructions (Facilitator)",
+                  debrief: "Debrief",
+                  example: "Example",
+                  videoScript: "Video Script"
+              };
+              Logger.info("[GoldenPath] Patched missing localizedLabels in generated data.");
+          }
           success = true;
         } else {
            Logger.warn(`Attempt ${attempts}: Invalid Golden Data structure.`);
@@ -1733,6 +2559,7 @@ async function handleGoldenStep(
     case 'course.steps.exercises':
       return renderToMarkdown(goldenData, 'EXERCISES');
     case 'course.steps.slides':
+      Logger.info(`[handleGoldenStep] Rendering slides for module ${module_id}`);
       return renderToXml(goldenData);
     case 'course.steps.video_scripts':
       return renderToMarkdown(goldenData, 'VIDEO_SCRIPT');
@@ -1859,12 +2686,18 @@ async function handleLegacyStep(
   
 
   if (step_type === 'course_dna') {
+      // T5: Build knowledge base context
+      const knowledgeBase = await buildKnowledgeBaseContext(supabase, course.id, course.language || 'ro');
+      const kbBlock = knowledgeBase ? `\n### UPLOADED REFERENCE MATERIALS\n${knowledgeBase}\nUse these to populate domainContext fields.` : '';
+
       const prompt = `
       **TASK**: Create the "Course DNA" - the stylistic and pedagogical "soul" of the course.
       **COURSE**: "${course.title}"
       **TARGET AUDIENCE**: "${course.target_audience}"
       **ENVIRONMENT**: ${course.environment}
       **LANGUAGE**: ${course.language || "Romanian"}
+      **TIMING**: Total course duration is ${blueprintDuration}.
+      ${kbBlock}
       
       **GOAL**: Define the terminology, narrative universe, and learning philosophy.
       
@@ -1884,13 +2717,43 @@ async function handleLegacyStep(
           "setting": "Where does this take place? (e.g. Corporate Office, Start-up, Factory)",
           "tone": "Voice/Tone (e.g. Professional, Playful, Strict)"
         },
+        "voiceProfile": {
+          "formality": "Formality level (e.g. Professional, Casual, Academic)",
+          "humorLevel": "Humor level (e.g. None, Light, Witty)",
+          "forbiddenPhrases": ["Phrase 1", "Phrase 2"],
+          "signaturePhrases": ["Phrase 1", "Phrase 2"]
+        },
         "learningPhilosophy": {
           "manifesto": ["Principle 1", "Principle 2"],
           "rules_of_engagement": ["Rule 1", "Rule 2"]
+        },
+        "masterTimeline": {
+          "totalDuration": 480,
+          "bufferPerModule": 10,
+          "modules": [
+            {
+              "id": "1",
+              "title": "Suggested Module Title",
+              "duration": 60,
+              "activities": [
+                { "type": "theory", "duration": 15, "description": "Intro" },
+                { "type": "exercise", "duration": 40, "description": "Practice" },
+                { "type": "break", "duration": 5, "description": "Coffee" }
+              ]
+            }
+          ]
+        },
+        "domainContext": {
+          "industryTerms": { "term": "definition" },
+          "clientProfiles": [{ "type": "...", "decisionLogic": "...", "approach": "..." }],
+          "productCatalog": [{ "category": "...", "items": ["..."] }],
+          "competitorIntelligence": [{ "name": "...", "weaknesses": [...], "counterStrategy": "..." }],
+          "negotiationFrameworks": [{ "name": "...", "steps": [...] }]
         }
       }
       
       **IMPORTANT**: Return ONLY valid JSON. The content MUST be in ${course.language || "Romanian"}.
+      Populate domainContext ONLY from the reference materials above. If no materials are provided, leave arrays empty.
       `;
       
       try {
@@ -1915,9 +2778,27 @@ async function handleLegacyStep(
             setting: isRo ? "Mediu Profesional Standard" : "Standard Professional Environment",
             tone: isRo ? "Profesional și Încurajator" : "Professional and Encouraging"
           },
+          voiceProfile: {
+            formality: isRo ? "Profesional" : "Professional",
+            humorLevel: isRo ? "Redus" : "Low",
+            forbiddenPhrases: [],
+            signaturePhrases: []
+          },
           learningPhilosophy: {
             manifesto: isRo ? ["Învățare prin practică", "Implicare activă"] : ["Learning by Doing", "Interactive Engagement"],
             rules_of_engagement: isRo ? ["Respect reciproc", "Participare activă"] : ["Mutual respect", "Active participation"]
+          },
+          masterTimeline: {
+            totalDuration: 480,
+            bufferPerModule: 10,
+            modules: []
+          },
+          domainContext: {
+            industryTerms: {},
+            clientProfiles: [],
+            productCatalog: [],
+            competitorIntelligence: [],
+            negotiationFrameworks: []
           }
         });
       }
@@ -2153,6 +3034,70 @@ async function handleLegacyStep(
       12. Closing & Q&A
       `;
       return await callLLM(prompt);
+  }
+
+  if (step_type === 'course_macro_structure' || step_type === 'course.steps.macro_structure') {
+      const masterTimeline = course.dna?.masterTimeline || {
+          totalDuration: parseInt(blueprintDuration) * 60 || 480,
+          bufferPerModule: 10,
+          modules: (course.blueprint?.modules || []).map((m: any, i: number) => ({
+              id: `module-${i+1}`,
+              title: m.title,
+              duration: 45
+          }))
+      };
+
+      const prompt = `
+      **TASK**: Create the Course Macro Structure (High-Level Schedule).
+      **COURSE**: "${course.title}"
+      **TOTAL DURATION**: ${masterTimeline.totalDuration} minutes
+      **MODULES**: ${JSON.stringify(masterTimeline.modules)}
+      **ENVIRONMENT**: ${course.environment}
+      **LANGUAGE**: ${course.language || "Romanian"}
+
+      **GOAL**: Organize the course into a coherent flow with Intro, Content Blocks, Breaks, and Wrap-up.
+
+      **OUTPUT FORMAT**:
+      Strict JSON object:
+      {
+        "macroBlocks": [
+          { "type": "INTRO", "duration": 20, "title": "Welcome & Icebreaker" },
+          { "type": "CONTENT_BLOCK", "duration": 60, "moduleRef": "module-1", "title": "Module 1 Title" },
+          { "type": "BREAK", "duration": 15, "purpose": "Coffee Break" },
+          ...
+          { "type": "WRAP_UP", "duration": 30, "title": "Final Review & Action Plan" }
+        ]
+      }
+
+      **RULES**:
+      1. 'type' must be one of: 'INTRO', 'CONTENT_BLOCK', 'BREAK', 'WRAP_UP'.
+      2. 'moduleRef' is the ID of the module from the provided list (only for CONTENT_BLOCK).
+      3. Total duration must match ${masterTimeline.totalDuration} minutes (+/- 10%).
+      4. Insert breaks every 60-90 minutes.
+      5. Titles must be in ${course.language || "Romanian"}.
+      `;
+
+      try {
+        const response = await callLLM(prompt, course.language || 'ro');
+        const json = repairAndParseJson<any>(response);
+        
+        // Save to DB
+        const { error } = await supabase
+          .from('courses')
+          .update({ macro_plan: json })
+          .eq('id', course.id);
+
+        if (error) {
+            Logger.error("Failed to save macro_plan to DB", error);
+        } else {
+            Logger.info("Successfully saved macro_plan to DB");
+        }
+
+        return JSON.stringify(json, null, 2);
+      } catch (e) {
+          Logger.error("Failed to generate/parse macro structure", e);
+          return JSON.stringify({ error: "Failed to generate macro structure" });
+      }
   }
 
 
@@ -2538,4 +3483,89 @@ export class ProtagonistEnforcer {
 
     return fixedContent;
   }
+}
+
+// ==========================================
+// 9. MISSING HELPERS (HOTFIX)
+// ==========================================
+
+async function resolveModuleId(supabase: any, courseId: string, moduleData: any, moduleIndex: number): Promise<string> {
+  if (moduleData && moduleData.id) {
+    // Optimistic return if we have an ID, but we should verify it exists if we want to be 100% safe.
+    // However, for performance, we trust the ID if provided, or let handleGoldenStep fail if it's invalid.
+    return moduleData.id;
+  }
+  
+  // Fallback: fetch from DB by index
+  const { data, error } = await supabase
+    .from('course_modules')
+    .select('id')
+    .eq('course_id', courseId)
+    .eq('module_index', moduleIndex)
+    .single();
+    
+  if (data) {
+    return data.id;
+  }
+  
+  // If not found, CREATE IT based on moduleData
+  // This ensures the DB is in sync with the Blueprint
+  Logger.info(`[resolveModuleId] Module not found for index ${moduleIndex}. Creating it...`);
+  
+  const { data: newModule, error: createError } = await supabase
+    .from('course_modules')
+    .insert({
+        course_id: courseId,
+        module_index: moduleIndex,
+        title: moduleData.title || `Module ${moduleIndex + 1}`,
+        duration_minutes: parseInt(String(moduleData.duration || '60').replace(/\D/g, '') || '60'),
+        content_data: null, // Start empty
+        is_dirty: true
+    })
+    .select('id')
+    .single();
+
+  if (createError || !newModule) {
+      Logger.error(`Failed to auto-create module ${moduleIndex}`, createError);
+      throw new Error(`Could not resolve or create module ID for index ${moduleIndex}`);
+  }
+  
+  return newModule.id;
+}
+
+async function generateWorkbookIntro(course: Course): Promise<string> {
+  const prompt = `
+  **TASK**: Write the Introduction for the Participant Workbook.
+  **COURSE**: "${course.title}"
+  **TARGET AUDIENCE**: "${course.target_audience}"
+  **LANGUAGE**: ${course.language || 'Romanian'}
+  
+  **CONTENT TO GENERATE**:
+  1. **Welcome Message**: Warm, professional welcome.
+  2. **Course Goal**: Brief summary of what they will achieve.
+  3. **How to use this workbook**: Simple instructions (e.g., "Use this to take notes, reflect, and complete exercises").
+  
+  **FORMAT**: Markdown.
+  **TONE**: Encouraging and professional.
+  `;
+  
+  return await callLLM(prompt, course.language || 'ro');
+}
+
+async function generateWorkbookOutro(course: Course): Promise<string> {
+  const prompt = `
+  **TASK**: Write the Conclusion/Outro for the Participant Workbook.
+  **COURSE**: "${course.title}"
+  **LANGUAGE**: ${course.language || 'Romanian'}
+  
+  **CONTENT TO GENERATE**:
+  1. **Congratulations**: Acknowledge their effort.
+  2. **Next Steps**: Encouragement to apply what they learned.
+  3. **Final Quote**: An inspiring quote related to the topic (optional but nice).
+  
+  **FORMAT**: Markdown.
+  **TONE**: Inspiring and forward-looking.
+  `;
+  
+  return await callLLM(prompt, course.language || 'ro');
 }

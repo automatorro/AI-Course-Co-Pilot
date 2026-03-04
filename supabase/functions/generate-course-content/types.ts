@@ -57,6 +57,15 @@ export interface GoldenModuleData {
       applicationContext: string; // When to use this (e.g., "Use if participants ask about X")
     }>;
   };
+  
+  // --- DOMAIN CONTEXT (Optional, from DNA) ---
+  domainContext?: {
+    industryTerms: Record<string, string>;
+    clientProfiles: Array<{ type: string; decisionLogic: string; approach: string }>;
+    productCatalog: Array<{ category: string; items: string[] }>;
+    competitorIntelligence: Array<{ name: string; weaknesses: string[]; counterStrategy: string }>;
+    negotiationFrameworks: Array<{ name: string; steps: string[] }>;
+  };
 
   // --- 2. CONTENT FLOW (Atomic Sections) ---
   // Covers: Workbook, Manual, Slides, Exercises, Video Scripts
@@ -71,7 +80,7 @@ export interface GoldenSection {
   id: string;
   title: string;
   durationMinutes: number;
-  type: 'THEORY' | 'ACTIVITY' | 'DISCUSSION' | 'VIDEO_LESSON';
+  type: 'THEORY' | 'ACTIVITY' | 'DISCUSSION' | 'VIDEO_LESSON' | 'ICE_BREAKER' | 'BREAK' | 'TRANSITION' | 'WARM_UP' | 'DEBRIEF';
 
   // --- A. PARTICIPANT CONTENT (File 2: Workbook) ---
   participantContent: {
@@ -98,11 +107,25 @@ export interface GoldenSection {
     breakoutRoomConfig?: {
       groupSize: number;
       duration: number;
-      taskDescription: string;
+      activityDescription: string;
+      debriefQuestions: string[];
     };
   };
+  
+  // --- C. EXERCISE SEQUENCE (Optional, for complex sections) ---
+  exerciseSequence?: Array<{
+    title: string;
+    type: 'ROLE_PLAY' | 'GROUP_WORKSHOP' | 'INDIVIDUAL' | 'SCENARIO' | 'ZONE_MAPPING';
+    durationMinutes: number;
+    instructionsParticipant: string;
+    instructionsFacilitator: string;
+    materialsNeeded: string[];
+    debriefingQuestions: string[];
+    successIndicators: string[];
+    adaptationNotes?: string;
+  }>;
 
-  // --- C. VISUALS (File 4: Slides) ---
+  // --- D. VISUALS (File 4: Slides) ---
   visuals: {
     slidesSequence: Array<{
       slideId: string;

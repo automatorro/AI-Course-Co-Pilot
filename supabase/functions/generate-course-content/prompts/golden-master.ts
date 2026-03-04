@@ -18,6 +18,7 @@ This JSON will be the Single Source of Truth for generating 7 distinct deliverab
 - **Language**: {{language}} (Target language for ALL content)
 - **Protagonist**: {{protagonistName}} (Current State: {{protagonistState}})
 - **Target Audience**: {{targetAudience}}
+- **Macro Context**: {{macroContext}}
 {{styleBlock}}
 
 ### 2. CRITICAL RULES (NON-NEGOTIABLE)
@@ -101,12 +102,20 @@ interface GoldenModuleData {
       applicationContext: string; // When to use it
     }>;
   };
+  
+  domainContext?: {
+    industryTerms: Record<string, string>;
+    clientProfiles: Array<{ type: string; decisionLogic: string; approach: string }>;
+    productCatalog: Array<{ category: string; items: string[] }>;
+    competitorIntelligence: Array<{ name: string; weaknesses: string[]; counterStrategy: string }>;
+    negotiationFrameworks: Array<{ name: string; steps: string[] }>;
+  };
 
   sections: Array<{
     id: string; // e.g., "section-1"
     title: string;
     durationMinutes: number;
-    type: 'THEORY' | 'ACTIVITY' | 'DISCUSSION' | 'VIDEO_LESSON';
+    type: 'THEORY' | 'ACTIVITY' | 'DISCUSSION' | 'VIDEO_LESSON' | 'ICE_BREAKER' | 'BREAK' | 'TRANSITION' | 'WARM_UP' | 'DEBRIEF';
 
     participantContent: {
       theoryMarkdown: string; // Rich text in {{language}}
@@ -156,6 +165,18 @@ interface GoldenModuleData {
       successIndicators: string[];
       adaptationNotes: string;
     };
+
+    // OPTIONAL: Alternative to exercisesDetailed for multi-step activities
+    exerciseSequence?: Array<{
+      title: string;
+      type: 'ROLE_PLAY' | 'GROUP_WORKSHOP' | 'INDIVIDUAL' | 'SCENARIO' | 'ZONE_MAPPING';
+      durationMinutes: number;
+      instructionsParticipant: string;
+      instructionsFacilitator: string;
+      materialsNeeded: string[];
+      debriefingQuestions: string[];
+      successIndicators: string[];
+    }>;
 
     // ONLY IF environment == 'ONLINE' AND type == 'VIDEO_LESSON'
     videoScript?: {
