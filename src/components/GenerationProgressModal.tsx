@@ -151,6 +151,43 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
         }
     };
 
+    // Wraps supabase.functions.invoke with a per-call timeout and global stop signal.
+    // Throws a descriptive error on timeout so the retry loop can handle it gracefully.
+    const invokeWithTimeout = async (body: object, timeoutMs = 95000): Promise<{ data: any; error: any }> => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort('timeout'), timeoutMs);
+
+        const globalSignal = abortControllerRef.current?.signal;
+        const onGlobalAbort = () => controller.abort('stopped');
+        if (globalSignal) {
+            if (globalSignal.aborted) {
+                controller.abort('stopped');
+            } else {
+                globalSignal.addEventListener('abort', onGlobalAbort, { once: true });
+            }
+        }
+
+        try {
+            const result = await supabase.functions.invoke('generate-course-content', {
+                body,
+                signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+            return result;
+        } catch (e: any) {
+            clearTimeout(timeoutId);
+            if (controller.signal.aborted) {
+                const reason = controller.signal.reason;
+                if (reason === 'timeout') throw new Error(`Timeout: generarea a durat prea mult (>${Math.round(timeoutMs / 1000)}s). Reîncercați.`);
+                throw new Error('Generare oprită de utilizator.');
+            }
+            throw e;
+        } finally {
+            clearTimeout(timeoutId);
+            globalSignal?.removeEventListener('abort', onGlobalAbort);
+        }
+    };
+
     const startGeneration = async () => {
         setIsGenerating(true);
         isStoppedRef.current = false;
@@ -620,16 +657,14 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                         let introRetries = 0;
                         while(introRetries < 3 && !introContent) {
                             try {
-                                const { data: introData, error: introError } = await supabase.functions.invoke('generate-course-content', {
-                                    body: { action: 'generate_workbook_part', part_type: 'intro', course }
-                                });
+                                const { data: introData, error: introError } = await invokeWithTimeout({ action: 'generate_workbook_part', part_type: 'intro', course });
                                 if (introError) throw introError;
                                 introContent = introData?.content;
                                 if (!introContent) throw new Error("Received empty intro content from server");
                             } catch (e) {
                                 console.warn(`Error generating Intro, retry ${introRetries}`, e);
                                 introRetries++;
-                                await new Promise(r => setTimeout(r, 1500));
+                                await new Promise(r => setTimeout(r, 1000 * Math.pow(2, introRetries)));
                             }
                         }
                         if (!introContent) introContent = "# Introducere\n\n(Generarea introducerii a eșuat. Vă rugăm să editați manual.)";
@@ -660,22 +695,21 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                              let retries = 0;
                              while(retries < 3 && !modContent) {
                                  try {
-                                     const { data: modData, error: modErr } = await supabase.functions.invoke('generate-course-content', {
-                                         body: { 
-                                             action: 'generate_workbook_part', 
-                                             part_type: 'module', 
-                                             course, 
-                                             module_data: m, 
-                                             module_index: realIdx,
-                                             context_files: [] 
-                                         }
+                                     console.log(`[Workbook] Generating module ${realIdx + 1}/${modulesToProcess.length} (attempt ${retries + 1})...`);
+                                     const { data: modData, error: modErr } = await invokeWithTimeout({
+                                         action: 'generate_workbook_part',
+                                         part_type: 'module',
+                                         course,
+                                         module_data: m,
+                                         module_index: realIdx,
+                                         context_files: []
                                      });
                                      if (modErr) throw modErr;
                                      modContent = modData.content;
                                  } catch (e) {
                                      console.warn(`Error generating module ${realIdx}, retry ${retries}`, e);
                                      retries++;
-                                     await new Promise(r => setTimeout(r, 1500));
+                                     if (retries < 3) await new Promise(r => setTimeout(r, 1000 * Math.pow(2, retries)));
                                  }
                              }
                              if (!modContent) {
@@ -706,15 +740,13 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                          let outroRetries = 0;
                          while(outroRetries < 3 && !outroContent) {
                              try {
-                                const { data: outroData, error: outroError } = await supabase.functions.invoke('generate-course-content', {
-                                    body: { action: 'generate_workbook_part', part_type: 'outro', course }
-                                });
+                                const { data: outroData, error: outroError } = await invokeWithTimeout({ action: 'generate_workbook_part', part_type: 'outro', course });
                                 if (outroError) throw outroError;
                                 outroContent = outroData?.content;
                              } catch (e) {
                                  console.warn(`Error generating Outro, retry ${outroRetries}`, e);
                                  outroRetries++;
-                                 await new Promise(r => setTimeout(r, 1500));
+                                 if (outroRetries < 3) await new Promise(r => setTimeout(r, 1000 * Math.pow(2, outroRetries)));
                              }
                          }
                          if (!outroContent) outroContent = "# Concluzie\n\n(Generarea concluziei a eșuat. Vă rugăm să editați manual.)";
@@ -794,9 +826,7 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                     console.log(`[GenerationProgressModal] Sending request for ${step.type}. Payload size: ~${JSON.stringify(requestBody).length} chars`);
                 } catch (e) { console.warn('Could not calc payload size', e); }
 
-                const resp = await supabase.functions.invoke('generate-course-content', {
-                    body: requestBody
-                });
+                const resp = await invokeWithTimeout(requestBody);
                 data = resp.data;
                 fnError = resp.error;
                 if (!fnError && !data?.error) break;
