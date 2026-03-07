@@ -19,7 +19,18 @@ This JSON will be the Single Source of Truth for generating 7 distinct deliverab
 - **Protagonist**: {{protagonistName}} (Current State: {{protagonistState}})
 - **Target Audience**: {{targetAudience}}
 - **Macro Context**: {{macroContext}}
+
 {{styleBlock}}
+
+{{terminology}}
+
+{{voiceProfile}}
+
+{{philosophy}}
+
+{{domainContext}}
+
+{{depthSpecs}}
 
 ### 2. CRITICAL RULES (NON-NEGOTIABLE)
 1.  **SILENT OPERATOR PROTOCOL (XML ENCAPSULATION)**:
@@ -45,17 +56,25 @@ This JSON will be the Single Source of Truth for generating 7 distinct deliverab
       - Generate \`videoScript\` (for self-paced segments).
       - \`flipchartSketch\` MUST be null.
 5.  **LANGUAGE CONSISTENCY**:
-    - All generated content (Theory, Scripts, Slides) must be in **{{language}}**.
-    - Field names (keys) remain in English (e.g., \`participantContent\`), but string values must be in {{language}}.
+    - All generated content (Theory, Scripts, Slides, Trainer Instructions) must be in **{{language}}**.
+    - Field names (keys) remain in English (e.g., `participantContent`), but string values must be in {{language}}.
+    - **CRITICAL**: Do NOT mix languages. If {{language}} is Romanian, the Trainer Script MUST be in Romanian.
 6.  **MODULE CONSISTENCY**: Refer to the "Module List" in the MANDATORY CONTEXT. Ensure your content fits this specific slot in the sequence. Do not duplicate content from other modules.
-7.  **LOCALIZATION**: You MUST generate \`localizedLabels\` in {{language}} for all UI/Header elements (e.g., "Duration", "Trainer Instructions", "Key Takeaways"). NO HARDCODED ENGLISH allowed in output unless {{language}} is English.
+7.  **LOCALIZATION**: You MUST generate `localizedLabels` in {{language}} for all UI/Header elements (e.g., "Duration", "Trainer Instructions", "Key Takeaways"). NO HARDCODED ENGLISH allowed in output unless {{language}} is English.
 
 ### 3. CONTENT GUIDELINES
 - **Theory (Workbook)**: Use Markdown inside string fields. Use bolding (**text**) for emphasis. Be concise. Action-oriented.
+    - **CRITICAL**: Do NOT include Trainer Instructions here. This is for the Participant.
 - **Trainer Script**: Write VERBATIM what the trainer should say. Casual, professional, engaging. NO "Hello everyone". Start directly with the hook.
+- **Trainer Instructions**: DIRECTIVE and IMPERATIVE.
+    - **BAD**: "The trainer should explain the concept of active listening."
+    - **GOOD**: "Explain the concept of active listening. Give 2 examples."
+    - **BAD**: "Facilitate a discussion about challenges."
+    - **GOOD**: "Ask: 'What is your biggest challenge?' List answers on flipchart. Debrief for 5 mins."
+    - **NO WEIRD EXPLANATIONS**: Do not describe what the content is (e.g., "This section explains..."). JUST WRITE THE INSTRUCTION.
 - **Slides**:
-    - \`visualDescription\`: Instructions for a designer (e.g., "Photo of a frustrated manager...").
-    - \`speakerNotes\`: Match the Trainer Script.
+    - `visualDescription`: Instructions for a designer (e.g., "Photo of a frustrated manager...").
+    - `speakerNotes`: Match the Trainer Script.
 - **Exercises**:
     - Step-by-step instructions.
     - Clear "Success Indicators" (How do we know they got it right?).

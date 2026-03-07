@@ -615,16 +615,43 @@ You are an expert **Instructional Designer**. Generate a single "Golden JSON" ob
 - **Language**: {{language}}
 - **Protagonist**: {{protagonistName}} (Stage: {{protagonistState}})
 - **Audience**: {{targetAudience}}
+
 {{styleBlock}}
+
+{{terminology}}
+
+{{voiceProfile}}
+
+{{philosophy}}
+
+{{domainContext}}
+
+{{depthSpecs}}
 
 ### 2. FEW-SHOT EXAMPLES (REFERENCE)
 {{goldenSamples}}
 
-### 3. GOLDEN RULES (STRICT)
+3. **GOLDEN RULES (STRICT)**
 1. **XML ONLY**: Output <meta>...</meta> then <content_block>PURE JSON</content_block>.
 2. **NARRATIVE**: "{{protagonistName}}" appears ONLY in \`narrativeContext\` and \`theoryContent.hook\`.
-3. **CONSISTENCY**: All content in {{language}}. JSON keys in English.
+3. **CONSISTENCY**: All content (titles, text, scripts, instructions) MUST be in **{{language}}**. JSON keys in English. Do NOT mix languages.
+   - **CRITICAL**: Translate ALL headers, labels, and instructional text to {{language}}.
+   - **IGNORE** the language of the "FEW-SHOT EXAMPLES" if it differs from {{language}}. Focus on the *structure*, not the language.
 4. **NO HALLUCINATIONS**: Respect the duration. Do not invent modules.
+5. **FACILITATOR INSTRUCTIONS (Trainer Manual)**:
+   - **TONE**: Instructions MUST be **IMPERATIVE COMMANDS** (e.g., "Divide group...", "Ask...", "Show...").
+   - **BAD**: "The trainer should explain the concept."
+   - **GOOD**: "Explain the concept. Use the flipchart to draw..."
+   - **BAD**: "Facilitate a discussion."
+   - **GOOD**: "Ask the group: 'What do you think?' and list answers."
+   - **NO META-COMMENTARY**: Do not describe what the section is about. JUST WRITE THE INSTRUCTION.
+   - **LANGUAGE**: Translate ALL instructions to **{{language}}**. Do not leave "Ask the group" in English.
+6. **DNA COMPLIANCE**: strictly adhere to the defined **Terminology** and **Voice Profile**. If the tone is 'Professional', do not use slang.
+7. **CONTENT DEPTH & QUALITY**: 
+   - **AVOID SKELETONS**: Do not produce brief bullet points like "Explain concept". Write the *actual explanation* the trainer needs to know.
+   - **THEORY**: Write full paragraphs (150+ words per section) explaining the concepts in **{{language}}**.
+   - **SCRIPTS**: Write the *exact words* the trainer should say (in quotes), matching the Audience DNA Tone (e.g., Professional, Empathetic). Distinguish clearly between *Action* (neutral) and *Script* (persona).
+   - **WORKBOOK**: Ensure 'participantContent' is substantial enough for a 40+ page workbook.
 
 ### 4. JSON TEMPLATE
 \`\`\`typescript
@@ -776,7 +803,7 @@ const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 3, // Increased for robustness
   baseDelay: 1000,
   maxDelay: 10000,
-  timeout: 120000 // 120s timeout per request (increased for Golden Module generation)
+  timeout: 180000 // 180s timeout per request (increased for Golden Module generation)
 };
 
 /**
@@ -1020,7 +1047,10 @@ const BANNED_PHRASES: Record<string, string[]> = {
     'va rog sa imi oferiti', 'acesta este un schelet general', 'dacă doriți să aprofundez',
     'daca doriti sa aprofundez', 'ca model de limbaj', 'ca un model de limbaj',
     'nu pot genera', 'nu pot crea',
-    'sper că e util', 'sper sa fie util', 'dacă aveți nevoie', 'daca aveti nevoie'
+    'sper că e util', 'sper sa fie util', 'dacă aveți nevoie', 'daca aveti nevoie',
+    // English Artifacts (Strict Language Enforcement)
+    'introduction', 'conclusion', 'key takeaways', 'trainer script', 'participant workbook',
+    'learning objectives', 'module duration', 'materials needed', 'visual description'
   ],
   'en': [
     'i apologize', 'i do not have enough context', 'please provide more details',
@@ -1051,36 +1081,58 @@ const BANNED_PHRASES: Record<string, string[]> = {
 
 // Universal Validator for ALL languages (using LLM as Judge)
 // This is slower but covers the "long tail" of languages.
-async function isContentValidByAI(content: string): Promise<{ valid: boolean, reason?: string }> {
-  // Optimization: Check both START and END of the content.
-  // Refusals are usually at the start, but "Hope this helps" is at the end.
-  const startSample = content.substring(0, 500);
-  const endSample = content.length > 500 ? content.substring(content.length - 500) : "";
+async function isContentValidByAI(content: string, targetLanguage: string = 'ro'): Promise<{ valid: boolean, reason?: string }> {
+  // Optimization: Check START, MIDDLE, and END of the content.
+  const len = content.length;
+  const startSample = content.substring(0, 800);
+  const endSample = len > 800 ? content.substring(len - 800) : "";
+  const midPoint = Math.floor(len / 2);
+  const midSample = len > 1600 ? content.substring(midPoint - 400, midPoint + 400) : "";
   
   const sample = `
   --- START ---
   ${startSample}
+  ...
+  --- MIDDLE ---
+  ${midSample}
   ...
   --- END ---
   ${endSample}
   `;
   
   const validationPrompt = `
-  **TASK**: Analyze the text fragments below and determine if the content contains an AI refusal, apology, or meta-commentary.
+  **TASK**: Analyze the text fragments below for AI refusal, apology, meta-commentary, or LANGUAGE MISMATCH.
   
+  **TARGET LANGUAGE**: ${targetLanguage}
+  **CONTEXT**: The text might be JSON or XML. 
+  - KEYS/TAGS are expected to be in English. 
+  - CONTENT VALUES (titles, scripts, descriptions, trainer instructions) MUST be in ${targetLanguage}.
+  - "Trainer Instructions" and "Script" are critical sections.
+
   **TEXT SAMPLES**:
   ${sample}
 
-  **CRITERIA FOR "INVALID"**:
+  **CRITICAL CRITERIA FOR "INVALID"**:
   1. Contains apologies (e.g. "I apologize", "I'm sorry", or translations).
   2. Refuses to generate content (e.g. "I cannot generate", "I don't have enough context").
   3. Contains AI meta-commentary (e.g. "As an AI language model", "I am a text-based AI").
   4. Asks the user for more info instead of generating (e.g. "Please provide more details").
   5. Offers a "skeleton" or "outline" instead of full content (e.g. "Here is a general structure").
+  6. **LANGUAGE MISMATCH (STRICT)**: The CONTENT VALUES are in English instead of ${targetLanguage} (if ${targetLanguage} is NOT English).
+     - IGNORE English keys/tags.
+     - IGNORE standard technical terms if they are common in the industry.
+     - **REJECT** if "Trainer Instructions", "Script", or "Key Takeaways" are in English.
+     - **REJECT** if whole sentences/paragraphs are in English.
+     - **REJECT** if content is mixed (e.g. Romanian title, English description).
+     - **REJECT** if the text uses "The trainer should..." (Descriptive) instead of "Ask..." (Imperative).
+     - **REJECT** if the facilitator instructions are descriptive (e.g. "Explain the concept of...") instead of imperative (e.g. "Explain: [Concept] using the following analogy...").
+  7. **QUALITY CHECK**:
+     - REJECT if "Trainer Instructions" are empty or just say "Explain this".
+     - REJECT if "Script" is missing when expected.
 
   **OUTPUT JSON ONLY**:
   {
-    "valid": boolean, // true if content looks like actual course material, false if it's a refusal/apology
+    "valid": boolean, // true if content looks like actual course material in ${targetLanguage}, false if it's a refusal or wrong language
     "reason": "short explanation if false"
   }
   `;
@@ -1122,38 +1174,40 @@ async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean
       return response;
     }
     Logger.warn(`Banned phrases detected (Static Check - Lang: ${language}). Retrying...`);
-    return retryWithStrictInstructions(prompt, language);
+    return retryWithStrictInstructions(prompt, language, "Contains banned phrases (e.g. English words in Romanian text).");
   }
 
   // Phase 2: AI Validator (Universal Check) - Only if static check passed
-  // We skip this check for retries to avoid infinite loops and extra cost, unless critical.
-  if (!isRetry) {
-      const aiValidation = await isContentValidByAI(response);
-      if (!aiValidation.valid) {
+  const aiValidation = await isContentValidByAI(response, language);
+  if (!aiValidation.valid) {
+      if (isRetry) {
+          Logger.error(`[CRITICAL] AI Validator rejected RETRY attempt: ${aiValidation.reason}. Returning anyway to avoid loop.`);
+      } else {
           Logger.warn(`AI Validator rejected content: ${aiValidation.reason}. Retrying...`);
-          return retryWithStrictInstructions(prompt, language);
+          return retryWithStrictInstructions(prompt, language, aiValidation.reason);
       }
   }
 
   return response;
 }
 
-async function retryWithStrictInstructions(prompt: string, language: string): Promise<string> {
+async function retryWithStrictInstructions(prompt: string, language: string, errorReason?: string): Promise<string> {
     const strictInstruction = `
     \n\n
     *** CRITICAL INSTRUCTION - STRICT MODE ***
-    The previous output contained apologetic or meta-conversational phrases (e.g., "I apologize", "I need more context", "This is a draft").
+    The previous output was REJECTED because: ${errorReason || "It contained apologetic or meta-conversational phrases."}
     
     YOU MUST FOLLOW THESE RULES:
-    1. DO NOT apologize.
-    2. DO NOT ask for more context or details.
-    3. DO NOT say "I hope this helps" or "Let me know".
-    4. DO NOT provide a "skeleton" or "outline" - generate the FULL CONTENT.
-    5. IF context is missing, IMPROVISE realistic and high-quality details that fit the scenario.
-    6. ACT as the expert. Be confident.
-    7. OUTPUT ONLY THE CONTENT in the requested language (${language}).
+    1. **LANGUAGE FIX**: Ensure ALL content is in **${language}**. Do NOT mix languages.
+       - If ${language} is Romanian, NO English sentences allowed.
+    2. **STYLE FIX**:
+       - DO NOT apologize.
+       - DO NOT ask for more context.
+       - DO NOT say "I hope this helps".
+       - DO NOT provide a "skeleton".
+    3. **IMPERATIVE ONLY**: For instructions, use commands ("Do this"), not descriptions ("The user should do this").
     
-    GENERATE THE CONTENT NOW.
+    GENERATE THE CORRECTED CONTENT NOW.
     `;
     
     return callLLM(prompt + strictInstruction, language, true);
@@ -2130,6 +2184,55 @@ function isValidGoldenData(data: any): boolean {
   return true;
 }
 
+function getLocalizedLabels(language: string): GoldenModuleData['localizedLabels'] {
+  const isRo = (language || '').toLowerCase().startsWith('ro');
+  
+  if (isRo) {
+    return {
+      duration: "Durata",
+      format: "Format",
+      section: "Secțiunea",
+      theory: "Teorie & Concepte",
+      keyTakeaways: "Idei Principale",
+      actionPlan: "Plan de Acțiune",
+      reflection: "Reflecție",
+      trainerInstructions: "Instrucțiuni Trainer",
+      method: "Metodă",
+      logistics: "Logistică",
+      script: "Script",
+      activity: "Activitate",
+      objective: "Obiectiv",
+      instructionsParticipant: "Instrucțiuni Participant",
+      instructionsFacilitator: "Instrucțiuni Facilitator",
+      debrief: "Întrebări de Debrief",
+      example: "Exemplu",
+      videoScript: "Script Video"
+    };
+  }
+  
+  // Default English
+  return {
+    duration: "Duration",
+    format: "Format",
+    section: "Section",
+    theory: "Theory & Concepts",
+    keyTakeaways: "Key Takeaways",
+    actionPlan: "Action Plan",
+    reflection: "Reflection",
+    trainerInstructions: "Trainer Instructions",
+    method: "Method",
+    logistics: "Logistics",
+    script: "Script",
+    activity: "Activity",
+    objective: "Objective",
+    instructionsParticipant: "Participant Instructions",
+    instructionsFacilitator: "Facilitator Instructions",
+    debrief: "Debrief Questions",
+    example: "Example",
+    videoScript: "Video Script"
+  };
+}
+
 async function handleGoldenStep(
   supabase: any, 
   course: Course, 
@@ -2167,28 +2270,65 @@ async function handleGoldenStep(
   if (!shouldRegenerate && goldenData) {
       // Patch missing labels if valid but incomplete
       if (!goldenData.localizedLabels) {
-          goldenData.localizedLabels = {
-            duration: "Duration",
-            format: "Format",
-            section: "Section",
-            theory: "Theory",
-            keyTakeaways: "Key Takeaways",
-            actionPlan: "Action Plan",
-            reflection: "Reflection",
-            trainerInstructions: "Trainer Instructions",
-            method: "Method",
-            logistics: "Logistics",
-            script: "Script",
-            activity: "Activity",
-            objective: "Objective",
-            instructionsParticipant: "Instructions (Participant)",
-            instructionsFacilitator: "Instructions (Facilitator)",
-            debrief: "Debrief",
-            example: "Example",
-            videoScript: "Video Script"
-          };
+          goldenData.localizedLabels = getLocalizedLabels(course.language || 'ro');
           Logger.info("[GoldenPath] Patched missing localizedLabels in existing data.");
       }
+  }
+
+  if (step_type === 'facilitator_manual' || step_type === 'trainer_manual') {
+      const mandatoryContext = buildMandatoryContext(course);
+      const modules = (course.blueprint && Array.isArray(course.blueprint.modules)) ? course.blueprint.modules : [];
+      const moduleList = modules.map((m: any, i: number) => `${i + 1}. ${m.title} (${m.duration || '45 min'})`).join('\n');
+
+      const prompt = `
+      **TASK**: Create a Comprehensive Facilitator Manual (Trainer Guide).
+      **COURSE**: "${course.title}"
+      **TARGET AUDIENCE**: "${course.target_audience}"
+      **LANGUAGE**: ${course.language || 'Romanian'} (STRICT)
+      **ENVIRONMENT**: ${course.environment || 'LIVE'}
+
+      ${mandatoryContext}
+
+      **COURSE MODULES**:
+      ${moduleList}
+
+      **GOAL**: 
+      Provide a professional, step-by-step guide for the trainer to deliver this course effectively.
+      The tone should be DIRECTIVE (imperative), CLEAR, and ENCOURAGING.
+      
+      **CRITICAL STYLE RULES (NON-NEGOTIABLE)**:
+      1. **IMPERATIVE ONLY**: Write instructions as commands, not descriptions.
+         - **BAD**: "The trainer should explain the concept."
+         - **GOOD**: "Explain the concept. Use the flipchart to draw..."
+         - **BAD**: "Facilitate a discussion."
+         - **GOOD**: "Ask the group: 'What do you think?' and list answers."
+      2. **NO META-COMMENTARY**: Do not describe what the section is about. Just write the instruction.
+      3. **LANGUAGE**: All content (titles, instructions, questions) must be in **${course.language || 'Romanian'}**.
+         - **DO NOT** mix English instructions with Romanian content.
+         - **DO NOT** translate industry terms if they are standard in English (e.g., "ROI", "KPI"), but explain them in Romanian.
+
+      **STRUCTURE**:
+      1. **Course Overview**: Objectives, Target Audience, Total Duration.
+      2. **Logistics & Prep**: Room setup, materials needed, technical checks.
+      3. **Trainer Tips**: Key facilitation principles for this specific audience.
+      4. **Module-by-Module Guide**:
+         - For each module in the list above, provide:
+           - **Key Concepts**: What to explain.
+           - **Activity Instructions**: How to run the exercises.
+           - **Debrief Questions**: What to ask to check understanding.
+           - **Transitions**: How to move to the next topic.
+
+      **CRITICAL RULES**:
+      1. **LANGUAGE**: ALL content (titles, instructions, questions) MUST be in ${course.language || 'Romanian'}. 
+         - DO NOT mix languages. 
+         - Use the defined Terminology.
+      2. **QUALITY**: 
+         - Avoid generic advice like "Teach the content". 
+         - Be specific: "Ask the group: 'What is your biggest challenge?' then write answers on flipchart."
+      3. **FORMAT**: Markdown. Use bolding and lists for readability.
+      `;
+
+      return await callLLM(prompt, course.language || 'ro');
   }
 
   const mandatoryContext = buildMandatoryContext(course);
@@ -2464,7 +2604,12 @@ async function handleGoldenStep(
       protagonistName: protagonistName,
       protagonistState: currentStoryStage,
       targetAudience: course.target_audience || "General Audience",
-      styleBlock: getStyleBlock(course.target_audience || "General Audience") + terminologyBlock + voiceProfileBlock + philosophyBlock + domainContextBlock + `\n\n${depthSpecs}`,
+      styleBlock: getStyleBlock(course.target_audience || "General Audience"),
+      terminology: terminologyBlock,
+      voiceProfile: voiceProfileBlock,
+      philosophy: philosophyBlock,
+      domainContext: domainContextBlock,
+      depthSpecs: depthSpecs,
       goldenSamples: goldenSamples,
       moduleId: module_id,
       macroContext: macroContext
@@ -2474,7 +2619,12 @@ async function handleGoldenStep(
     prompt = `${mandatoryContext}\n\n${prompt}`;
     
     // Add explicit instruction for language enforcement at the end of the prompt
-    prompt += `\n\n**CRITICAL INSTRUCTION**: The output JSON content (titles, narratives, scripts, questions) MUST be in ${course.language || "Romanian"}. Do not output English unless the course language is English.`;
+    prompt += `\n\n**CRITICAL LANGUAGE ENFORCEMENT**: 
+    1. The output JSON content (titles, narratives, scripts, questions) MUST be in ${course.language || "Romanian"}.
+    2. "Trainer Instructions", "Script", "Key Takeaways" content MUST be in ${course.language || "Romanian"}.
+    3. DO NOT mix languages. DO NOT use English for content unless the course language is English.
+    4. STRICTLY follow the Terminology and Voice Profile defined in the DNA blocks above.
+    5. If you fail to follow these rules, the content will be rejected.`;
 
     // VERIFICATION LOG: Print the start of the prompt to confirm context injection
     Logger.info("--- FINAL PROMPT PREVIEW (First 500 chars) ---");
@@ -2502,34 +2652,22 @@ async function handleGoldenStep(
         const rawJson = await callLLM(prompt, course.language || 'ro', false);
         const enforcedJson = ProtagonistEnforcer.enforce(rawJson, protagonistName, bannedNamesFromDNA);
         
+        // STRICT AI VALIDATION (Language & Refusal Check)
+        const aiCheck = await isContentValidByAI(enforcedJson, course.language || 'ro');
+        if (!aiCheck.valid) {
+            Logger.warn(`[GoldenPath] AI Validation Failed (Attempt ${attempts}): ${aiCheck.reason}`);
+            if (attempts === maxAttempts) throw new Error(`Content Rejected by AI Validator: ${aiCheck.reason}`);
+            continue; // Force retry
+        }
+
         goldenData = repairAndParseJson<GoldenModuleData>(enforcedJson);
 
         // FINAL VALIDATION: Ensure the generated data is valid before saving
         if (isValidGoldenData(goldenData)) {
-          // Patch missing labels if valid but incomplete
-          if (!goldenData.localizedLabels) {
-              goldenData.localizedLabels = {
-                  duration: "Duration",
-                  format: "Format",
-                  section: "Section",
-                  theory: "Theory",
-                  keyTakeaways: "Key Takeaways",
-                  actionPlan: "Action Plan",
-                  reflection: "Reflection",
-                  trainerInstructions: "Trainer Instructions",
-                  method: "Method",
-                  logistics: "Logistics",
-                  script: "Script",
-                  activity: "Activity",
-                  objective: "Objective",
-                  instructionsParticipant: "Instructions (Participant)",
-                  instructionsFacilitator: "Instructions (Facilitator)",
-                  debrief: "Debrief",
-                  example: "Example",
-                  videoScript: "Video Script"
-              };
-              Logger.info("[GoldenPath] Patched missing localizedLabels in generated data.");
-          }
+          // FORCE OVERWRITE localizedLabels to ensure perfect language consistency
+          goldenData.localizedLabels = getLocalizedLabels(course.language || 'ro');
+          Logger.info("[GoldenPath] Enforced localizedLabels.");
+          
           success = true;
         } else {
            Logger.warn(`Attempt ${attempts}: Invalid Golden Data structure.`);
@@ -3100,6 +3238,64 @@ async function handleLegacyStep(
       }
   }
 
+  if (step_type === 'facilitator_manual' || step_type === 'trainer_manual') {
+      const mandatoryContext = buildMandatoryContext(course);
+      const modules = (course.blueprint && Array.isArray(course.blueprint.modules)) ? course.blueprint.modules : [];
+      const moduleList = modules.map((m: any, i: number) => `${i + 1}. ${m.title} (${m.duration || '45 min'})`).join('\n');
+      
+      // Extract DNA for Voice & Terminology
+      const dna = course.dna || {};
+      const voice = dna.voiceProfile || {};
+      const terminology = dna.terminology || {};
+      
+      let dnaContext = "";
+      if (terminology.participant || terminology.trainer) {
+          dnaContext += `\n**TERMINOLOGY**:\n- Participant: ${terminology.participant || "Participant"}\n- Trainer: ${terminology.trainer || "Trainer"}\n`;
+      }
+      dnaContext += `\n**VOICE**:\n- Formality: ${voice.formality || "Professional"}\n- Humor: ${voice.humorLevel || "Light"}\n`;
+
+      const prompt = `
+      **TASK**: Create a Comprehensive Facilitator Manual (Trainer Guide).
+      **COURSE**: "${course.title}"
+      **TARGET AUDIENCE**: "${course.target_audience}"
+      **LANGUAGE**: ${course.language || 'Romanian'} (STRICT)
+      **ENVIRONMENT**: ${course.environment || 'LIVE'}
+
+      ${mandatoryContext}
+      ${dnaContext}
+
+      **COURSE MODULES**:
+      ${moduleList}
+
+      **GOAL**: 
+      Provide a professional, step-by-step guide for the trainer to deliver this course effectively.
+      The tone should be DIRECTIVE (imperative), CLEAR, and ENCOURAGING.
+      
+      **STRUCTURE**:
+      1. **Course Overview**: Objectives, Target Audience, Total Duration.
+      2. **Logistics & Prep**: Room setup, materials needed, technical checks.
+      3. **Trainer Tips**: Key facilitation principles for this specific audience.
+      4. **Module-by-Module Guide**:
+         - For each module in the list above, provide:
+           - **Key Concepts**: What to explain.
+           - **Activity Instructions**: How to run the exercises (Step-by-step).
+           - **Debrief Questions**: Specific questions to ask the group.
+           - **Transitions**: How to move to the next topic.
+
+      **CRITICAL RULES**:
+      1. **LANGUAGE**: ALL content (titles, instructions, questions) MUST be in ${course.language || 'Romanian'}. 
+         - DO NOT mix languages. 
+         - Use the defined Terminology.
+      2. **QUALITY**: 
+         - **NO WEIRD EXPLANATIONS**. Do not say "Here you should explain...". Instead say: "Explain that..." or "Ask the group...".
+         - Use IMPERATIVE verbs: "Write", "Ask", "Divide", "Show".
+         - Avoid generic advice like "Facilitate a discussion". Instead, say "Ask Q1, wait 2 mins, then list answers on flipchart".
+      3. **FORMAT**: Markdown. Use bolding and lists for readability.
+      `;
+
+      return await callLLM(prompt, course.language || 'ro');
+  }
+
 
   const mandatoryContext = buildMandatoryContext(course);
   
@@ -3534,38 +3730,155 @@ async function resolveModuleId(supabase: any, courseId: string, moduleData: any,
 }
 
 async function generateWorkbookIntro(course: Course): Promise<string> {
+  // 1. Extract DNA Context
+  const dna = course.dna || {};
+  const voice = dna.voiceProfile || {};
+  const terminology = dna.terminology || {};
+  
+  let dnaContext = "";
+  
+  // Voice
+  dnaContext += `\n**VOICE & TONE**:\n`;
+  dnaContext += `- Formality: ${voice.formality || "Professional"}\n`;
+  dnaContext += `- Humor: ${voice.humorLevel || "Light"}\n`;
+  if (voice.forbiddenPhrases && Array.isArray(voice.forbiddenPhrases) && voice.forbiddenPhrases.length > 0) {
+      dnaContext += `- Forbidden Phrases: ${voice.forbiddenPhrases.join(', ')}\n`;
+  }
+  
+  // Terminology
+  if (terminology.participant || terminology.trainer) {
+      dnaContext += `\n**TERMINOLOGY**:\n`;
+      dnaContext += `- Participant: ${terminology.participant || "Participant"}\n`;
+      dnaContext += `- Trainer: ${terminology.trainer || "Trainer"}\n`;
+  }
+
+  // Domain Context
+  if (dna.domainContext) {
+      const d = dna.domainContext;
+      if (d.industryTerms) {
+          dnaContext += `\n**INDUSTRY TERMS**:\n${Object.entries(d.industryTerms).map(([k,v]) => `- ${k}: ${v}`).join('\n')}\n`;
+      }
+  }
+
+  // Style Block (Pedagogical Tone)
+  const styleBlock = getStyleBlock(course.target_audience || "General Audience");
+
   const prompt = `
-  **TASK**: Write the Introduction for the Participant Workbook.
+  **TASK**: Write a SUBSTANTIAL Introduction for the Participant Workbook (approx 300-500 words).
   **COURSE**: "${course.title}"
   **TARGET AUDIENCE**: "${course.target_audience}"
-  **LANGUAGE**: ${course.language || 'Romanian'}
+  **LANGUAGE**: ${course.language || 'Romanian'} (STRICT)
   
+  ${dnaContext}
+  
+  ${styleBlock}
+
   **CONTENT TO GENERATE**:
-  1. **Welcome Message**: Warm, professional welcome.
-  2. **Course Goal**: Brief summary of what they will achieve.
-  3. **How to use this workbook**: Simple instructions (e.g., "Use this to take notes, reflect, and complete exercises").
+  1. **Welcome Message**: Warm, professional welcome matching the Voice Profile. Address the "${terminology.participant || 'Participant'}" directly.
+  2. **The "Why"**: Explain why this course is critical for their role/industry.
+  3. **Learning Philosophy**: Briefly explain the methodology (Active Learning, Practical Application).
+  4. **How to use this workbook**: Clear instructions (e.g., "This is your personal log", "Complete all exercises").
   
-  **FORMAT**: Markdown.
-  **TONE**: Encouraging and professional.
+  **FORMAT**: Markdown. Use headers (##, ###), bullet points, and bold text for emphasis.
+
+  **CRITICAL RULES (NON-NEGOTIABLE)**: 
+  1. **LANGUAGE PURITY**: Output ONLY in ${course.language || 'Romanian'}. Do NOT use English headings, subheadings, or phrases.
+  2. **DNA COMPLIANCE**: Use the specified Terminology (e.g. "${terminology.participant || 'Participant'}" instead of "Student").
+  3. **VOICE & TONE**: Strictly follow the defined Voice Profile (Formality: ${voice.formality}, Humor: ${voice.humorLevel}).
+  4. **NO META-COMMENTARY**: No "Here is the introduction...", no apologies, no "As an AI".
+  5. **BANNED PHRASES**: Do NOT use: ${voice.forbiddenPhrases ? voice.forbiddenPhrases.join(', ') : "None"}.
   `;
   
-  return await callLLM(prompt, course.language || 'ro');
+  let attempts = 0;
+  while (attempts < 2) {
+      attempts++;
+      try {
+        const content = await callLLM(prompt, course.language || 'ro');
+        const validation = await isContentValidByAI(content, course.language || 'ro');
+        if (validation.valid) return content;
+        Logger.warn(`[WorkbookIntro] Validation failed (Attempt ${attempts}): ${validation.reason}`);
+        if (attempts === 2) throw new Error(`Workbook Intro Rejected: ${validation.reason}`);
+      } catch (e) {
+        Logger.error(`[WorkbookIntro] Error:`, e);
+        if (attempts === 2) throw e;
+      }
+  }
+  throw new Error("Failed to generate Workbook Intro after retries.");
 }
 
 async function generateWorkbookOutro(course: Course): Promise<string> {
-  const prompt = `
-  **TASK**: Write the Conclusion/Outro for the Participant Workbook.
-  **COURSE**: "${course.title}"
-  **LANGUAGE**: ${course.language || 'Romanian'}
+  // 1. Extract DNA Context
+  const dna = course.dna || {};
+  const voice = dna.voiceProfile || {};
+  const terminology = dna.terminology || {};
   
+  let dnaContext = "";
+  
+  // Voice
+  dnaContext += `\n**VOICE & TONE**:\n`;
+  dnaContext += `- Formality: ${voice.formality || "Professional"}\n`;
+  dnaContext += `- Humor: ${voice.humorLevel || "Light"}\n`;
+  if (voice.forbiddenPhrases && Array.isArray(voice.forbiddenPhrases) && voice.forbiddenPhrases.length > 0) {
+      dnaContext += `- Forbidden Phrases: ${voice.forbiddenPhrases.join(', ')}\n`;
+  }
+  
+  // Terminology
+  if (terminology.participant || terminology.trainer) {
+      dnaContext += `\n**TERMINOLOGY**:\n`;
+      dnaContext += `- Participant: ${terminology.participant || "Participant"}\n`;
+      dnaContext += `- Trainer: ${terminology.trainer || "Trainer"}\n`;
+  }
+
+  // Domain Context
+  if (dna.domainContext) {
+      const d = dna.domainContext;
+      if (d.industryTerms) {
+          dnaContext += `\n**INDUSTRY TERMS**:\n${Object.entries(d.industryTerms).map(([k,v]) => `- ${k}: ${v}`).join('\n')}\n`;
+      }
+  }
+
+  // Style Block (Pedagogical Tone)
+  const styleBlock = getStyleBlock(course.target_audience || "General Audience");
+
+  const prompt = `
+  **TASK**: Write a SUBSTANTIAL Conclusion/Outro for the Participant Workbook (approx 200-300 words).
+  **COURSE**: "${course.title}"
+  **TARGET AUDIENCE**: "${course.target_audience}"
+  **LANGUAGE**: ${course.language || 'Romanian'} (STRICT)
+  
+  ${dnaContext}
+  
+  ${styleBlock}
+
   **CONTENT TO GENERATE**:
-  1. **Congratulations**: Acknowledge their effort.
-  2. **Next Steps**: Encouragement to apply what they learned.
-  3. **Final Quote**: An inspiring quote related to the topic (optional but nice).
+  1. **Final Congratulations**: Acknowledge the effort and completion of the journey. Address the "${terminology.participant || 'Participant'}" directly.
+  2. **Call to Action**: Specific encouragement to apply the concepts immediately (e.g. "Tomorrow, start by...").
+  3. **Continuous Learning**: Remind them that this is just the beginning.
+  4. **Inspiring Quote**: A relevant quote (translated to ${course.language || 'Romanian'}).
   
   **FORMAT**: Markdown.
-  **TONE**: Inspiring and forward-looking.
+
+  **CRITICAL RULES (NON-NEGOTIABLE)**: 
+  1. **LANGUAGE PURITY**: Output ONLY in ${course.language || 'Romanian'}. Do NOT use English headings, subheadings, or phrases.
+  2. **DNA COMPLIANCE**: Use the specified Terminology (e.g. "${terminology.participant || 'Participant'}" instead of "Student").
+  3. **VOICE & TONE**: Strictly follow the defined Voice Profile (Formality: ${voice.formality}, Humor: ${voice.humorLevel}).
+  4. **NO META-COMMENTARY**: No "Here is the conclusion...", no apologies, no "As an AI".
+  5. **BANNED PHRASES**: Do NOT use: ${voice.forbiddenPhrases ? voice.forbiddenPhrases.join(', ') : "None"}.
   `;
   
-  return await callLLM(prompt, course.language || 'ro');
+  let attempts = 0;
+  while (attempts < 2) {
+      attempts++;
+      try {
+        const content = await callLLM(prompt, course.language || 'ro');
+        const validation = await isContentValidByAI(content, course.language || 'ro');
+        if (validation.valid) return content;
+        Logger.warn(`[WorkbookOutro] Validation failed (Attempt ${attempts}): ${validation.reason}`);
+        if (attempts === 2) throw new Error(`Workbook Outro Rejected: ${validation.reason}`);
+      } catch (e) {
+        Logger.error(`[WorkbookOutro] Error:`, e);
+        if (attempts === 2) throw e;
+      }
+  }
+  throw new Error("Failed to generate Workbook Outro after retries.");
 }
