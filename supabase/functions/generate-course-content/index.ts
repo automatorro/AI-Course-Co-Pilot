@@ -2424,6 +2424,34 @@ serve(async (req) => {
 
     let result = "";
 
+    // A0. Per-module steps sent without module_id (e.g. from general generate_step_content flow)
+    // Auto-iterate over all course modules and concatenate results.
+    const PER_MODULE_STEPS_AUTO = [
+      'exercises', 'examples_and_stories', 'facilitator_notes',
+      'facilitator_manual', 'trainer_manual', 'video_scripts',
+    ];
+    if (!module_id && PER_MODULE_STEPS_AUTO.includes(step_type)) {
+      const { data: courseModules } = await supabase
+        .from('course_modules')
+        .select('*')
+        .eq('course_id', course.id)
+        .order('order_index');
+
+      if (!courseModules || courseModules.length === 0) {
+        throw new Error(`No modules found for course ${course.id} (step: ${step_type})`);
+      }
+
+      const parts: string[] = [];
+      for (const m of courseModules) {
+        const part = await handleGoldenStep(supabase, course, m.id, step_type);
+        parts.push(part);
+      }
+
+      return new Response(JSON.stringify({ content: parts.join('\n\n---\n\n') }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // A. Global Steps (Course Level) — handled by handleLegacyStep (no module_id required)
     // Per-module deliverables (workbook, manual, slides, exercises, etc.) go to handleGoldenStep.
     const GLOBAL_STEPS = [
@@ -2751,23 +2779,29 @@ async function handleGoldenStep(
 
   switch (step_type) {
     case 'course.steps.workbook':
+    case 'participant_workbook':
       return generateWorkbookContent(course, moduleContext, dna);
 
     case 'course.steps.manual':
     case 'facilitator_manual':
     case 'trainer_manual':
+    case 'facilitator_notes': // facilitator_notes is a subset of the full manual
       return generateManualContent(course, moduleContext, dna);
 
     case 'course.steps.slides':
+    case 'slides':
       return generateSlidesContent(course, moduleContext, dna);
 
     case 'course.steps.exercises':
+    case 'exercises':
       return generateExercisesContent(course, moduleContext, dna);
 
     case 'course.steps.video_scripts':
+    case 'video_scripts':
       return generateVideoScriptContent(course, moduleContext, dna);
 
     case 'course.steps.examples':
+    case 'examples_and_stories':
       return generateExamplesContent(course, moduleContext, dna);
 
     default:
