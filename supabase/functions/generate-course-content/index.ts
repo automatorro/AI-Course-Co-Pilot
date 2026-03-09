@@ -2431,14 +2431,31 @@ serve(async (req) => {
       'facilitator_manual', 'trainer_manual', 'video_scripts',
     ];
     if (!module_id && PER_MODULE_STEPS_AUTO.includes(step_type)) {
-      const { data: courseModules } = await supabase
+      let { data: courseModules } = await supabase
         .from('course_modules')
         .select('*')
         .eq('course_id', course.id)
-        .order('order_index');
+        .order('module_index');
 
+      // If course_modules is empty but blueprint has modules, auto-create them first
       if (!courseModules || courseModules.length === 0) {
-        throw new Error(`No modules found for course ${course.id} (step: ${step_type})`);
+        const blueprintModules = course.blueprint?.modules;
+        if (!blueprintModules || !Array.isArray(blueprintModules) || blueprintModules.length === 0) {
+          throw new Error(`No modules found for course ${course.id} (step: ${step_type})`);
+        }
+        Logger.info(`[Auto-iterate] course_modules empty. Initializing ${blueprintModules.length} modules from blueprint...`);
+        for (let i = 0; i < blueprintModules.length; i++) {
+          await resolveModuleId(supabase, course.id, blueprintModules[i], i);
+        }
+        const { data: refetched } = await supabase
+          .from('course_modules')
+          .select('*')
+          .eq('course_id', course.id)
+          .order('module_index');
+        if (!refetched || refetched.length === 0) {
+          throw new Error(`No modules found for course ${course.id} (step: ${step_type})`);
+        }
+        courseModules = refetched;
       }
 
       const parts: string[] = [];
