@@ -2783,7 +2783,7 @@ async function handleGoldenStep(
     moduleContext = await generateModuleContext(supabase, course, moduleData, protagonistName, storyStage);
     await supabase
       .from('course_modules')
-      .update({ content_data: moduleContext, is_dirty: false })
+      .update({ content_data: moduleContext })
       .eq('id', module_id);
     Logger.info(`[GoldenStep] ModuleContext saved for module: ${moduleData.title}`);
   } else {
