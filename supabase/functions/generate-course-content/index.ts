@@ -602,143 +602,6 @@ Success comes from [Core Principle], not just [Surface Level Action].
 `
 };
 
-// --------------------------------------------------------------------------------
-// INLINED MODULE: Golden Master Prompt
-// --------------------------------------------------------------------------------
-export const GOLDEN_MASTER_PROMPT = `
-You are an expert **Instructional Designer**. Generate a single "Golden JSON" object for this training module.
-
-### 1. CORE CONTEXT
-- **Module**: {{moduleTitle}} ({{durationMinutes}} min)
-- **Environment**: {{environment}}
-- **Environment Specs**: {{envConstraints}}
-- **Language**: {{language}}
-- **Protagonist**: {{protagonistName}} (Stage: {{protagonistState}})
-- **Audience**: {{targetAudience}}
-
-{{styleBlock}}
-
-{{terminology}}
-
-{{voiceProfile}}
-
-{{philosophy}}
-
-{{domainContext}}
-
-{{depthSpecs}}
-
-### 2. FEW-SHOT EXAMPLES (REFERENCE)
-{{goldenSamples}}
-
-3. **GOLDEN RULES (STRICT)**
-1. **XML ONLY**: Output <meta>...</meta> then <content_block>PURE JSON</content_block>.
-2. **NARRATIVE**: "{{protagonistName}}" appears ONLY in \`narrativeContext\` and \`theoryContent.hook\`.
-3. **CONSISTENCY**: All content (titles, text, scripts, instructions) MUST be in **{{language}}**. JSON keys in English. Do NOT mix languages.
-   - **CRITICAL**: Translate ALL headers, labels, and instructional text to {{language}}.
-   - **IGNORE** the language of the "FEW-SHOT EXAMPLES" if it differs from {{language}}. Focus on the *structure*, not the language.
-4. **NO HALLUCINATIONS**: Respect the duration. Do not invent modules.
-5. **FACILITATOR INSTRUCTIONS (Trainer Manual)**:
-   - **TONE**: Instructions MUST be **IMPERATIVE COMMANDS** (e.g., "Divide group...", "Ask...", "Show...").
-   - **BAD**: "The trainer should explain the concept."
-   - **GOOD**: "Explain the concept. Use the flipchart to draw..."
-   - **BAD**: "Facilitate a discussion."
-   - **GOOD**: "Ask the group: 'What do you think?' and list answers."
-   - **NO META-COMMENTARY**: Do not describe what the section is about. JUST WRITE THE INSTRUCTION.
-   - **LANGUAGE**: Translate ALL instructions to **{{language}}**. Do not leave "Ask the group" in English.
-6. **DNA COMPLIANCE**: strictly adhere to the defined **Terminology** and **Voice Profile**. If the tone is 'Professional', do not use slang.
-7. **CONTENT DEPTH & QUALITY**: 
-   - **AVOID SKELETONS**: Do not produce brief bullet points like "Explain concept". Write the *actual explanation* the trainer needs to know.
-   - **THEORY**: Write full paragraphs (150+ words per section) explaining the concepts in **{{language}}**.
-   - **SCRIPTS**: Write the *exact words* the trainer should say (in quotes), matching the Audience DNA Tone (e.g., Professional, Empathetic). Distinguish clearly between *Action* (neutral) and *Script* (persona).
-   - **WORKBOOK**: Ensure 'participantContent' is substantial enough for a 40+ page workbook.
-
-### 4. JSON TEMPLATE
-\`\`\`typescript
-interface GoldenModuleData {
-  moduleId: "{{moduleId}}";
-  moduleTitle: "{{moduleTitle}}";
-  moduleDurationMinutes: number;
-  environment: "{{environment}}";
-  localizedLabels: { [key: string]: string };
-  // --- DOMAIN CONTEXT (Optional) ---
-  domainContext?: {
-    industryTerms: Record<string, string>;
-    clientProfiles: Array<{ type: string; decisionLogic: string; approach: string }>;
-    productCatalog: Array<{ category: string; items: string[] }>;
-    competitorIntelligence: Array<{ name: string; weaknesses: string[]; counterStrategy: string }>;
-    negotiationFrameworks: Array<{ name: string; steps: string[] }>;
-  };
-  narrativeContext: {
-    protagonistName: string;
-    storyArcStage: string;
-    contextDescription: string;
-    examplesLibrary: Array<{ id: string; title: string; storyContent: string; applicationContext: string }>;
-  };
-  sections: Array<{
-    id: string;
-    title: string;
-    durationMinutes: number;
-    type: 'THEORY' | 'ACTIVITY' | 'DISCUSSION' | 'VIDEO_LESSON' | 'ICE_BREAKER' | 'BREAK' | 'TRANSITION' | 'WARM_UP' | 'DEBRIEF';
-    participantContent: { theoryMarkdown: string; keyTakeaways: string[]; reflectionQuestions?: string[]; actionableSteps?: string[] };
-    trainerInstructions: { deliveryMethod: string; script: string; logistics: string[]; flipchartSketch?: any; breakoutRoomConfig?: any };
-    visuals: { slidesSequence: Array<{ slideId: string; layout: string; title: string; visualDescription: string; contentBullets: string[]; speakerNotes: string }> };
-    exercisesDetailed?: { title: string; objective: string; durationMinutes: number; instructionsParticipant: string; instructionsFacilitator: string; materialsNeeded: string[]; debriefingQuestions: string[]; successIndicators: string[]; adaptationNotes: string };
-    // --- EXERCISE SEQUENCE (Optional) ---
-    exerciseSequence?: Array<{
-      title: string;
-      type: 'ROLE_PLAY' | 'GROUP_WORKSHOP' | 'INDIVIDUAL' | 'SCENARIO' | 'ZONE_MAPPING';
-      durationMinutes: number;
-      instructionsParticipant: string;
-      instructionsFacilitator: string;
-      materialsNeeded: string[];
-      debriefingQuestions: string[];
-      successIndicators: string[];
-      adaptationNotes?: string;
-    }>;
-    videoScript?: { sceneDescription: string; scriptContent: string; visualOverlays: Array<{ timestamp: string; description: string }> };
-  }>;
-}
-\`\`\`
-
-### 5. THINKING PROCESS
-<meta>
-1. Analyze audience & tone.
-2. Define protagonist's struggle.
-3. Align exercises with environment ({{environment}}).
-</meta>
-<content_block>
-{
-  "moduleId": "{{moduleId}}",
-  "moduleTitle": "{{moduleTitle}}",
-  "moduleDurationMinutes": {{durationMinutes}},
-  "environment": "{{environment}}",
-  "localizedLabels": {
-    "duration": "Duration",
-    "format": "Format",
-    "section": "Section",
-    "theory": "Theory",
-    "keyTakeaways": "Key Takeaways",
-    "actionPlan": "Action Plan",
-    "reflection": "Reflection",
-    "trainerInstructions": "Trainer Instructions",
-    "method": "Method",
-    "logistics": "Logistics",
-    "script": "Script",
-    "activity": "Activity",
-    "objective": "Objective",
-    "instructionsParticipant": "Instructions (Participant)",
-    "instructionsFacilitator": "Instructions (Facilitator)",
-    "debrief": "Debrief",
-    "example": "Example",
-    "videoScript": "Video Script"
-  },
-  "narrativeContext": { ... },
-  "sections": [ ... ]
-}
-</content_block>
-`;
-
 // ==========================================
 // 1. INFRASTRUCTURE & CONFIGURATION
 // ==========================================
@@ -1219,53 +1082,70 @@ async function retryWithStrictInstructions(prompt: string, language: string, err
 
 export type CourseEnvironment = 'LIVE' | 'ONLINE';
 
-export interface GoldenModuleData {
+/**
+ * ModuleContext — the lightweight structural blueprint for a module.
+ * Generated once, cached in course_modules.content_data.
+ * Used as input for all per-deliverable generators (workbook, manual, slides, exercises).
+ */
+export interface ModuleContext {
+  contextVersion: 'v4.0';
   moduleId: string;
   moduleTitle: string;
   moduleDurationMinutes: number;
   environment: CourseEnvironment;
-  localizedLabels: {
-    duration: string;
-    format: string;
-    section: string;
-    theory: string;
-    keyTakeaways: string;
-    actionPlan: string;
-    reflection: string;
-    trainerInstructions: string;
-    method: string;
-    logistics: string;
-    script: string;
-    activity: string;
-    objective: string;
-    instructionsParticipant: string;
-    instructionsFacilitator: string;
-    debrief: string;
-    example: string;
-    videoScript: string;
-  };
-  narrativeContext: {
+  language: string;
+  targetAudience: string;
+  keyConcepts: Array<{
+    id: string;
+    name: string;
+    durationMinutes: number;
+    type: 'THEORY' | 'ACTIVITY' | 'DISCUSSION' | 'BREAK';
+    coreIdea: string;
+    keyTerms: string[];
+  }>;
+  narrative: {
     protagonistName: string;
-    storyArcStage: string;
-    contextDescription: string;
-    examplesLibrary: Array<{
-      id: string;
-      title: string;
-      storyContent: string;
-      applicationContext: string;
-    }>;
+    protagonistRole: string;
+    storyStageForThisModule: string;
+    coreProblemInThisModule: string;
   };
-  sections: Array<GoldenSection>;
-  domainContext?: {
-    industryTerms: Record<string, string>;
-    clientProfiles: Array<{ type: string; decisionLogic: string; approach: string }>;
-    productCatalog: Array<{ category: string; items: string[] }>;
-    competitorIntelligence: Array<{ name: string; weaknesses: string[]; counterStrategy: string }>;
-    negotiationFrameworks: Array<{ name: string; steps: string[] }>;
+  macroPosition: {
+    isFirstModule: boolean;
+    isLastModule: boolean;
+    previousModuleTitle: string | null;
+    nextModuleTitle: string | null;
+    transitionNote: string;
   };
+  timingPlan: Array<{
+    sectionTitle: string;
+    durationMinutes: number;
+    type: 'INTRO' | 'THEORY' | 'EXAMPLE' | 'EXERCISE' | 'DEBRIEF' | 'TRANSITION' | 'BREAK';
+    conceptRef: string | null;
+  }>;
 }
 
-export interface GoldenSection {
+/** Pre-built DNA context blocks ready for prompt injection */
+export interface DNABlocks {
+  terminologyBlock: string;
+  voiceProfileBlock: string;
+  philosophyBlock: string;
+  domainContextBlock: string;
+  envConstraints: string;
+}
+
+export function isValidModuleContext(data: any): data is ModuleContext {
+  if (!data || typeof data !== 'object') return false;
+  if (data.contextVersion !== 'v4.0') return false;
+  if (!data.moduleId || !data.moduleTitle) return false;
+  if (!Array.isArray(data.keyConcepts) || data.keyConcepts.length === 0) return false;
+  if (!data.narrative || !data.narrative.protagonistName) return false;
+  if (!data.macroPosition) return false;
+  if (!Array.isArray(data.timingPlan) || data.timingPlan.length === 0) return false;
+  return true;
+}
+
+// Kept for documentation — describes the old Golden JSON format (superseded by ModuleContext v4.0)
+export interface _LegacyGoldenSection {
   id: string;
   title: string;
   durationMinutes: number;
@@ -1333,8 +1213,556 @@ export interface GoldenSection {
 // 4. PROMPTS & TEMPLATES
 // ==========================================
 
+/**
+ * MODULE_CONTEXT_PROMPT — generates the lightweight structural blueprint (ModuleContext JSON).
+ * Called once per module; result cached in course_modules.content_data.
+ * This is NOT the actual content — it defines the structure, concepts, narrative, and timing plan.
+ */
+export const MODULE_CONTEXT_PROMPT = `
+You are an expert Instructional Designer. Analyze this training module and generate a ModuleContext JSON.
+The ModuleContext is a STRUCTURAL BLUEPRINT — it defines *what* the module covers, NOT the actual written content.
 
+### COURSE INFO
+- Course: {{courseTitle}}
+- Module: {{moduleTitle}} ({{durationMinutes}} min | Position: {{modulePosition}})
+- Language: {{language}}
+- Environment: {{environment}}
+- Audience: {{targetAudience}}
+- Learning Objectives: {{learningObjectives}}
 
+### COURSE BLUEPRINT (All Modules)
+{{moduleList}}
+
+### DNA
+{{terminology}}
+{{voiceProfile}}
+{{domainContext}}
+
+### MACRO SCHEDULE CONTEXT
+{{macroContext}}
+
+### KNOWLEDGE BASE
+{{knowledgeBase}}
+
+### STORY ARC FOR THIS MODULE
+{{storyStage}}
+
+---
+### TASK
+Generate a ModuleContext JSON with this EXACT schema (output ONLY valid JSON, no markdown fences, no explanation):
+{
+  "contextVersion": "v4.0",
+  "moduleId": "{{moduleId}}",
+  "moduleTitle": "{{moduleTitle}}",
+  "moduleDurationMinutes": {{durationMinutes}},
+  "environment": "{{environment}}",
+  "language": "{{language}}",
+  "targetAudience": "{{targetAudience}}",
+  "keyConcepts": [
+    {
+      "id": "c1",
+      "name": "[Concept name in {{language}}]",
+      "durationMinutes": 20,
+      "type": "THEORY",
+      "coreIdea": "[2-3 sentence essence of this concept in {{language}}]",
+      "keyTerms": ["term1", "term2"]
+    }
+  ],
+  "narrative": {
+    "protagonistName": "{{protagonistName}}",
+    "protagonistRole": "[role in {{language}}]",
+    "storyStageForThisModule": "[emotional/professional state of protagonist in this module, in {{language}}]",
+    "coreProblemInThisModule": "[specific concrete challenge this module solves, in {{language}}]"
+  },
+  "macroPosition": {
+    "isFirstModule": false,
+    "isLastModule": false,
+    "previousModuleTitle": null,
+    "nextModuleTitle": null,
+    "transitionNote": "[How this module connects to adjacent modules, in {{language}}]"
+  },
+  "timingPlan": [
+    { "sectionTitle": "[title in {{language}}]", "durationMinutes": 10, "type": "INTRO", "conceptRef": null },
+    { "sectionTitle": "[title in {{language}}]", "durationMinutes": 20, "type": "THEORY", "conceptRef": "c1" },
+    { "sectionTitle": "[title in {{language}}]", "durationMinutes": 20, "type": "EXERCISE", "conceptRef": "c1" },
+    { "sectionTitle": "[title in {{language}}]", "durationMinutes": 10, "type": "DEBRIEF", "conceptRef": null }
+  ]
+}
+
+### STRICT RULES
+1. Output ONLY valid JSON. No markdown, no commentary.
+2. ALL string content MUST be in **{{language}}**.
+3. timingPlan durations MUST sum to exactly {{durationMinutes}} minutes.
+4. keyConcepts must cover the most important skills/knowledge for this specific module.
+5. narrative.coreProblemInThisModule must be concrete and specific (e.g. "Sales reps lose deals because they present features before understanding client pain points" not "participants need to learn sales").
+6. Include 3-6 keyConcepts covering all key topics of the module.
+`;
+
+/**
+ * WORKBOOK_PROMPT — generates the participant workbook section for a module.
+ * Input: ModuleContext JSON injected as variables. Output: rich Markdown, ready to print.
+ */
+export const WORKBOOK_PROMPT = `
+You are an expert Instructional Designer writing a **PARTICIPANT WORKBOOK** section for a professional training course.
+This document is used directly by participants during the training. Make it complete, practical, and world-class.
+
+### MODULE BLUEPRINT
+- Module: {{moduleTitle}} ({{durationMinutes}} min)
+- Environment: {{environment}}
+- Language: {{language}}
+- Audience: {{targetAudience}}
+- Protagonist: {{protagonistName}} ({{protagonistRole}})
+- Story Arc: {{storyStage}}
+- Core Problem This Module Solves: {{coreProblem}}
+
+### KEY CONCEPTS
+{{keyConcepts}}
+
+### TIMING PLAN
+{{timingPlan}}
+
+### AUDIENCE DNA
+{{styleBlock}}
+
+### TERMINOLOGY
+{{terminology}}
+
+### VOICE & TONE
+{{voiceProfile}}
+
+### DEPTH SPECIFICATIONS
+{{depthSpecs}}
+
+### ENVIRONMENT CONSTRAINTS
+{{envConstraints}}
+
+### REFERENCE EXAMPLES (structure guide — use language {{language}}, not the language of the example)
+{{goldenSamples}}
+
+---
+### TASK: Write the COMPLETE Participant Workbook section for this module.
+
+**For EACH section in the timingPlan, write content in this order:**
+
+#### 1. Section Header
+Format: \`## [Section Type Icon] [Section Title] ([Duration] min)\`
+
+#### 2. "De ce contează / Why This Matters" (150-200 words)
+- Open with a provocative question or relatable pain point from {{targetAudience}} daily reality
+- Connect the concept directly to their job/challenges
+- End with: "La finalul acestei secțiuni, vei putea să..." / "By the end of this section, you will be able to..."
+
+#### 3. Core Theory (600-800 words per concept, ACTION-FIRST)
+- Start with WHAT TO DO, not what to know
+- Present a named model or framework (e.g., "The 3-Step ANCHOR Method")
+- Use {{protagonistName}} in at least one inline example
+- Avoid passive voice and pure definitions
+- Structure: concept → how it works → why it matters → what happens without it
+
+#### 4. Real Story / Case Study (200+ words)
+Feature {{protagonistName}} as the protagonist. Use this structure:
+> **Povestea lui/ei {{protagonistName}}:** [Context: who, where, what challenge]
+> [The mistake or wrong approach they tried first and why it failed]
+> [The moment they applied the concept from this section]
+> **Rezultat:** [Specific, concrete positive outcome with numbers/dialogue if possible]
+
+#### 5. Practical Exercise (for every EXERCISE type section)
+Format:
+\`\`\`
+---
+#### 🎯 {{exerciseTerm}}: [Title] (N min)
+**{{objectiveLabel}}:** [Specific measurable skill practiced]
+
+**Instrucțiuni:**
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
+
+**Spațiu de Lucru:**
+| [Column 1] | [Column 2] | [Column 3] |
+|---|---|---|
+| | | |
+| | | |
+| | | |
+
+**Checklist de autoevaluare:**
+- [ ] [Criterion 1]
+- [ ] [Criterion 2]
+- [ ] [Criterion 3]
+---
+\`\`\`
+IMPORTANT: Use realistic SCENARIO-BASED exercises. Never ask "What is X?". Ask "{{protagonistName}} is facing Y. What do you do?"
+
+#### 6. Key Takeaways (3-5 items)
+Format as blockquotes:
+> 💡 [Memorable, actionable insight]
+> 💡 [Another insight]
+
+---
+### STYLE RULES (NON-NEGOTIABLE)
+- **Language**: ALL content in **{{language}}**. Zero exceptions.
+- **Terminology**: Use "{{participantTerm}}" for learner, "{{trainerTerm}}" for facilitator, "{{exerciseTerm}}" for activity.
+- **Environment**: {{envRules}}
+- **Tone**: Match the Audience DNA above.
+- **No skeleton content**: Never write "[Insert story here]" or "[Describe concept]". Write ACTUAL content.
+- **No meta-commentary**: Do NOT write "In this section we will learn...". Start directly with content.
+- **Workbook workspaces**: Tables and checkboxes must be REAL formatted Markdown, not placeholders.
+
+### OUTPUT FORMAT
+Pure Markdown. Start directly with the first section header (## ...). No preamble or conclusion.
+`;
+
+/**
+ * MANUAL_PROMPT — generates the facilitator/trainer manual for a module.
+ * Input: ModuleContext JSON injected as variables. Output: rich Markdown manual, trainer-ready.
+ */
+export const MANUAL_PROMPT = `
+You are an expert Instructional Designer writing a **FACILITATOR MANUAL** for a professional trainer.
+This is the trainer's bible — complete, actionable, and containing everything needed to deliver the module.
+
+### MODULE BLUEPRINT
+- Module: {{moduleTitle}} ({{durationMinutes}} min)
+- Environment: {{environment}}
+- Language: {{language}}
+- Audience: {{targetAudience}}
+- Protagonist: {{protagonistName}} ({{protagonistRole}})
+- Story Arc: {{storyStage}}
+- Core Problem This Module Solves: {{coreProblem}}
+
+### KEY CONCEPTS
+{{keyConcepts}}
+
+### TIMING PLAN
+{{timingPlan}}
+
+### TERMINOLOGY
+{{terminology}}
+
+### VOICE & TONE
+{{voiceProfile}}
+
+### LEARNING PHILOSOPHY
+{{philosophy}}
+
+### MACRO POSITION (Previous/Next modules)
+{{macroPosition}}
+
+### ENVIRONMENT CONSTRAINTS
+{{envConstraints}}
+
+---
+### TASK: Write the COMPLETE Facilitator Manual for this module.
+
+**Mandatory sections (in this order):**
+
+#### 1. MODULE OVERVIEW (Trainer Briefing)
+- Total duration and energy arc (how energy should flow from start to finish)
+- 3-5 facilitation objectives (what YOU as trainer achieve in this module)
+- Pre-module checklist (materials, room setup, technical checks)
+
+#### 2. TIMING TABLE (Minute-by-Minute Agenda)
+Use a Markdown table with these columns:
+| Minut | Segment | Ce face Trainerul | Ce fac Participanții | Metodă | Material |
+|---|---|---|---|---|---|
+One row per section in the timing plan. Start times must be cumulative (0, 10, 30, 50...).
+Times must sum to {{durationMinutes}} minutes.
+
+#### 3. VERBATIM SCRIPT PER SECTION
+For EACH section in the timing plan, use this structure:
+
+---
+##### [Section Icon] [Section Title] ([Duration] min)
+
+**[TRANZIȚIE / DESCHIDERE]**
+> "[Exact words to say when entering this section. If it's the first section, this is the opening hook.]"
+
+**[INSTRUCȚIUNI FACILITATOR]** *(imperative commands)*
+- [What to do first]
+- [What to say/show/write]
+- [When to pause and check for understanding]
+- [Watch for: common confusion points]
+
+**[SCRIPT VERBATIM]** *(write what you say, in quotation marks)*
+> "[Full trainer monologue/dialogue. Long enough to naturally fill the time allocated.]
+> [Include a question to the group at a natural pause point.]"
+
+**[DACĂ GRUPUL REZISTĂ / ESTE CONFUZ]**
+> "[Exact recovery words if participants seem lost, resistant, or disengaged]"
+
+**[TRANZIȚIE SPRE URMĂTOR]**
+> "[Bridge words connecting to the next section]"
+
+---
+#### 4. MATERIALE NECESARE
+- [Complete list of physical/digital materials needed]
+
+#### 5. SFATURI DE FACILITARE (Specific to this audience and content)
+- [Tip 1: specific to {{targetAudience}} and {{moduleTitle}}]
+- [Tip 2]
+- [Tip 3]
+
+#### 6. VARIANTE DE ADAPTARE
+| Situație | Adaptare |
+|---|---|
+| Grup avansat (cunoaște deja conceptele) | [What to skip/accelerate] |
+| Grup beginner (nu are experiență) | [What to slow down/add] |
+| Timp limitat (-10 min față de plan) | [What to cut without losing impact] |
+| Timp extra (+10 min față de plan) | [What to deepen or add] |
+
+---
+### CRITICAL RULES
+1. **IMPERATIVE ONLY**: All facilitator instructions are COMMANDS: "Explain...", "Ask...", "Write on flipchart...", "Divide into groups..."
+   - BAD: "The trainer should explain the concept."
+   - GOOD: "Explain the concept using the following analogy: ..."
+2. **NO META-COMMENTARY**: Do NOT describe what a section is. Write actual instructions and scripts.
+3. **LANGUAGE**: ALL content (including scripts) in **{{language}}**.
+4. **VERBATIM SCRIPTS**: Must be long enough to fill the time. For a 15-min section, write 400+ words of script.
+5. **SPECIFICITY**: Never write "Ask a question about the topic." Write: "Ask: '[Exact question]?' (pause 20 seconds)"
+6. **ENVIRONMENT**: {{envRules}}
+
+### OUTPUT FORMAT
+Pure Markdown. Start with the module header (# Modul: {{moduleTitle}}). No preamble.
+`;
+
+/**
+ * SLIDES_PROMPT — generates presentation slides in XML format for a module.
+ * Output: XML with SLIDE_BEGIN/END tags, ready for the slide renderer.
+ */
+export const SLIDES_PROMPT = `
+You are an expert Instructional Designer creating **PRESENTATION SLIDES** for a professional training course.
+
+### MODULE BLUEPRINT
+- Module: {{moduleTitle}} ({{durationMinutes}} min)
+- Environment: {{environment}}
+- Language: {{language}}
+- Audience: {{targetAudience}}
+- Protagonist: {{protagonistName}}
+- Core Problem: {{coreProblem}}
+
+### KEY CONCEPTS
+{{keyConcepts}}
+
+### TIMING PLAN
+{{timingPlan}}
+
+### AUDIENCE DNA
+{{styleBlock}}
+
+### ENVIRONMENT CONSTRAINTS
+{{envConstraints}}
+
+---
+### TASK: Create the complete set of presentation slides for this module.
+
+### SLIDE RULES
+1. **QUANTITY**: 1 slide per 5-7 minutes. Target: {{slideCount}} slides for {{durationMinutes}} min.
+2. **TITLE**: Maximum 7 words. Impact-focused. Use questions or strong statements, NOT generic titles like "Overview".
+3. **CONTENT**: 3-4 bullet points MAXIMUM per slide. Each bullet: actionable, concrete, NOT a definition.
+4. **VISUAL**: Describe a SPECIFIC, evocative visual the designer can actually create.
+   - GOOD: "Split screen: left side shows a frustrated team in a meeting, right side shows the same team using the framework, energized and aligned"
+   - BAD: "Image related to teamwork"
+5. **SPEAKER NOTES**: FULL VERBATIM SCRIPT, 100-150 words per slide minimum. Include:
+   - How to open this slide (hook question or statement)
+   - Full explanation of the content
+   - Connection to {{protagonistName}}'s story where relevant
+   - Interaction cue (question, show of hands, "type in chat" for online)
+6. **FLOW**: Narrative arc across slides — Hook → Concept → Framework → Story → Application → Recap
+
+### SLIDE LAYOUT OPTIONS
+- TITLE_SLIDE: Module title with provocative subtitle
+- HOOK: Opening challenge/question (minimal text, maximum impact)
+- EXPLAINER: Concept with 3-4 bullets + visual
+- STORY: Protagonist narrative (image-heavy, text-light)
+- FRAMEWORK: Model or process diagram description
+- EXERCISE_INTRO: Exercise setup (objective + instructions summary)
+- RECAP: Key takeaways (3 max)
+- TRANSITION: Bridge between sections
+
+### OUTPUT FORMAT (use EXACTLY this XML format for each slide)
+<SLIDE_BEGIN id="{{moduleId}}_1">
+<TITLE>[Slide Title in {{language}}]</TITLE>
+<!-- slide-layout: LAYOUT_TYPE -->
+<VISUAL>[Specific visual description for the designer]</VISUAL>
+<CONTENT>
+- [Bullet 1 in {{language}}]
+- [Bullet 2 in {{language}}]
+- [Bullet 3 in {{language}}]
+</CONTENT>
+<NOTES>
+[Full verbatim trainer script, 100-150 words minimum, in {{language}}]
+</NOTES>
+<SLIDE_END id="{{moduleId}}_1">
+
+Start with slide 1. End with the last slide. No other text.
+ALL content in **{{language}}**.
+`;
+
+/**
+ * EXERCISES_PROMPT — generates standalone exercise sheets for a module.
+ * Output: Markdown handouts, usable separately from the workbook.
+ */
+export const EXERCISES_PROMPT = `
+You are an expert Instructional Designer creating **EXERCISE SHEETS** for a professional training course.
+These are standalone handouts — complete, practical, usable without the workbook.
+
+### MODULE BLUEPRINT
+- Module: {{moduleTitle}} ({{durationMinutes}} min)
+- Environment: {{environment}}
+- Language: {{language}}
+- Audience: {{targetAudience}}
+- Protagonist: {{protagonistName}} ({{protagonistRole}})
+
+### KEY CONCEPTS
+{{keyConcepts}}
+
+### TIMING PLAN (focus on EXERCISE-type sections)
+{{timingPlan}}
+
+### DEPTH SPECIFICATIONS
+{{depthSpecs}}
+
+### ENVIRONMENT CONSTRAINTS
+{{envConstraints}}
+
+---
+### TASK: Create DETAILED EXERCISE SHEETS for ALL practical activities in this module.
+
+**For each EXERCISE or ACTIVITY section in the timing plan:**
+
+---
+## 🎯 {{exerciseTerm}}: [Exercise Title] ([Duration] min)
+
+**Format:** [INDIVIDUAL / PAIRS / GROUPS OF 3-4 / FULL GROUP]
+**{{objectiveLabel}}:** [Specific, measurable skill practiced — NOT "understand X" but "apply X to scenario Y"]
+
+### Instrucțiuni Participant
+[Numbered step-by-step instructions from the participant's perspective]
+[Include any role descriptions, scenario setup, or materials they need]
+
+### Spațiu de Lucru
+[REAL formatted workspace — tables, checkboxes, fill-in grids]
+[NOT a placeholder like "(write your answer here)"]
+[Example: a comparison table, a role-play script template, a decision matrix]
+
+### Instrucțiuni Facilitator
+
+**Timing Breakdown:**
+| Etapă | Durată | Acțiune Facilitator | Acțiune Participant |
+|---|---|---|---|
+| Setup | X min | [Exact setup instructions] | [What they prepare] |
+| Execuție | Y min | [What trainer observes/supports] | [What they do] |
+| Debrief | Z min | [How to facilitate debrief] | [What they share] |
+
+**Observer Checklist** *(for facilitator while participants work)*:
+- [ ] [Key behavior/skill to look for]
+- [ ] [Common mistake to watch for and how to correct]
+- [ ] [Success indicator]
+- [ ] [Red flag: what would mean the exercise needs to be paused]
+
+**Întrebări de Debrief:**
+1. [Factual: "Ce s-a întâmplat când...?"]
+2. [Analytical: "De ce crezi că...?"]
+3. [Applicative: "Cum vei folosi asta mâine dimineață?"]
+4. [Generalization: "Ce principiu general putem extrage?"]
+
+**Indicatori de Succes:**
+- [ ] [Participant can do X]
+- [ ] [Participant demonstrates Y]
+
+**Adaptare:**
+- Grup rezistent: [Specific instruction]
+- Grup prea rapid: [What to add/deepen]
+
+---
+
+### CRITICAL RULES
+1. **SCENARIO-BASED**: Never ask "What is X?" — always use realistic scenarios from {{targetAudience}} context
+2. **SPECIFICITY**: Use {{protagonistName}}'s world for all scenarios
+3. **LANGUAGE**: ALL content in **{{language}}**
+4. **ENVIRONMENT**: {{envRules}}
+5. **REAL WORKSPACES**: Tables and checkboxes must be ACTUAL Markdown, not placeholder text
+6. **COMPLETE**: Each exercise sheet must be usable as a standalone handout
+
+Output pure Markdown. One exercise per section. No preamble.
+`;
+
+/**
+ * VIDEO_SCRIPT_PROMPT — generates video scripts for online course modules.
+ * Output: Markdown scripts with scene descriptions, verbatim dialogue, and visual overlay notes.
+ */
+export const VIDEO_SCRIPT_PROMPT = `
+You are an expert Instructional Designer writing **VIDEO SCRIPTS** for an online training course.
+These scripts are used directly for video production — complete, professional, and ready to record.
+
+### MODULE BLUEPRINT
+- Module: {{moduleTitle}} ({{durationMinutes}} min)
+- Language: {{language}}
+- Audience: {{targetAudience}}
+- Protagonist: {{protagonistName}}
+- Tone: {{voiceProfile}}
+
+### KEY CONCEPTS
+{{keyConcepts}}
+
+### TIMING PLAN
+{{timingPlan}}
+
+---
+### TASK: Write VIDEO SCRIPTS for each section of this module.
+
+**For each section in the timing plan:**
+
+---
+## 🎬 Script Video: [Section Title] ([Duration] min)
+**Format:** [Talking Head / Screen Share + Talking Head / Animation Overlay / B-Roll with VO]
+**Ton:** [e.g., Professional & Warm, Direct, Energetic]
+
+### [SCENĂ 1: HOOK — Talking Head] (~30-45 sec)
+**(Vizual: Instructor looking at camera, professional setting or relevant background)**
+
+"[Opening — relatable pain point OR surprising statistic]
+[Connect immediately to the participant's reality]
+[Promise: 'În următoarele N minute, îți voi arăta cum să...']"
+
+---
+### [SCENĂ 2: CONCEPT PRINCIPAL] (~N min)
+**(Vizual: [Specific description: animation showing the model / screen recording / diagram overlay])**
+
+"[Clear explanation of the concept — action-first, not definition-first]
+[Key insight: 'Cei mai mulți oameni cred că X. Dar în realitate, Y.']
+[Named model or framework with 3 steps]
+[Example from {{protagonistName}}'s world, told as a story]"
+
+---
+### [SCENĂ 3: DEMONSTRAȚIE / EXEMPLU] (~N min)
+**(Vizual: [Screen recording / Split screen / B-Roll footage description])**
+
+"[Walk through a concrete before/after example]
+[Use {{protagonistName}} as the story protagonist]
+[Compare old approach vs. new approach with specific outcomes]"
+
+---
+### [SCENĂ 4: CALL TO ACTION] (~30 sec)
+**(Vizual: Instructor on camera)**
+
+"[Recap the single most important takeaway in one sentence]
+[Specific action: 'Oprește videoclipul acum. Deschide caietul de lucru la pagina X și completează exercițiul Y.']
+[Bridge: 'În modulul următor, vom explora...']"
+
+**Note pentru producție:**
+- Overlay la [timestamp]: [Text/graphic to appear]
+- Lower third la [timestamp]: [Name/title to show]
+
+---
+### RULES
+1. Language: ALL script content in **{{language}}**
+2. Scripts must be COMPLETE — write actual words, no placeholders
+3. Tone matches the voice profile defined above
+4. CTAs must be specific and actionable
+5. Each scene transition should be natural and scripted
+
+Output pure Markdown.
+`;
 
 // ==========================================
 // 5. UTILS (PARSER & REPAIR)
@@ -1396,370 +1824,416 @@ export function repairAndParseJson<T>(text: string): T {
   }
 }
 
-type RenderTarget = 'WORKBOOK' | 'MANUAL' | 'EXERCISES' | 'EXAMPLES' | 'VIDEO_SCRIPT';
+// ==========================================
+// 5b. PER-DELIVERABLE GENERATORS
+// ==========================================
 
-export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget, contextInfo?: string): string => {
-  let output = '';
-
-  // 1. Header Global
-  output += `# ${data.moduleTitle}\n`;
-  output += `**Duration:** ${data.moduleDurationMinutes} min | **Format:** ${data.environment}\n\n`;
-
-  // --- DOMAIN CONTEXT ---
-  if (data.domainContext) {
-      output += `> **DOMAIN CONTEXT**\n`;
-      if (data.domainContext.industryTerms) {
-          const terms = Object.entries(data.domainContext.industryTerms).map(([k, v]) => `${k}: ${v}`).join('; ');
-          output += `> *Terms:* ${terms.substring(0, 100)}...\n`;
-      }
-      output += `\n`;
-  }
-
-  if (target === 'MANUAL' && contextInfo) {
-      output += `> **COURSE CONTEXT (VERIFICATION)**\n`;
-      output += `> This content was generated based on the following constraints:\n`;
-      output += `> ${contextInfo.replace(/\n/g, '\n> ')}\n\n`;
-      output += `---\n\n`;
-  }
-
-  if (target === 'EXAMPLES') {
-      return renderExamplesLibrary(data);
-  }
-
-  // 2. Iterate through sections
-  data.sections.forEach((section, index) => {
-    output += `---\n\n`; // Section separator
-    output += `## Section ${index + 1}: ${section.title} (${section.durationMinutes} min)\n\n`;
-
-    switch (target) {
-      case 'WORKBOOK':
-        output += renderWorkbookSection(section, data.localizedLabels);
-        break;
-      case 'MANUAL':
-        output += renderManualSection(section, data.narrativeContext.protagonistName, data.localizedLabels);
-        break;
-      case 'EXERCISES':
-        if (section.exercisesDetailed) {
-           output += renderExerciseSheet(section.exercisesDetailed, data.localizedLabels);
-        }
-        if (section.exerciseSequence && Array.isArray(section.exerciseSequence)) {
-            section.exerciseSequence.forEach(ex => {
-                output += renderExerciseSequenceItem(ex, data.localizedLabels);
-            });
-        }
-        if (!section.exercisesDetailed && (!section.exerciseSequence || section.exerciseSequence.length === 0)) {
-            output += `*(${data.localizedLabels?.activity || 'No detailed exercises in this section'})*\n\n`;
-        }
-        break;
-       case 'VIDEO_SCRIPT':
-         if (section.videoScript) {
-             output += renderVideoScript(section.videoScript, data.localizedLabels);
-         }
-         break;
+/** Build DNA blocks from course for prompt injection */
+function buildDNABlocks(course: Course): DNABlocks {
+  // T1: Terminology
+  let terminologyBlock = "";
+  if (course.dna?.terminology) {
+    const t = course.dna.terminology;
+    terminologyBlock = `\n\n### TERMINOLOGY RULES (STRICT)\n` +
+      `- Participant: ${t.participant || "Participant"}\n` +
+      `- Exercise: ${t.exercise || "Exercise"}\n` +
+      `- Trainer: ${t.trainer || "Trainer"}`;
+    if (t.mandatoryTerms && Object.keys(t.mandatoryTerms).length > 0) {
+      const termsList = Object.entries(t.mandatoryTerms).map(([k, v]: [string, any]) => {
+        if (typeof v === 'object' && v !== null && v.term) return `${v.term} (${v.definition || ''})`;
+        return `${k} -> ${v}`;
+      }).join(', ');
+      terminologyBlock += `\n- Mandatory Terms: ${termsList}`;
     }
-    output += `\n\n`;
-  });
-
-  return cleanMarkdown(output);
-};
-
-const renderWorkbookSection = (section: GoldenSection, labels: GoldenModuleData['localizedLabels']): string => {
-  // Special handling for BREAK type to avoid "Missing content" warning
-  if (section.type === 'BREAK') {
-      return `### ☕ ${section.title || 'Break'}\n\n*${labels?.duration || 'Duration'}: ${section.durationMinutes} min*\n\n`;
+    terminologyBlock += `\n`;
   }
 
-  const content = section.participantContent;
-  const exercise = section.exercisesDetailed;
+  // T2: Voice Profile
+  let voiceProfileBlock = "";
+  if (course.dna?.voiceProfile) {
+    const v = course.dna.voiceProfile;
+    const formality = (v.formality || '').toLowerCase();
+    const ARCHETYPES: Record<string, string> = {
+      professional: `**ARCHETYPE**: "The Mentor" (Professional & Warm)\n- Tone: Authoritative but accessible.\n- Style: Clear, structured, encouraging.\n- Forbidden: Slang, academic jargon.`,
+      energetic: `**ARCHETYPE**: "The Coach" (Energetic & Motivational)\n- Tone: High energy, punchy, action-oriented.\n- Style: Short sentences, strong verbs, calls to action.\n- Forbidden: Passive voice, long paragraphs.`,
+      casual: `**ARCHETYPE**: "The Buddy" (Relaxed & Direct)\n- Tone: Informal, peer-to-peer.\n- Style: Contractions, humor, direct address.\n- Forbidden: Stiff corporate speak.`,
+    };
+    let archetype = ARCHETYPES.professional;
+    if (formality.includes('casual') || formality.includes('buddy')) archetype = ARCHETYPES.casual;
+    if (formality.includes('energetic') || formality.includes('motivational')) archetype = ARCHETYPES.energetic;
 
-  if (!content && !exercise && (!section.exerciseSequence || section.exerciseSequence.length === 0)) {
-      return `> Missing content for section "${section.title}". Please regenerate this module.\n`;
+    voiceProfileBlock = `\n\n### VOICE & TONE (FROM DNA)\n${archetype}\n` +
+      `- Formality: ${v.formality || "Professional"}\n` +
+      `- Humor: ${v.humorLevel || (v as any).humor || "Light"}\n`;
+    if (v.forbiddenPhrases?.length) voiceProfileBlock += `- Forbidden: ${v.forbiddenPhrases.join(', ')}\n`;
+    if (v.signaturePhrases?.length) voiceProfileBlock += `- Signature: ${v.signaturePhrases.join(', ')}\n`;
+    voiceProfileBlock += `\n`;
   }
 
-  let md = `### ${section.title}\n\n`;
-
-  if (content && content.theoryMarkdown) {
-    md += `${content.theoryMarkdown}\n\n`;
+  // T3: Learning Philosophy
+  let philosophyBlock = "";
+  if (course.dna?.learningPhilosophy) {
+    const p = course.dna.learningPhilosophy;
+    philosophyBlock = `\n\n### LEARNING PHILOSOPHY\n`;
+    if (p.manifesto?.length) philosophyBlock += `- Manifesto: ${p.manifesto.join('. ')}\n`;
+    if (p.rules_of_engagement?.length) philosophyBlock += `- Rules: ${p.rules_of_engagement.join('. ')}\n`;
+    philosophyBlock += `\n`;
   }
 
-  if (content && content.keyTakeaways && Array.isArray(content.keyTakeaways) && content.keyTakeaways.length > 0) {
-    md += `#### 🔑 ${labels?.keyTakeaways || 'Key Takeaways'}\n`;
-    content.keyTakeaways.forEach(pt => {
-      md += `- ${pt}\n`;
-    });
-    md += `\n`;
-  }
-
-  if (content && content.actionableSteps && Array.isArray(content.actionableSteps) && content.actionableSteps.length > 0) {
-    md += `#### 🚀 ${labels?.actionPlan || 'Action Plan'}\n`;
-    content.actionableSteps.forEach((step, i) => {
-      md += `${i + 1}. ${step}\n`;
-    });
-    md += `\n\n`;
-  }
-
-  if (exercise) {
-    const activityLabel = labels?.activity || 'Practical Exercise';
-    if (exercise.title) {
-      md += `#### 🎯 ${activityLabel}: ${exercise.title}\n\n`;
-    } else {
-      md += `#### 🎯 ${activityLabel}\n\n`;
+  // T4: Domain Context
+  let domainContextBlock = "";
+  if (course.dna?.domainContext) {
+    const d = course.dna.domainContext;
+    domainContextBlock = `\n\n### DOMAIN & INDUSTRY CONTEXT (CRITICAL)\n`;
+    if (d.industryTerms && Object.keys(d.industryTerms).length > 0) {
+      domainContextBlock += `**Industry Terms**:\n`;
+      Object.entries(d.industryTerms).forEach(([term, def]) => { domainContextBlock += `- ${term}: ${def}\n`; });
     }
-
-    if (exercise.objective) {
-      md += `**${labels?.objective || 'Objective'}:** ${exercise.objective}\n\n`;
+    if (d.clientProfiles?.length) {
+      domainContextBlock += `\n**Client Profiles**:\n`;
+      d.clientProfiles.forEach((cp: any) => { domainContextBlock += `- ${cp.type}: ${cp.decisionLogic} (Approach: ${cp.approach})\n`; });
     }
-
-    if (typeof exercise.durationMinutes === 'number' && exercise.durationMinutes > 0) {
-      md += `**${labels?.duration || 'Duration'}:** ${exercise.durationMinutes} min\n\n`;
+    if (d.productCatalog?.length) {
+      domainContextBlock += `\n**Product Catalog**:\n`;
+      d.productCatalog.forEach((pc: any) => { domainContextBlock += `- ${pc.category}: ${pc.items.join(', ')}\n`; });
     }
-
-    if (exercise.instructionsParticipant) {
-      md += `**${labels?.instructionsParticipant || 'Instructions for you'}:**\n`;
-      md += `${exercise.instructionsParticipant}\n\n`;
+    if (d.competitorIntelligence?.length) {
+      domainContextBlock += `\n**Competitor Intelligence**:\n`;
+      d.competitorIntelligence.forEach((ci: any) => { domainContextBlock += `- ${ci.name} (Weakness: ${ci.weaknesses.join(', ')}) -> Counter: ${ci.counterStrategy}\n`; });
     }
-
-    md += `**${labels?.activity || 'Workspace'}:**\n\n`;
-    md += `\n\n\n\n\n`;
-
-    if (exercise.successIndicators && Array.isArray(exercise.successIndicators) && exercise.successIndicators.length > 0) {
-      md += `**${labels?.debrief || 'Success Checklist'}:**\n`;
-      exercise.successIndicators.forEach(item => {
-        md += `- [ ] ${item}\n`;
-      });
-      md += `\n`;
+    if (d.negotiationFrameworks?.length) {
+      domainContextBlock += `\n**Negotiation Frameworks**:\n`;
+      d.negotiationFrameworks.forEach((nf: any) => { domainContextBlock += `- ${nf.name}: ${nf.steps.join(' -> ')}\n`; });
     }
+    domainContextBlock += `\n`;
   }
 
-  if (section.exerciseSequence && Array.isArray(section.exerciseSequence)) {
-      const typeLabel = labels?.activity || 'Activity';
-      section.exerciseSequence.forEach(ex => {
-           md += `#### 🔄 ${typeLabel}: ${ex.title} (${ex.type})\n\n`;
-           md += `**${labels?.duration || 'Duration'}:** ${ex.durationMinutes} min\n\n`;
-           
-           if (ex.instructionsParticipant) {
-             md += `**${labels?.instructionsParticipant || 'Instructions'}:**\n`;
-             md += `${ex.instructionsParticipant}\n\n`;
-           }
-           
-           md += `**${labels?.activity || 'Workspace'}:**\n\n\n\n\n`;
-           
-           if (ex.successIndicators && Array.isArray(ex.successIndicators)) {
-             md += `**${labels?.debrief || 'Success Checklist'}:**\n`;
-             ex.successIndicators.forEach(item => {
-               md += `- [ ] ${item}\n`;
-             });
-             md += `\n`;
-           }
-      });
-  }
+  // T5: Environment constraints
+  const envConstraints = (course.environment || 'LIVE').toUpperCase() === 'ONLINE'
+    ? `**ENVIRONMENT: ONLINE (VIRTUAL CLASSROOM — ZOOM/TEAMS)**
+- INTERACTION: Must use "Breakout Rooms", "Chat Polls", "Miro Board links", "Screen Share".
+- CONSTRAINTS: Max 10 min monologues (Zoom Fatigue). Frequent "Type in chat" prompts.
+- MATERIALS: PDFs, Digital Workbooks, Online Quizzes.`
+    : `**ENVIRONMENT: LIVE (IN-PERSON WORKSHOP)**
+- INTERACTION: Face-to-face ONLY: "Turn to your neighbor", "Physical Flipcharts", "Room Movement", "Gallery Walk", "Role Play in room", "Group Discussions".
+- FORBIDDEN: DO NOT mention videos, webinars, online dashboards, virtual forums, zoom links, or screen sharing.
+- MATERIALS: Printed Workbooks, Sticky Notes, Markers, Flipchart paper.`;
 
-  if (content && content.reflectionQuestions && Array.isArray(content.reflectionQuestions) && content.reflectionQuestions.length > 0) {
-    md += `#### 🤔 ${labels?.reflection || 'Reflection'}\n`;
-    content.reflectionQuestions.forEach(q => {
-      md += `**${q}**\n\n`;
-      md += `\n\n\n\n`;
-    });
-  }
-
-  return md;
-};
-
-const renderManualSection = (section: GoldenSection, protagonistName: string, labels: GoldenModuleData['localizedLabels']): string => {
-  const instr = section.trainerInstructions;
-  if (!instr) {
-      return `> Missing trainer instructions for section "${section.title}"\n`;
-  }
-
-  let md = `### 👨‍🏫 ${labels?.trainerInstructions || 'Trainer Instructions'}\n`;
-  md += `**${labels?.method || 'Method'}:** ${instr.deliveryMethod || 'N/A'}\n\n`;
-
-  if (instr.logistics && Array.isArray(instr.logistics) && instr.logistics.length > 0) {
-      md += `**🛠️ Logistics:** ${instr.logistics.join(', ')}\n\n`;
-  }
-
-  if (instr.flipchartSketch) {
-      md += `**🎨 FLIPCHART SKETCH:**\n`;
-      md += `*Title:* ${instr.flipchartSketch.title || 'Untitled'}\n`;
-      md += `*Draw:* ${instr.flipchartSketch.visualDescription || 'No description'}\n`;
-      if (instr.flipchartSketch.bulletPoints && Array.isArray(instr.flipchartSketch.bulletPoints)) {
-          md += `*Write:* \n${instr.flipchartSketch.bulletPoints.map(b => `  - ${b}`).join('\n')}\n\n`;
-      }
-  }
-
-  if (instr.breakoutRoomConfig) {
-      md += `**💻 BREAKOUT ROOMS:**\n`;
-      md += `*Groups:* ${instr.breakoutRoomConfig.groupSize || 2} pax | *Time:* ${instr.breakoutRoomConfig.duration || 15} min\n`;
-      md += `*Task:* ${instr.breakoutRoomConfig.taskDescription || 'Discuss'}\n\n`;
-  }
-
-  if (instr.script) {
-    md += `#### 🗣️ ${labels?.script || 'Script (Verbatim)'}\n`;
-    md += `> ${instr.script.replace(/\n/g, '\n> ')}\n\n`;
-  }
-
-  if (section.visuals && section.visuals.slidesSequence && Array.isArray(section.visuals.slidesSequence) && section.visuals.slidesSequence.length > 0) {
-      md += `#### 🖼️ Visuals Cue\n`;
-      section.visuals.slidesSequence.forEach(slide => {
-          md += `- **[Slide ${slide.slideId || '?'}]:** ${slide.title || 'Untitled'} (Note: ${(slide.speakerNotes || '').substring(0, 50)}...)\n`;
-      });
-  }
-
-  return md;
-};
-
-const renderExerciseSheet = (exercise: NonNullable<GoldenSection['exercisesDetailed']>, labels: GoldenModuleData['localizedLabels']): string => {
-    let md = `### 🏋️ ${labels?.activity || 'Activity'}: ${exercise.title}\n`;
-    md += `**${labels?.objective || 'Objective'}:** ${exercise.objective}\n`;
-    md += `**${labels?.duration || 'Time'}:** ${exercise.durationMinutes} min\n\n`;
-
-    md += `#### ${labels?.instructionsParticipant || 'Instructions (Participant)'}\n${exercise.instructionsParticipant}\n\n`;
-    md += `#### ${labels?.instructionsFacilitator || 'Instructions (Facilitator)'}\n${exercise.instructionsFacilitator}\n\n`;
-    
-    if (exercise.debriefingQuestions && Array.isArray(exercise.debriefingQuestions)) {
-      md += `#### ${labels?.debrief || 'Debriefing Questions'}\n`;
-      exercise.debriefingQuestions.forEach(q => md += `- ${q}\n`);
-    }
-    
-    if (exercise.adaptationNotes) {
-        md += `\n**⚠️ Adaptation Note:** ${exercise.adaptationNotes}\n`;
-    }
-
-    return md;
-};
-
-const renderExerciseSequenceItem = (ex: any, labels: GoldenModuleData['localizedLabels']): string => {
-    let md = `### 🔄 ${labels?.activity || 'Sequence'}: ${ex.title} (${ex.type})\n`;
-    md += `**${labels?.duration || 'Time'}:** ${ex.durationMinutes} min\n\n`;
-
-    md += `#### ${labels?.instructionsParticipant || 'Instructions (Participant)'}\n${ex.instructionsParticipant}\n\n`;
-    md += `#### ${labels?.instructionsFacilitator || 'Instructions (Facilitator)'}\n${ex.instructionsFacilitator}\n\n`;
-    
-    if (ex.materialsNeeded && Array.isArray(ex.materialsNeeded) && ex.materialsNeeded.length > 0) {
-        md += `**Materials:** ${ex.materialsNeeded.join(', ')}\n\n`;
-    }
-
-    if (ex.debriefingQuestions && Array.isArray(ex.debriefingQuestions)) {
-      md += `#### ${labels?.debrief || 'Debriefing Questions'}\n`;
-      ex.debriefingQuestions.forEach((q: string) => md += `- ${q}\n`);
-    }
-    
-    if (ex.successIndicators && Array.isArray(ex.successIndicators)) {
-      md += `#### Success Indicators\n`;
-      ex.successIndicators.forEach((s: string) => md += `- [ ] ${s}\n`);
-    }
-
-    if (ex.adaptationNotes) {
-        md += `\n**⚠️ Adaptation Note:** ${ex.adaptationNotes}\n`;
-    }
-    
-    md += `\n---\n\n`;
-
-    return md;
-};
-
-const renderExamplesLibrary = (data: GoldenModuleData): string => {
-    let md = `# Examples Library for ${data.moduleTitle}\n`;
-    const protagonist = data.narrativeContext?.protagonistName || 'Protagonist';
-    const stage = data.narrativeContext?.storyArcStage || 'N/A';
-    md += `*Context: ${protagonist} is in stage: "${stage}"*\n\n`;
-    
-    if (data.narrativeContext && data.narrativeContext.examplesLibrary && Array.isArray(data.narrativeContext.examplesLibrary)) {
-      data.narrativeContext.examplesLibrary.forEach(ex => {
-          md += `## Example: ${ex.title}\n`;
-          md += `**When to use:** ${ex.applicationContext}\n\n`;
-          md += `"${ex.storyContent}"\n\n`;
-          md += `---\n\n`;
-      });
-    }
-    
-    return md;
-};
-
-const renderVideoScript = (video: NonNullable<GoldenSection['videoScript']>, labels: GoldenModuleData['localizedLabels']): string => {
-    let md = `### 🎥 ${labels?.videoScript || 'Video Script'}\n`;
-    md += `**Scene:** ${video.sceneDescription}\n\n`;
-    md += `**Script:**\n${video.scriptContent}\n\n`;
-    
-    if(video.visualOverlays && Array.isArray(video.visualOverlays) && video.visualOverlays.length > 0) {
-        md += `**Overlays:**\n`;
-        video.visualOverlays.forEach(o => md += `- [${o.timestamp}] ${o.description}\n`);
-    }
-    return md;
+  return { terminologyBlock, voiceProfileBlock, philosophyBlock, domainContextBlock, envConstraints };
 }
 
-export const renderToXml = (data: GoldenModuleData): string => {
-  let xmlOutput = '';
-  let slideCount = 0;
+/** Build a fallback ModuleContext when LLM generation fails */
+function buildFallbackModuleContext(
+  course: Course,
+  moduleData: any,
+  protagonistName: string,
+  storyStage: string
+): ModuleContext {
+  const modules = (course.blueprint && Array.isArray(course.blueprint.modules)) ? course.blueprint.modules : [];
+  const moduleIndex = moduleData.module_index ?? 0;
+  const duration = moduleData.duration_minutes || 60;
 
-  data.sections.forEach((section, sIndex) => {
-    if (section.visuals && section.visuals.slidesSequence && Array.isArray(section.visuals.slidesSequence)) {
-      section.visuals.slidesSequence.forEach((slide, slIndex) => {
-        try {
-          xmlOutput += `<SLIDE_BEGIN id="${slide.slideId || `s_${sIndex}_${slIndex}`}">${'\n'}`;
-          xmlOutput += `<TITLE>${escapeXml(slide.title)}</TITLE>${'\n'}`;
-          xmlOutput += `<!-- slide-layout: ${slide.layout || 'BULLETS'} -->${'\n'}`;
-          xmlOutput += `<VISUAL>${escapeXml(slide.visualDescription)}</VISUAL>${'\n'}`;
-          xmlOutput += `<CONTENT>${'\n'}`;
-          if (Array.isArray(slide.contentBullets)) {
-            slide.contentBullets.forEach(bullet => {
-              xmlOutput += `- ${escapeXml(bullet)}${'\n'}`;
-            });
-          } else if (typeof slide.contentBullets === 'string') {
-             // Handle case where LLM returned a string instead of array
-             const bullets = (slide.contentBullets as string).split('\n').map(b => b.replace(/^-\s*/, '').trim()).filter(b => b.length > 0);
-             bullets.forEach(bullet => {
-               xmlOutput += `- ${escapeXml(bullet)}${'\n'}`;
-             });
-          }
-          xmlOutput += `</CONTENT>${'\n'}`;
-          xmlOutput += `<NOTES>${escapeXml(slide.speakerNotes)}</NOTES>${'\n'}`;
-          xmlOutput += `<SLIDE_END id="${slide.slideId || `s_${sIndex}_${slIndex}`}">${'\n'}${'\n'}`;
-          slideCount++;
-        } catch (e) {
-          Logger.warn(`Failed to render slide ${slIndex} in section ${sIndex}`, e);
-        }
-      });
+  return {
+    contextVersion: 'v4.0',
+    moduleId: moduleData.id,
+    moduleTitle: moduleData.title,
+    moduleDurationMinutes: duration,
+    environment: course.environment as CourseEnvironment || 'LIVE',
+    language: course.language || 'ro',
+    targetAudience: course.target_audience || 'General',
+    keyConcepts: [{
+      id: 'c1',
+      name: moduleData.title,
+      durationMinutes: Math.round(duration * 0.6),
+      type: 'THEORY',
+      coreIdea: `Core concepts for ${moduleData.title}`,
+      keyTerms: [],
+    }],
+    narrative: {
+      protagonistName,
+      protagonistRole: course.dna?.narrativeUniverse?.protagonists?.[0]?.role || 'Professional',
+      storyStageForThisModule: storyStage,
+      coreProblemInThisModule: `Key challenge addressed in ${moduleData.title}`,
+    },
+    macroPosition: {
+      isFirstModule: moduleIndex === 0,
+      isLastModule: moduleIndex === modules.length - 1,
+      previousModuleTitle: moduleIndex > 0 ? (modules[moduleIndex - 1]?.title || null) : null,
+      nextModuleTitle: moduleIndex < modules.length - 1 ? (modules[moduleIndex + 1]?.title || null) : null,
+      transitionNote: 'Continues from previous module concepts.',
+    },
+    timingPlan: [
+      { sectionTitle: 'Introducere', durationMinutes: 10, type: 'INTRO', conceptRef: null },
+      { sectionTitle: 'Concepte Cheie', durationMinutes: Math.round(duration * 0.4), type: 'THEORY', conceptRef: 'c1' },
+      { sectionTitle: 'Aplicare Practică', durationMinutes: Math.round(duration * 0.35), type: 'EXERCISE', conceptRef: 'c1' },
+      { sectionTitle: 'Debrief & Concluzii', durationMinutes: Math.round(duration * 0.15), type: 'DEBRIEF', conceptRef: null },
+    ],
+  };
+}
+
+/** Generate (or regenerate) the ModuleContext JSON and save it to course_modules.content_data */
+async function generateModuleContext(
+  supabase: any,
+  course: Course,
+  moduleData: any,
+  protagonistName: string,
+  storyStage: string
+): Promise<ModuleContext> {
+  const lang = course.language || 'ro';
+  const dna = buildDNABlocks(course);
+  const modules = (course.blueprint && Array.isArray(course.blueprint.modules)) ? course.blueprint.modules : [];
+  const moduleIndex = moduleData.module_index ?? 0;
+  const moduleList = modules.map((m: any, i: number) => `${i + 1}. ${m.title} (${m.duration || '45 min'})`).join('\n');
+
+  // MacroContext: position in schedule
+  let macroContext = `Module ${moduleIndex + 1} of ${modules.length}.`;
+  if (course.macro_plan && Array.isArray(course.macro_plan.macroBlocks)) {
+    const blocks = course.macro_plan.macroBlocks;
+    const idx = blocks.findIndex((b: any) =>
+      b.moduleRef === moduleData.id ||
+      (b.title && moduleData.title && b.title.toLowerCase() === moduleData.title.toLowerCase())
+    );
+    if (idx !== -1) {
+      const prev = idx > 0 ? blocks[idx - 1] : null;
+      const next = idx < blocks.length - 1 ? blocks[idx + 1] : null;
+      macroContext = `Block #${idx + 1} of ${blocks.length}. Duration: ${blocks[idx].duration} min.`;
+      if (prev) macroContext += ` Previous: "${prev.title || prev.type}" (${prev.duration} min).`;
+      if (next) macroContext += ` Next: "${next.title || next.type}" (${next.duration} min).`;
     }
-  });
-
-  if (slideCount === 0) {
-    Logger.warn("[renderToXml] No slides were generated/found in Golden Data.");
-    // Fallback: Generate a title slide at least to avoid empty output
-    xmlOutput += `<SLIDE_BEGIN id="fallback_title">\n`;
-    xmlOutput += `<TITLE>${escapeXml(data.moduleTitle)}</TITLE>\n`;
-    xmlOutput += `<!-- slide-layout: TITLE -->\n`;
-    xmlOutput += `<VISUAL>Minimalist title slide with course branding</VISUAL>\n`;
-    xmlOutput += `<CONTENT>\n- ${escapeXml(data.localizedLabels?.duration || 'Duration')}: ${data.moduleDurationMinutes} min\n</CONTENT>\n`;
-    xmlOutput += `<NOTES>Welcome to the module.</NOTES>\n`;
-    xmlOutput += `<SLIDE_END id="fallback_title">\n\n`;
   }
 
-  return xmlOutput;
-};
+  const knowledgeBase = await buildKnowledgeBaseContext(supabase, course.id, lang);
+  const mandatoryCtx = buildMandatoryContext(course);
 
-
-
-const cleanMarkdown = (text: string): string => {
-  return text
-    .replace(/\\n/g, '\n')
-    .replace(/\n\s*\n/g, '\n\n')
-    .trim();
-};
-
-const escapeXml = (unsafe: string): string => {
-  if (!unsafe || typeof unsafe !== 'string') return '';
-  return unsafe.replace(/[<>&'"]/g, (c) => {
-    switch (c) {
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '&': return '&amp;';
-      case '\'': return '&apos;';
-      case '"': return '&quot;';
-      default: return c;
-    }
+  const prompt = fillPromptTemplate(MODULE_CONTEXT_PROMPT, {
+    courseTitle: course.title || 'Untitled',
+    moduleTitle: moduleData.title,
+    durationMinutes: moduleData.duration_minutes || 60,
+    modulePosition: `${moduleIndex + 1} of ${modules.length}`,
+    language: lang,
+    environment: course.environment || 'LIVE',
+    targetAudience: course.target_audience || 'General',
+    learningObjectives: String((course as any).learning_objectives || 'Not specified'),
+    moduleList,
+    terminology: dna.terminologyBlock,
+    voiceProfile: dna.voiceProfileBlock,
+    domainContext: dna.domainContextBlock,
+    macroContext,
+    knowledgeBase,
+    storyStage,
+    protagonistName,
+    moduleId: moduleData.id,
   });
-};
+
+  try {
+    const rawJson = await callLLM(`${mandatoryCtx}\n\n${prompt}`, lang);
+    const ctx = repairAndParseJson<ModuleContext>(rawJson);
+    if (!isValidModuleContext(ctx)) throw new Error('ModuleContext failed validation');
+    ctx.moduleId = moduleData.id;
+    ctx.contextVersion = 'v4.0';
+    ctx.language = lang;
+    ctx.environment = course.environment as CourseEnvironment || 'LIVE';
+    return ctx;
+  } catch (e: any) {
+    Logger.error('Failed to generate ModuleContext, using fallback.', e);
+    return buildFallbackModuleContext(course, moduleData, protagonistName, storyStage);
+  }
+}
+
+/** Build a formatted string of key concepts for prompt injection */
+function formatKeyConcepts(ctx: ModuleContext): string {
+  return ctx.keyConcepts.map((c, i) =>
+    `${i + 1}. **${c.name}** (${c.durationMinutes} min, ${c.type})\n   Core: ${c.coreIdea}\n   Terms: ${(c.keyTerms || []).join(', ') || 'N/A'}`
+  ).join('\n');
+}
+
+/** Build a formatted timing plan string for prompt injection */
+function formatTimingPlan(ctx: ModuleContext): string {
+  return ctx.timingPlan.map(t =>
+    `- [${t.type}] "${t.sectionTitle}" (${t.durationMinutes} min)${t.conceptRef ? ` → concept: ${t.conceptRef}` : ''}`
+  ).join('\n');
+}
+
+// ---- Per-Deliverable Generator Functions ----
+
+/** Generate participant workbook markdown for a module */
+async function generateWorkbookContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
+  const lang = ctx.language || course.language || 'ro';
+  const isOnline = ctx.environment === 'ONLINE';
+  const specsObj = getDepthSpecs(lang, isOnline ? 'online' : 'live');
+  const goldenSamples = isOnline ? GOLDEN_SAMPLES.workbook_online : GOLDEN_SAMPLES.workbook_live;
+  const envRules = isOnline
+    ? 'ONLINE: Use digital templates, "Type in chat" activities, no physical group exercises.'
+    : 'LIVE: Physical activities, printed workbooks, flipcharts. ABSOLUTELY NO online/zoom references.';
+
+  const prompt = fillPromptTemplate(WORKBOOK_PROMPT, {
+    moduleTitle: ctx.moduleTitle,
+    durationMinutes: ctx.moduleDurationMinutes,
+    environment: ctx.environment,
+    language: lang,
+    targetAudience: ctx.targetAudience,
+    protagonistName: ctx.narrative.protagonistName,
+    protagonistRole: ctx.narrative.protagonistRole,
+    storyStage: ctx.narrative.storyStageForThisModule,
+    coreProblem: ctx.narrative.coreProblemInThisModule,
+    keyConcepts: formatKeyConcepts(ctx),
+    timingPlan: formatTimingPlan(ctx),
+    styleBlock: getStyleBlock(course.target_audience || ''),
+    terminology: dna.terminologyBlock,
+    voiceProfile: dna.voiceProfileBlock,
+    depthSpecs: specsObj.workbook,
+    envConstraints: dna.envConstraints,
+    envRules,
+    goldenSamples,
+    participantTerm: course.dna?.terminology?.participant || 'Participant',
+    trainerTerm: course.dna?.terminology?.trainer || 'Trainer',
+    exerciseTerm: course.dna?.terminology?.exercise || 'Exercise',
+    objectiveLabel: (lang || '').startsWith('ro') ? 'Obiectiv' : 'Objective',
+  });
+
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
+  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+}
+
+/** Generate facilitator/trainer manual markdown for a module */
+async function generateManualContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
+  const lang = ctx.language || course.language || 'ro';
+  const isOnline = ctx.environment === 'ONLINE';
+  const envRules = isOnline
+    ? 'ONLINE: Use Breakout Rooms, Chat Polls, Miro Boards. Max 10 min monologues.'
+    : 'LIVE: Face-to-face activities only. Flipcharts, role-plays, group discussions. NO virtual tools.';
+
+  const macroPos = `Previous module: ${ctx.macroPosition.previousModuleTitle || 'None (this is first)'}\nNext module: ${ctx.macroPosition.nextModuleTitle || 'None (this is last)'}\nTransition note: ${ctx.macroPosition.transitionNote}`;
+
+  const prompt = fillPromptTemplate(MANUAL_PROMPT, {
+    moduleTitle: ctx.moduleTitle,
+    durationMinutes: ctx.moduleDurationMinutes,
+    environment: ctx.environment,
+    language: lang,
+    targetAudience: ctx.targetAudience,
+    protagonistName: ctx.narrative.protagonistName,
+    protagonistRole: ctx.narrative.protagonistRole,
+    storyStage: ctx.narrative.storyStageForThisModule,
+    coreProblem: ctx.narrative.coreProblemInThisModule,
+    keyConcepts: formatKeyConcepts(ctx),
+    timingPlan: formatTimingPlan(ctx),
+    terminology: dna.terminologyBlock,
+    voiceProfile: dna.voiceProfileBlock,
+    philosophy: dna.philosophyBlock,
+    macroPosition: macroPos,
+    envConstraints: dna.envConstraints,
+    envRules,
+  });
+
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
+  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+}
+
+/** Generate presentation slides XML for a module */
+async function generateSlidesContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
+  const lang = ctx.language || course.language || 'ro';
+  const isOnline = ctx.environment === 'ONLINE';
+  const slideCount = Math.round(ctx.moduleDurationMinutes / 6);
+  const envRules = isOnline
+    ? 'ONLINE: Include "Type in chat" and poll cues in speaker notes.'
+    : 'LIVE: Include show-of-hands, think-pair-share cues in speaker notes. NO virtual tool references.';
+
+  const prompt = fillPromptTemplate(SLIDES_PROMPT, {
+    moduleTitle: ctx.moduleTitle,
+    durationMinutes: ctx.moduleDurationMinutes,
+    environment: ctx.environment,
+    language: lang,
+    targetAudience: ctx.targetAudience,
+    protagonistName: ctx.narrative.protagonistName,
+    coreProblem: ctx.narrative.coreProblemInThisModule,
+    keyConcepts: formatKeyConcepts(ctx),
+    timingPlan: formatTimingPlan(ctx),
+    styleBlock: getStyleBlock(course.target_audience || ''),
+    envConstraints: dna.envConstraints,
+    envRules,
+    moduleId: ctx.moduleId,
+    slideCount,
+  });
+
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
+  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+}
+
+/** Generate exercise sheets markdown for a module */
+async function generateExercisesContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
+  const lang = ctx.language || course.language || 'ro';
+  const isOnline = ctx.environment === 'ONLINE';
+  const specsObj = getDepthSpecs(lang, isOnline ? 'online' : 'live', 80);
+  const envRules = isOnline
+    ? 'ONLINE: Individual or breakout room exercises. Provide digital templates.'
+    : 'LIVE: Physical exercises, printed handouts. Groups, pairs, or individual. NO virtual tools.';
+
+  const prompt = fillPromptTemplate(EXERCISES_PROMPT, {
+    moduleTitle: ctx.moduleTitle,
+    durationMinutes: ctx.moduleDurationMinutes,
+    environment: ctx.environment,
+    language: lang,
+    targetAudience: ctx.targetAudience,
+    protagonistName: ctx.narrative.protagonistName,
+    protagonistRole: ctx.narrative.protagonistRole,
+    keyConcepts: formatKeyConcepts(ctx),
+    timingPlan: formatTimingPlan(ctx),
+    depthSpecs: specsObj.exercises,
+    envConstraints: dna.envConstraints,
+    envRules,
+    exerciseTerm: course.dna?.terminology?.exercise || 'Exercise',
+    objectiveLabel: (lang || '').startsWith('ro') ? 'Obiectiv' : 'Objective',
+  });
+
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
+  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+}
+
+/** Generate video scripts markdown for an online module */
+async function generateVideoScriptContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
+  const lang = ctx.language || course.language || 'ro';
+
+  const prompt = fillPromptTemplate(VIDEO_SCRIPT_PROMPT, {
+    moduleTitle: ctx.moduleTitle,
+    durationMinutes: ctx.moduleDurationMinutes,
+    language: lang,
+    targetAudience: ctx.targetAudience,
+    protagonistName: ctx.narrative.protagonistName,
+    voiceProfile: dna.voiceProfileBlock,
+    keyConcepts: formatKeyConcepts(ctx),
+    timingPlan: formatTimingPlan(ctx),
+  });
+
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
+  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+}
+
+/** Generate examples/stories markdown for a module */
+async function generateExamplesContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
+  const lang = ctx.language || course.language || 'ro';
+  const prompt = `
+**TASK**: Write 3-5 detailed stories/examples for the training module "${ctx.moduleTitle}".
+**LANGUAGE**: ${lang}
+**PROTAGONIST**: ${ctx.narrative.protagonistName} (${ctx.narrative.protagonistRole})
+**AUDIENCE**: ${ctx.targetAudience}
+**CORE PROBLEM**: ${ctx.narrative.coreProblemInThisModule}
+
+**KEY CONCEPTS**:
+${formatKeyConcepts(ctx)}
+
+For each story, use this format:
+## Exemplu: [Title]
+**Când se folosește:** [applicationContext]
+
+"[Full story: Context → Problem → Action → Result. Minimum 150 words each. Feature ${ctx.narrative.protagonistName} as protagonist.]"
+
+---
+
+Write ALL in **${lang}**. No preamble.
+`;
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
+  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+}
 
 // ==========================================
 // 6. MAIN HANDLER (CONTROLLER)
@@ -1950,7 +2424,8 @@ serve(async (req) => {
 
     let result = "";
 
-    // A. Global Steps (Course Level)
+    // A. Global Steps (Course Level) — handled by handleLegacyStep (no module_id required)
+    // Per-module deliverables (workbook, manual, slides, exercises, etc.) go to handleGoldenStep.
     const GLOBAL_STEPS = [
   'course.steps.structure',
   'structure',
@@ -1967,13 +2442,6 @@ serve(async (req) => {
   'course_macro_structure',
   'course.steps.course_slides',
   'course_slides',
-  'exercises',
-  'examples_and_stories',
-  'facilitator_notes',
-  'slides',
-  'facilitator_manual',
-  'participant_workbook',
-  'video_scripts',
   'cheat_sheets',
   'projects',
   'tests'
@@ -2153,11 +2621,6 @@ function extractModulesFromMarkdown(markdown: string): string[] {
   return modules;
 }
 
-function isValidGoldenData(data: any): boolean {
-  if (!data || typeof data !== 'object') {
-    Logger.warn("[Validation] Data is null or not an object");
-    return false;
-  }
   
   // 1. Check Root Fields
   // Note: localizedLabels is checked separately and patched if missing, so we don't fail validation for it.
@@ -2184,31 +2647,6 @@ function isValidGoldenData(data: any): boolean {
   return true;
 }
 
-function getLocalizedLabels(language: string): GoldenModuleData['localizedLabels'] {
-  const isRo = (language || '').toLowerCase().startsWith('ro');
-  
-  if (isRo) {
-    return {
-      duration: "Durata",
-      format: "Format",
-      section: "Secțiunea",
-      theory: "Teorie & Concepte",
-      keyTakeaways: "Idei Principale",
-      actionPlan: "Plan de Acțiune",
-      reflection: "Reflecție",
-      trainerInstructions: "Instrucțiuni Trainer",
-      method: "Metodă",
-      logistics: "Logistică",
-      script: "Script",
-      activity: "Activitate",
-      objective: "Obiectiv",
-      instructionsParticipant: "Instrucțiuni Participant",
-      instructionsFacilitator: "Instrucțiuni Facilitator",
-      debrief: "Întrebări de Debrief",
-      example: "Exemplu",
-      videoScript: "Script Video"
-    };
-  }
   
   // Default English
   return {
@@ -2234,12 +2672,12 @@ function getLocalizedLabels(language: string): GoldenModuleData['localizedLabels
 }
 
 async function handleGoldenStep(
-  supabase: any, 
-  course: Course, 
-  module_id: string, 
+  supabase: any,
+  course: Course,
+  module_id: string,
   step_type: string
 ): Promise<string> {
-  
+
   const { data: moduleData, error: moduleError } = await supabase
     .from('course_modules')
     .select('*')
@@ -2249,462 +2687,92 @@ async function handleGoldenStep(
   if (moduleError || !moduleData) throw new Error(`Module not found: ${module_id}`);
 
   if (!hasMinimalCourseDNA(course)) {
-    Logger.warn('Course DNA is incomplete. Materials may be generic until DNA is refined.', {
+    Logger.warn('[GoldenStep] Course DNA is incomplete. Materials may be generic.', {
       courseId: course.id,
       hasDna: !!course.dna
     });
   }
 
-  const storyArc = await getOrCreateStoryArc(supabase, course, moduleData.module_index);
-  const currentStoryStage = storyArc[module_id] || storyArc[moduleData.module_index] || "Protagonist applies the concepts.";
-
-  const isDirty = (moduleData as any).is_dirty === true;
-
-  let goldenData: GoldenModuleData | null = moduleData.content_data;
-
-  // STRICT VALIDATION: Check if existing Golden Data is valid
-  // If it's missing OR invalid, we MUST regenerate it before proceeding to any specific deliverable.
-  const isInvalid = !isValidGoldenData(goldenData);
-  const shouldRegenerate = isInvalid || isDirty;
-
-  if (!shouldRegenerate && goldenData) {
-      // Patch missing labels if valid but incomplete
-      if (!goldenData.localizedLabels) {
-          goldenData.localizedLabels = getLocalizedLabels(course.language || 'ro');
-          Logger.info("[GoldenPath] Patched missing localizedLabels in existing data.");
-      }
-  }
-
-  if (step_type === 'facilitator_manual' || step_type === 'trainer_manual') {
-      const mandatoryContext = buildMandatoryContext(course);
-      const modules = (course.blueprint && Array.isArray(course.blueprint.modules)) ? course.blueprint.modules : [];
-      const moduleList = modules.map((m: any, i: number) => `${i + 1}. ${m.title} (${m.duration || '45 min'})`).join('\n');
-
-      const prompt = `
-      **TASK**: Create a Comprehensive Facilitator Manual (Trainer Guide).
-      **COURSE**: "${course.title}"
-      **TARGET AUDIENCE**: "${course.target_audience}"
-      **LANGUAGE**: ${course.language || 'Romanian'} (STRICT)
-      **ENVIRONMENT**: ${course.environment || 'LIVE'}
-
-      ${mandatoryContext}
-
-      **COURSE MODULES**:
-      ${moduleList}
-
-      **GOAL**: 
-      Provide a professional, step-by-step guide for the trainer to deliver this course effectively.
-      The tone should be DIRECTIVE (imperative), CLEAR, and ENCOURAGING.
-      
-      **CRITICAL STYLE RULES (NON-NEGOTIABLE)**:
-      1. **IMPERATIVE ONLY**: Write instructions as commands, not descriptions.
-         - **BAD**: "The trainer should explain the concept."
-         - **GOOD**: "Explain the concept. Use the flipchart to draw..."
-         - **BAD**: "Facilitate a discussion."
-         - **GOOD**: "Ask the group: 'What do you think?' and list answers."
-      2. **NO META-COMMENTARY**: Do not describe what the section is about. Just write the instruction.
-      3. **LANGUAGE**: All content (titles, instructions, questions) must be in **${course.language || 'Romanian'}**.
-         - **DO NOT** mix English instructions with Romanian content.
-         - **DO NOT** translate industry terms if they are standard in English (e.g., "ROI", "KPI"), but explain them in Romanian.
-
-      **STRUCTURE**:
-      1. **Course Overview**: Objectives, Target Audience, Total Duration.
-      2. **Logistics & Prep**: Room setup, materials needed, technical checks.
-      3. **Trainer Tips**: Key facilitation principles for this specific audience.
-      4. **Module-by-Module Guide**:
-         - For each module in the list above, provide:
-           - **Key Concepts**: What to explain.
-           - **Activity Instructions**: How to run the exercises.
-           - **Debrief Questions**: What to ask to check understanding.
-           - **Transitions**: How to move to the next topic.
-
-      **CRITICAL RULES**:
-      1. **LANGUAGE**: ALL content (titles, instructions, questions) MUST be in ${course.language || 'Romanian'}. 
-         - DO NOT mix languages. 
-         - Use the defined Terminology.
-      2. **QUALITY**: 
-         - Avoid generic advice like "Teach the content". 
-         - Be specific: "Ask the group: 'What is your biggest challenge?' then write answers on flipchart."
-      3. **FORMAT**: Markdown. Use bolding and lists for readability.
-      `;
-
-      return await callLLM(prompt, course.language || 'ro');
-  }
-
-  const mandatoryContext = buildMandatoryContext(course);
-
-  if (shouldRegenerate) {
-    if (isInvalid && !isDirty) {
-      Logger.info(`Golden Data is invalid or missing for Module: ${moduleData.title}. Triggering auto-generation.`);
-    } else {
-      Logger.info(`Generating Golden Data for Module: ${moduleData.title} (Dirty flag: true)`);
-    }
-    
-    // ENSURE FRESH START: Explicitly nullify previous data to prevent any risk of concatenation
-    goldenData = null; 
-
-    let protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name as string | undefined;
-
-    if (!protagonistName || String(protagonistName).trim().length === 0) {
-      const inferred = inferProtagonistFromAudience(course.target_audience || '', course.language || 'ro');
-      if (inferred) {
-        protagonistName = inferred.name;
-
+  // Step 1: Resolve protagonist name (from DNA or infer from audience)
+  let protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name as string | undefined;
+  if (!protagonistName || String(protagonistName).trim().length === 0) {
+    const inferred = inferProtagonistFromAudience(course.target_audience || '', course.language || 'ro');
+    if (inferred) {
+      protagonistName = inferred.name;
+      // Persist inferred protagonist to DNA so future modules are consistent
+      try {
         const currentDna: any = course.dna || {};
         const protagonists = currentDna.narrativeUniverse?.protagonists || [];
         const updatedDna = {
-          terminology: currentDna.terminology || {
-            participant: "Participant",
-            trainer: "Trainer",
-            exercise: "Exercise",
-            mandatoryTerms: {}
-          },
+          ...currentDna,
           narrativeUniverse: {
             ...(currentDna.narrativeUniverse || {}),
             protagonists: protagonists.length > 0
-              ? [
-                  {
-                    ...protagonists[0],
-                    name: inferred.name,
-                    role: inferred.role || protagonists[0].role || ''
-                  },
-                  ...protagonists.slice(1)
-                ]
-              : [
-                  {
-                    name: inferred.name,
-                    role: inferred.role,
-                    personality: '',
-                    arc: ''
-                  }
-                ]
-          },
-          voiceProfile: currentDna.voiceProfile || {
-            formality: "professional",
-            humorLevel: "none",
-            forbiddenPhrases: [],
-            signaturePhrases: []
-          },
-          masterTimeline: currentDna.masterTimeline || {
-            totalDuration: 0,
-            bufferPerModule: 0,
-            modules: []
+              ? [{ ...protagonists[0], name: inferred.name, role: inferred.role || protagonists[0].role || '' }, ...protagonists.slice(1)]
+              : [{ name: inferred.name, role: inferred.role, personality: '', arc: '' }]
           }
         };
-
-        try {
-          await supabase
-            .from('courses')
-            .update({ dna: updatedDna })
-            .eq('id', course.id);
-          course.dna = updatedDna;
-          Logger.info("Inferred protagonist stored into Course DNA.", { courseId: course.id });
-        } catch (e: any) {
-          Logger.warn("Failed to persist inferred Course DNA protagonist.", e);
-        }
+        await supabase.from('courses').update({ dna: updatedDna }).eq('id', course.id);
+        course.dna = updatedDna;
+      } catch (e) {
+        Logger.warn('[GoldenStep] Failed to persist inferred protagonist.', e);
       }
     }
+  }
+  if (!protagonistName || String(protagonistName).trim().length === 0) protagonistName = 'Alex';
 
-    if (!protagonistName || String(protagonistName).trim().length === 0) {
-      protagonistName = "Alex";
-    }
+  // Step 2: Get story arc stage for this module
+  const storyArc = await getOrCreateStoryArc(supabase, course, moduleData.module_index);
+  const storyStage = storyArc[module_id] || storyArc[String(moduleData.module_index)] || 'Protagonist applies the concepts from this module.';
 
-    const dna = course.dna || {};
-    const bannedNamesFromDNA = Array.isArray(dna?.narrativeUniverse?.bannedNames)
-      ? dna.narrativeUniverse.bannedNames
-      : undefined;
+  // Step 3: Get or generate ModuleContext (lightweight structural blueprint, cached in content_data)
+  const isDirty = (moduleData as any).is_dirty === true;
+  let moduleContext: ModuleContext | null = isValidModuleContext(moduleData.content_data)
+    ? moduleData.content_data
+    : null;
 
-    const knowledgeBase = await buildKnowledgeBaseContext(supabase, course.id, course.language || "Romanian");
-
-    const envConstraints = (course.environment || 'LIVE').toUpperCase() === 'ONLINE'
-      ? `**ENVIRONMENT: ONLINE (VIRTUAL CLASSROOM - ZOOM/TEAMS)**
-         - **INTERACTION**: Must use "Breakout Rooms", "Chat Polls", "Miro Board links", "Screen Share".
-         - **CONSTRAINTS**: Max 10 min monologues (Zoom Fatigue). Frequent "Type in chat" prompts.
-         - **MATERIALS**: PDFs, Digital Workbooks, Online Quizzes.
-         - **ADAPTATION**: Ensure all activities are suitable for a virtual setting.
-         - **LANGUAGE**: All instructions and content must be in the target language.`
-      : `**ENVIRONMENT: LIVE (IN-PERSON WORKSHOP)**
-         - **INTERACTION**: EXCLUSIVE face-to-face activities: "Turn to your neighbor", "Physical Flipcharts", "Room Movement", "Gallery Walk", "Role Play in room", "Group Discussions", "Physical Exercises".
-         - **CONSTRAINTS**: 
-           *   Standard attention spans. Physical handouts allowed.
-           *   **FORBIDDEN**: DO NOT mention videos, webinars, online dashboards, virtual forums, zoom links, or screen sharing.
-         - **MATERIALS**: Printed Workbooks, Sticky Notes, Markers, Flipchart paper.
-         - **LANGUAGE**: All instructions and content must be in the target language.`;
-
-    // T1: Inject Terminology from DNA
-    let terminologyBlock = "";
-    if (course.dna?.terminology) {
-       const t = course.dna.terminology;
-       terminologyBlock = `\n\n### TERMINOLOGY RULES (STRICT)\n` +
-         `- Participant: ${t.participant || "Participant"}\n` +
-         `- Exercise: ${t.exercise || "Exercise"}\n` +
-         `- Trainer: ${t.trainer || "Trainer"}`;
-         
-       if (t.mandatoryTerms && Object.keys(t.mandatoryTerms).length > 0) {
-          const termsList = Object.entries(t.mandatoryTerms).map(([k, v]: [string, any]) => {
-              if (typeof v === 'object' && v !== null && v.term) {
-                  return `${v.term} (${v.definition || ''})`;
-              }
-              return `${k} -> ${v}`;
-          }).join(', ');
-          terminologyBlock += `\n- Mandatory Terms: ${termsList}`;
-       }
-       terminologyBlock += `\n`;
-    }
-
-    // T2: Inject Voice Profile from DNA
-    let voiceProfileBlock = "";
-    if (course.dna?.voiceProfile) {
-       const v = course.dna.voiceProfile;
-       const formality = (v.formality || '').toLowerCase();
-
-       const ARCHETYPES = {
-         professional: `
-           **ARCHETYPE**: "The Mentor" (Professional & Warm)
-           - **Tone**: Authoritative but accessible. Like a senior colleague mentoring a junior.
-           - **Style**: Clear, structured, encouraging. Uses analogies.
-           - **Forbidden**: Slang, emojis (unless specified), academic jargon.
-         `,
-         energetic: `
-           **ARCHETYPE**: "The Coach" (Energetic & Motivational)
-           - **Tone**: High energy, punchy, action-oriented. "Let's do this!"
-           - **Style**: Short sentences, strong verbs, calls to action.
-           - **Forbidden**: Passive voice, long paragraphs, hesitation.
-         `,
-         casual: `
-           **ARCHETYPE**: "The Buddy" (Relaxed & Direct)
-           - **Tone**: Informal, peer-to-peer. "Hey guys, look at this."
-           - **Style**: Contractions ("n-am", "hai să"), humor, direct address ("tu").
-           - **Forbidden**: "Sir/Madam", stiff corporate speak.
-         `
-       };
-
-       let archetype = ARCHETYPES.professional;
-       if (formality.includes('casual') || formality.includes('buddy') || formality.includes('fun')) archetype = ARCHETYPES.casual;
-       if (formality.includes('energetic') || formality.includes('motivational')) archetype = ARCHETYPES.energetic;
-
-       voiceProfileBlock = `\n\n### VOICE & TONE (FROM DNA)\n${archetype}\n` +
-         `- Formality: ${v.formality || "Professional"}\n` +
-         `- Humor: ${v.humorLevel || (v as any).humor || "Light"}\n`; // Handle both keys for safety
-         
-       if (v.forbiddenPhrases && Array.isArray(v.forbiddenPhrases) && v.forbiddenPhrases.length > 0) {
-          voiceProfileBlock += `- Forbidden Phrases: ${v.forbiddenPhrases.join(', ')}\n`;
-       }
-       if (v.signaturePhrases && Array.isArray(v.signaturePhrases) && v.signaturePhrases.length > 0) {
-          voiceProfileBlock += `- Signature Phrases: ${v.signaturePhrases.join(', ')}\n`;
-       }
-       voiceProfileBlock += `\n`;
-    }
-
-    // T3: Inject Learning Philosophy from DNA
-    let philosophyBlock = "";
-    if (course.dna?.learningPhilosophy) {
-       const p = course.dna.learningPhilosophy;
-       philosophyBlock = `\n\n### LEARNING PHILOSOPHY & MANIFESTO\n`;
-       
-       if (p.manifesto && Array.isArray(p.manifesto) && p.manifesto.length > 0) {
-          philosophyBlock += `- Manifesto: ${p.manifesto.join('. ')}\n`;
-       }
-       if (p.rules_of_engagement && Array.isArray(p.rules_of_engagement) && p.rules_of_engagement.length > 0) {
-          philosophyBlock += `- Rules of Engagement: ${p.rules_of_engagement.join('. ')}\n`;
-       }
-       philosophyBlock += `\n`;
-    }
-
-    // T4: Inject Domain Context from DNA
-    let domainContextBlock = "";
-    if (course.dna?.domainContext) {
-        const d = course.dna.domainContext;
-        domainContextBlock = `\n\n### DOMAIN & INDUSTRY CONTEXT (CRITICAL)\n`;
-        
-        if (d.industryTerms && Object.keys(d.industryTerms).length > 0) {
-            domainContextBlock += `**Industry Terms**:\n`;
-            Object.entries(d.industryTerms).forEach(([term, def]) => {
-                domainContextBlock += `- ${term}: ${def}\n`;
-            });
-        }
-
-        if (d.clientProfiles && Array.isArray(d.clientProfiles) && d.clientProfiles.length > 0) {
-            domainContextBlock += `\n**Client Profiles**:\n`;
-            d.clientProfiles.forEach(cp => {
-                domainContextBlock += `- ${cp.type}: ${cp.decisionLogic} (Approach: ${cp.approach})\n`;
-            });
-        }
-
-        if (d.productCatalog && Array.isArray(d.productCatalog) && d.productCatalog.length > 0) {
-            domainContextBlock += `\n**Product Catalog**:\n`;
-            d.productCatalog.forEach(pc => {
-                domainContextBlock += `- ${pc.category}: ${pc.items.join(', ')}\n`;
-            });
-        }
-
-        if (d.competitorIntelligence && Array.isArray(d.competitorIntelligence) && d.competitorIntelligence.length > 0) {
-            domainContextBlock += `\n**Competitor Intelligence**:\n`;
-            d.competitorIntelligence.forEach(ci => {
-                domainContextBlock += `- ${ci.name} (Weakness: ${ci.weaknesses.join(', ')}) -> Counter: ${ci.counterStrategy}\n`;
-            });
-        }
-
-        if (d.negotiationFrameworks && Array.isArray(d.negotiationFrameworks) && d.negotiationFrameworks.length > 0) {
-             domainContextBlock += `\n**Negotiation Frameworks**:\n`;
-             d.negotiationFrameworks.forEach(nf => {
-                 domainContextBlock += `- ${nf.name}: ${nf.steps.join(' -> ')}\n`;
-             });
-        }
-        domainContextBlock += `\n`;
-    }
-
-    // T7: Inject Depth Specs
-    const specsObj = getDepthSpecs(course.language || 'ro', (course.environment || 'LIVE').toLowerCase() === 'online' ? 'online' : 'live');
-    const depthSpecs = `${specsObj.workbook}\n\n${specsObj.slides}\n\n${specsObj.exercises}\n\n${specsObj.manual}`;
-
-    // T8: Select Golden Samples based on environment
-    const isOnline = (course.environment || 'LIVE').toUpperCase() === 'ONLINE';
-    const goldenSamples = isOnline 
-        ? `${GOLDEN_SAMPLES.workbook_online}\n\n${GOLDEN_SAMPLES.video_script_online}\n\n${GOLDEN_SAMPLES.exercises_online}`
-        : `${GOLDEN_SAMPLES.workbook_live}\n\n${GOLDEN_SAMPLES.exercises_live}\n\n${GOLDEN_SAMPLES.case_study}`;
-
-    // T15: Consume macro_plan in Golden Path
-    let macroContext = "";
-    if (course.macro_plan && Array.isArray(course.macro_plan.macroBlocks)) {
-        const blocks = course.macro_plan.macroBlocks;
-        // Try to match by ID or Title
-        const currentBlockIndex = blocks.findIndex((b: any) => 
-            b.moduleRef === module_id || 
-            (b.title && moduleData.title && b.title.toLowerCase() === moduleData.title.toLowerCase())
-        );
-        
-        if (currentBlockIndex !== -1) {
-             const currentBlock = blocks[currentBlockIndex];
-             const prevBlock = currentBlockIndex > 0 ? blocks[currentBlockIndex - 1] : null;
-             const nextBlock = currentBlockIndex < blocks.length - 1 ? blocks[currentBlockIndex + 1] : null;
-             
-             macroContext = `\n**MACRO SCHEDULE CONTEXT (Timing & Flow)**:\n`;
-             macroContext += `- Current Position: Block #${currentBlockIndex + 1} of ${blocks.length}.\n`;
-             macroContext += `- Allocated Duration: ${currentBlock.duration} min (Strictly adhere to this).\n`;
-             
-             if (prevBlock) {
-                 macroContext += `- Previous Activity: ${prevBlock.type} ("${prevBlock.title || 'Untitled'}") - ${prevBlock.duration} min.\n`;
-                 if (prevBlock.type === 'BREAK') macroContext += `  (NOTE: Participants are fresh from a break. Start with high energy.)\n`;
-             }
-             
-             if (nextBlock) {
-                 macroContext += `- Next Activity: ${nextBlock.type} ("${nextBlock.title || 'Untitled'}") - ${nextBlock.duration} min.\n`;
-                 if (nextBlock.type === 'BREAK') macroContext += `  (NOTE: End strictly on time! Participants will be tired and needing a break.)\n`;
-             }
-        }
-    }
-
-    let prompt = fillPromptTemplate(GOLDEN_MASTER_PROMPT, {
-      moduleTitle: moduleData.title,
-      durationMinutes: moduleData.duration_minutes || 60, 
-      environment: course.environment,
-      envConstraints: envConstraints,
-      language: course.language || "Romanian",
-      protagonistName: protagonistName,
-      protagonistState: currentStoryStage,
-      targetAudience: course.target_audience || "General Audience",
-      styleBlock: getStyleBlock(course.target_audience || "General Audience"),
-      terminology: terminologyBlock,
-      voiceProfile: voiceProfileBlock,
-      philosophy: philosophyBlock,
-      domainContext: domainContextBlock,
-      depthSpecs: depthSpecs,
-      goldenSamples: goldenSamples,
-      moduleId: module_id,
-      macroContext: macroContext
-    });
-
-    // Inject mandatory context at the very beginning
-    prompt = `${mandatoryContext}\n\n${prompt}`;
-    
-    // Add explicit instruction for language enforcement at the end of the prompt
-    prompt += `\n\n**CRITICAL LANGUAGE ENFORCEMENT**: 
-    1. The output JSON content (titles, narratives, scripts, questions) MUST be in ${course.language || "Romanian"}.
-    2. "Trainer Instructions", "Script", "Key Takeaways" content MUST be in ${course.language || "Romanian"}.
-    3. DO NOT mix languages. DO NOT use English for content unless the course language is English.
-    4. STRICTLY follow the Terminology and Voice Profile defined in the DNA blocks above.
-    5. If you fail to follow these rules, the content will be rejected.`;
-
-    // VERIFICATION LOG: Print the start of the prompt to confirm context injection
-    Logger.info("--- FINAL PROMPT PREVIEW (First 500 chars) ---");
-    Logger.info(prompt.substring(0, 500));
-    Logger.info("------------------------------------------------");
-
-    const approvedObjectives = String((course as any).learning_objectives || '').trim();
-    if (approvedObjectives) {
-      prompt = `${prompt}\n\n**User-approved objectives**:\n${approvedObjectives}\nAlign sections, exercises and examples with these objectives.`;
-    }
-    
-    if (knowledgeBase.trim().length > 0) {
-      const kbHeader = '### Knowledge Base Context (Uploaded Files)';
-      prompt = `${prompt}\n\n${kbHeader}\n${knowledgeBase}`;
-    }
-
-    let attempts = 0;
-    const maxAttempts = 2;
-    let success = false;
-
-    while (attempts < maxAttempts && !success) {
-      attempts++;
-      try {
-        Logger.info(`Golden Path Generation - Attempt ${attempts}/${maxAttempts}`);
-        const rawJson = await callLLM(prompt, course.language || 'ro', false);
-        const enforcedJson = ProtagonistEnforcer.enforce(rawJson, protagonistName, bannedNamesFromDNA);
-        
-        // STRICT AI VALIDATION (Language & Refusal Check)
-        const aiCheck = await isContentValidByAI(enforcedJson, course.language || 'ro');
-        if (!aiCheck.valid) {
-            Logger.warn(`[GoldenPath] AI Validation Failed (Attempt ${attempts}): ${aiCheck.reason}`);
-            if (attempts === maxAttempts) throw new Error(`Content Rejected by AI Validator: ${aiCheck.reason}`);
-            continue; // Force retry
-        }
-
-        goldenData = repairAndParseJson<GoldenModuleData>(enforcedJson);
-
-        // FINAL VALIDATION: Ensure the generated data is valid before saving
-        if (isValidGoldenData(goldenData)) {
-          // FORCE OVERWRITE localizedLabels to ensure perfect language consistency
-          goldenData.localizedLabels = getLocalizedLabels(course.language || 'ro');
-          Logger.info("[GoldenPath] Enforced localizedLabels.");
-          
-          success = true;
-        } else {
-           Logger.warn(`Attempt ${attempts}: Invalid Golden Data structure.`);
-           if (attempts === maxAttempts) throw new Error("Generated Golden Master JSON failed validation check.");
-        }
-      } catch (e: any) {
-         Logger.warn(`Attempt ${attempts} Error: ${e.message}`);
-         if (attempts === maxAttempts) throw e;
-      }
-    }
-    
+  if (!moduleContext || isDirty) {
+    Logger.info(`[GoldenStep] ${isDirty ? 'Dirty flag set' : 'No valid ModuleContext'}. Generating for module: ${moduleData.title}`);
+    moduleContext = await generateModuleContext(supabase, course, moduleData, protagonistName, storyStage);
     await supabase
       .from('course_modules')
-      .update({ content_data: goldenData, is_dirty: false })
+      .update({ content_data: moduleContext, is_dirty: false })
       .eq('id', module_id);
+    Logger.info(`[GoldenStep] ModuleContext saved for module: ${moduleData.title}`);
+  } else {
+    Logger.info(`[GoldenStep] Reusing cached ModuleContext for module: ${moduleData.title}`);
   }
 
-  if (!goldenData) {
-    throw new Error(`[CRITICAL] Golden Data is NULL for module ${module_id}. Cannot generate ${step_type}.`);
-  }
+  // Step 4: Build DNA blocks for prompt injection
+  const dna = buildDNABlocks(course);
+
+  // Step 5: Generate the requested deliverable with a specialized prompt
+  Logger.info(`[GoldenStep] Generating deliverable '${step_type}' for module ${module_id}`);
 
   switch (step_type) {
     case 'course.steps.workbook':
-      return renderToMarkdown(goldenData, 'WORKBOOK');
+      return generateWorkbookContent(course, moduleContext, dna);
+
     case 'course.steps.manual':
-      return renderToMarkdown(goldenData, 'MANUAL', mandatoryContext);
-    case 'course.steps.exercises':
-      return renderToMarkdown(goldenData, 'EXERCISES');
+    case 'facilitator_manual':
+    case 'trainer_manual':
+      return generateManualContent(course, moduleContext, dna);
+
     case 'course.steps.slides':
-      Logger.info(`[handleGoldenStep] Rendering slides for module ${module_id}`);
-      return renderToXml(goldenData);
+      return generateSlidesContent(course, moduleContext, dna);
+
+    case 'course.steps.exercises':
+      return generateExercisesContent(course, moduleContext, dna);
+
     case 'course.steps.video_scripts':
-      return renderToMarkdown(goldenData, 'VIDEO_SCRIPT');
+      return generateVideoScriptContent(course, moduleContext, dna);
+
     case 'course.steps.examples':
-      return renderToMarkdown(goldenData, 'EXAMPLES');
+      return generateExamplesContent(course, moduleContext, dna);
+
     default:
-      return renderToMarkdown(goldenData, 'WORKBOOK');
+      Logger.warn(`[GoldenStep] Unknown step_type '${step_type}', falling back to workbook.`);
+      return generateWorkbookContent(course, moduleContext, dna);
   }
 }
 
