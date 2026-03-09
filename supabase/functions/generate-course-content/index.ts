@@ -3828,25 +3828,29 @@ async function resolveModuleId(supabase: any, courseId: string, moduleData: any,
   // If not found, CREATE IT based on moduleData
   // This ensures the DB is in sync with the Blueprint
   Logger.info(`[resolveModuleId] Module not found for index ${moduleIndex}. Creating it...`);
-  
+
+  const durationRaw = String(moduleData?.duration || moduleData?.durationMinutes || '60');
+  const durationMinutes = parseInt(durationRaw.replace(/\D/g, '') || '60') || 60;
+
+  const insertPayload: any = {
+    course_id: courseId,
+    module_index: moduleIndex,
+    title: moduleData?.title || `Module ${moduleIndex + 1}`,
+    duration_minutes: durationMinutes,
+    content_data: null,
+  };
+
   const { data: newModule, error: createError } = await supabase
     .from('course_modules')
-    .insert({
-        course_id: courseId,
-        module_index: moduleIndex,
-        title: moduleData.title || `Module ${moduleIndex + 1}`,
-        duration_minutes: parseInt(String(moduleData.duration || '60').replace(/\D/g, '') || '60'),
-        content_data: null, // Start empty
-        is_dirty: true
-    })
+    .insert(insertPayload)
     .select('id')
     .single();
 
   if (createError || !newModule) {
-      Logger.error(`Failed to auto-create module ${moduleIndex}`, createError);
-      throw new Error(`Could not resolve or create module ID for index ${moduleIndex}`);
+    Logger.error(`Failed to auto-create module ${moduleIndex}. DB error: ${JSON.stringify(createError)}`, createError);
+    throw new Error(`Could not resolve or create module ID for index ${moduleIndex}: ${createError?.message || createError?.code || 'unknown DB error'}`);
   }
-  
+
   return newModule.id;
 }
 
