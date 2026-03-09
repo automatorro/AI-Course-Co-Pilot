@@ -2649,7 +2649,9 @@ function extractModulesFromMarkdown(markdown: string): string[] {
   return modules;
 }
 
-  
+function isValidGoldenData(data: any): boolean {
+  if (!data || typeof data !== 'object') return false;
+
   // 1. Check Root Fields
   // Note: localizedLabels is checked separately and patched if missing, so we don't fail validation for it.
   const required = ['moduleId', 'moduleTitle', 'moduleDurationMinutes', 'environment', 'narrativeContext', 'sections'];
@@ -2675,7 +2677,7 @@ function extractModulesFromMarkdown(markdown: string): string[] {
   return true;
 }
 
-  
+function getDefaultEnglishLabels(): Record<string, string> {
   // Default English
   return {
     duration: "Duration",
