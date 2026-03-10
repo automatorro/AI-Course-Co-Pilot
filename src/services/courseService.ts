@@ -196,7 +196,9 @@ function generateStructureMarkdown(blueprint: CourseBlueprint): string {
 /**
  * Synchronizes the course_modules table with the blueprint.
  * 1. Deletes modules that no longer exist in the blueprint (based on index).
- * 2. Marks remaining modules as dirty to force regeneration.
+ * 2. Upserts all blueprint modules (creates if missing, resets content_data to null to force regeneration).
+ *
+ * Relies on the UNIQUE constraint on (course_id, module_index).
  */
 export async function syncCourseModulesWithBlueprint(courseId: string, blueprint: CourseBlueprint): Promise<void> {
     const moduleCount = blueprint.modules.length;
@@ -214,14 +216,25 @@ export async function syncCourseModulesWithBlueprint(courseId: string, blueprint
         console.log(`[syncCourseModulesWithBlueprint] Cleaned up modules >= ${moduleCount}`);
     }
 
-    // 2. Mark remaining modules as dirty
-    const { error: dirtyError } = await supabase
-        .from('course_modules')
-        .update({ is_dirty: true })
-        .eq('course_id', courseId)
-        .lt('module_index', moduleCount); // Optimization: only update valid ones
+    // 2. Upsert all blueprint modules — creates missing rows and resets content_data to trigger regeneration.
+    // Uses the UNIQUE constraint on (course_id, module_index) to resolve conflicts.
+    const rows = blueprint.modules.map((mod, idx) => ({
+        course_id: courseId,
+        module_index: idx,
+        title: mod.title || `Module ${idx + 1}`,
+        duration_minutes: 60,
+        content_data: null, // Reset so edge function regenerates this module
+    }));
 
-    if (dirtyError) {
-        console.warn('[syncCourseModulesWithBlueprint] Failed to mark modules as dirty:', dirtyError);
+    if (rows.length > 0) {
+        const { error: upsertError } = await supabase
+            .from('course_modules')
+            .upsert(rows, { onConflict: 'course_id,module_index' });
+
+        if (upsertError) {
+            console.error('[syncCourseModulesWithBlueprint] Failed to upsert modules:', upsertError);
+        } else {
+            console.log(`[syncCourseModulesWithBlueprint] Upserted ${rows.length} modules for course ${courseId}`);
+        }
     }
 }
