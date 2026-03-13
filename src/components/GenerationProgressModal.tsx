@@ -153,7 +153,7 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
 
     // Wraps supabase.functions.invoke with a per-call timeout and global stop signal.
     // Throws a descriptive error on timeout so the retry loop can handle it gracefully.
-    const invokeWithTimeout = async (body: object, timeoutMs = 95000): Promise<{ data: any; error: any }> => {
+    const invokeWithTimeout = async (body: object, timeoutMs = 240000): Promise<{ data: any; error: any }> => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort('timeout'), timeoutMs);
 
@@ -186,6 +186,22 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             clearTimeout(timeoutId);
             globalSignal?.removeEventListener('abort', onGlobalAbort);
         }
+    };
+
+    const getMinimalCourse = (c: Course): Partial<Course> => {
+        return {
+            id: c.id,
+            title: c.title,
+            description: c.description,
+            subject: c.subject,
+            target_audience: c.target_audience,
+            environment: c.environment,
+            language: c.language,
+            dna: c.dna,
+            blueprint: c.blueprint,
+            macro_plan: c.macro_plan,
+            user_id: c.user_id
+        };
     };
 
     const startGeneration = async () => {
@@ -556,15 +572,13 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                                          .filter((s: any) => allowed.has(s.step_type))
                                          .map((s: any) => ({ step_type: s.step_type, content: String(s.content || '').slice(0, 2000) }));
 
-                                     const { data: modData, error: modErr } = await supabase.functions.invoke('generate-course-content', {
-                                         body: { 
-                                             action: 'generate_slides_part', 
-                                             course, 
-                                             module_data: m, 
-                                             module_index: realIdx,
-                                             previous_steps: prevForContext
-                                         }
-                                     });
+                                     const { data: modData, error: modErr } = await invokeWithTimeout({
+                                        action: 'generate_slides_part', 
+                                        course: getMinimalCourse(course), 
+                                        module_data: m, 
+                                        module_index: realIdx,
+                                        previous_steps: prevForContext
+                                    });
                                      if (modErr) throw modErr;
                                      modContent = modData.content;
                                      if (!modContent) throw new Error("Received empty content from server");
@@ -657,7 +671,7 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                         let introRetries = 0;
                         while(introRetries < 3 && !introContent) {
                             try {
-                                const { data: introData, error: introError } = await invokeWithTimeout({ action: 'generate_workbook_part', part_type: 'intro', course });
+                                const { data: introData, error: introError } = await invokeWithTimeout({ action: 'generate_workbook_part', part_type: 'intro', course: getMinimalCourse(course) });
                                 if (introError) throw introError;
                                 introContent = introData?.content;
                                 if (!introContent) throw new Error("Received empty intro content from server");
@@ -697,13 +711,13 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                                  try {
                                      console.log(`[Workbook] Generating module ${realIdx + 1}/${modulesToProcess.length} (attempt ${retries + 1})...`);
                                      const { data: modData, error: modErr } = await invokeWithTimeout({
-                                         action: 'generate_workbook_part',
-                                         part_type: 'module',
-                                         course,
-                                         module_data: m,
-                                         module_index: realIdx,
-                                         context_files: []
-                                     });
+                                        action: 'generate_workbook_part',
+                                        part_type: 'module',
+                                        course: getMinimalCourse(course),
+                                        module_data: m,
+                                        module_index: realIdx,
+                                        context_files: []
+                                    });
                                      if (modErr) throw modErr;
                                      modContent = modData.content;
                                  } catch (e) {
@@ -740,7 +754,7 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                          let outroRetries = 0;
                          while(outroRetries < 3 && !outroContent) {
                              try {
-                                const { data: outroData, error: outroError } = await invokeWithTimeout({ action: 'generate_workbook_part', part_type: 'outro', course });
+                                const { data: outroData, error: outroError } = await invokeWithTimeout({ action: 'generate_workbook_part', part_type: 'outro', course: getMinimalCourse(course) });
                                 if (outroError) throw outroError;
                                 outroContent = outroData?.content;
                              } catch (e) {
