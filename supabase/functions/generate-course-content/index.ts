@@ -9,7 +9,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 // --------------------------------------------------------------------------------
 // INLINED MODULE: Style Blocks
 // --------------------------------------------------------------------------------
-export enum AudienceLevel {
+enum AudienceLevel {
   LEVEL_1_OPERATIONAL = 'LEVEL_1_OPERATIONAL',
   LEVEL_2_CLERICAL = 'LEVEL_2_CLERICAL',
   LEVEL_3_STRATEGIC = 'LEVEL_3_STRATEGIC',
@@ -17,7 +17,7 @@ export enum AudienceLevel {
   LEVEL_5_TECHNICAL = 'LEVEL_5_TECHNICAL'
 }
 
-export const STYLE_BLOCKS = {
+const STYLE_BLOCKS = {
   [AudienceLevel.LEVEL_1_OPERATIONAL]: `
 ### 🧬 AUDIENCE DNA: LEVEL 1 (OPERATIONAL / FRONT LINE)
 **PRIMARY GOAL:** Practical Execution, Safety & Consistency.
@@ -106,7 +106,7 @@ function normalizeAudienceText(text: string): string {
     .replace(/ţ/g, 't');
 }
 
-export function getStyleBlock(audienceDescription: string): string {
+function getStyleBlock(audienceDescription: string): string {
   const normalized = normalizeAudienceText(audienceDescription);
 
   const opKeywords = [
@@ -190,7 +190,7 @@ export function getStyleBlock(audienceDescription: string): string {
 // --------------------------------------------------------------------------------
 // INLINED MODULE: Depth Specs (from templates.ts)
 // --------------------------------------------------------------------------------
-export const getDepthSpecs = (language: string, type: 'live' | 'online' = 'live', practicePercent: number = 80) => {
+const getDepthSpecs = (language: string, type: 'live' | 'online' = 'live', practicePercent: number = 80) => {
   // PS-1: Universal Depth Specs with Dynamic Language Injection
   // PS-11: Environment Adaptation (Live vs Online)
   
@@ -274,7 +274,7 @@ export const getDepthSpecs = (language: string, type: 'live' | 'online' = 'live'
 // --------------------------------------------------------------------------------
 // INLINED MODULE: Golden Samples (from golden-samples.ts)
 // --------------------------------------------------------------------------------
-export const GOLDEN_SAMPLES = {
+const GOLDEN_SAMPLES = {
   objectives: `
 # [Course Title]
 **Total Duration:** [Hours]
@@ -1080,14 +1080,14 @@ async function retryWithStrictInstructions(prompt: string, language: string, err
 // 3. TYPES (BUSINESS LOGIC)
 // ==========================================
 
-export type CourseEnvironment = 'LIVE' | 'ONLINE';
+type CourseEnvironment = 'LIVE' | 'ONLINE';
 
 /**
  * ModuleContext — the lightweight structural blueprint for a module.
  * Generated once, cached in course_modules.content_data.
  * Used as input for all per-deliverable generators (workbook, manual, slides, exercises).
  */
-export interface ModuleContext {
+interface ModuleContext {
   contextVersion: 'v4.0';
   moduleId: string;
   moduleTitle: string;
@@ -1125,7 +1125,7 @@ export interface ModuleContext {
 }
 
 /** Pre-built DNA context blocks ready for prompt injection */
-export interface DNABlocks {
+interface DNABlocks {
   terminologyBlock: string;
   voiceProfileBlock: string;
   philosophyBlock: string;
@@ -1133,7 +1133,7 @@ export interface DNABlocks {
   envConstraints: string;
 }
 
-export function isValidModuleContext(data: any): data is ModuleContext {
+function isValidModuleContext(data: any): data is ModuleContext {
   if (!data || typeof data !== 'object') return false;
   if (data.contextVersion !== 'v4.0') return false;
   if (!data.moduleId || !data.moduleTitle) return false;
@@ -1145,7 +1145,7 @@ export function isValidModuleContext(data: any): data is ModuleContext {
 }
 
 // Kept for documentation — describes the old Golden JSON format (superseded by ModuleContext v4.0)
-export interface _LegacyGoldenSection {
+interface _LegacyGoldenSection {
   id: string;
   title: string;
   durationMinutes: number;
@@ -1218,7 +1218,7 @@ export interface _LegacyGoldenSection {
  * Called once per module; result cached in course_modules.content_data.
  * This is NOT the actual content — it defines the structure, concepts, narrative, and timing plan.
  */
-export const MODULE_CONTEXT_PROMPT = `
+const MODULE_CONTEXT_PROMPT = `
 You are an expert Instructional Designer. Analyze this training module and generate a ModuleContext JSON.
 The ModuleContext is a STRUCTURAL BLUEPRINT — it defines *what* the module covers, NOT the actual written content.
 
@@ -1302,7 +1302,7 @@ Generate a ModuleContext JSON with this EXACT schema (output ONLY valid JSON, no
  * WORKBOOK_PROMPT — generates the participant workbook section for a module.
  * Input: ModuleContext JSON injected as variables. Output: rich Markdown, ready to print.
  */
-export const WORKBOOK_PROMPT = `
+const WORKBOOK_PROMPT = `
 You are an expert Instructional Designer writing a **PARTICIPANT WORKBOOK** section for a professional training course.
 This document is used directly by participants during the training. Make it complete, practical, and world-class.
 
@@ -1416,7 +1416,7 @@ Pure Markdown. Start directly with the first section header (## ...). No preambl
  * MANUAL_PROMPT — generates the facilitator/trainer manual for a module.
  * Input: ModuleContext JSON injected as variables. Output: rich Markdown manual, trainer-ready.
  */
-export const MANUAL_PROMPT = `
+const MANUAL_PROMPT = `
 You are an expert Instructional Designer writing a **FACILITATOR MANUAL** for a professional trainer.
 This is the trainer's bible — complete, actionable, and containing everything needed to deliver the module.
 
@@ -1528,7 +1528,7 @@ Pure Markdown. Start with the module header (# Modul: {{moduleTitle}}). No pream
  * SLIDES_PROMPT — generates presentation slides in XML format for a module.
  * Output: XML with SLIDE_BEGIN/END tags, ready for the slide renderer.
  */
-export const SLIDES_PROMPT = `
+const SLIDES_PROMPT = `
 You are an expert Instructional Designer creating **PRESENTATION SLIDES** for a professional training course.
 
 ### MODULE BLUEPRINT
@@ -1601,7 +1601,7 @@ ALL content in **{{language}}**.
  * EXERCISES_PROMPT — generates standalone exercise sheets for a module.
  * Output: Markdown handouts, usable separately from the workbook.
  */
-export const EXERCISES_PROMPT = `
+const EXERCISES_PROMPT = `
 You are an expert Instructional Designer creating **EXERCISE SHEETS** for a professional training course.
 These are standalone handouts — complete, practical, usable without the workbook.
 
@@ -1690,7 +1690,7 @@ Output pure Markdown. One exercise per section. No preamble.
  * VIDEO_SCRIPT_PROMPT — generates video scripts for online course modules.
  * Output: Markdown scripts with scene descriptions, verbatim dialogue, and visual overlay notes.
  */
-export const VIDEO_SCRIPT_PROMPT = `
+const VIDEO_SCRIPT_PROMPT = `
 You are an expert Instructional Designer writing **VIDEO SCRIPTS** for an online training course.
 These scripts are used directly for video production — complete, professional, and ready to record.
 
@@ -1768,7 +1768,7 @@ Output pure Markdown.
 // 5. UTILS (PARSER & REPAIR)
 // ==========================================
 
-export function repairAndParseJson<T>(text: string): T {
+function repairAndParseJson<T>(text: string): T {
   let cleaned = text.trim();
 
   // 0. XML Extraction (Silent Operator Protocol)
@@ -1826,7 +1826,7 @@ export function repairAndParseJson<T>(text: string): T {
 
 type RenderTarget = 'WORKBOOK' | 'MANUAL' | 'EXERCISES' | 'EXAMPLES' | 'VIDEO_SCRIPT';
 
-export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget, contextInfo?: string): string => {
+const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget, contextInfo?: string): string => {
   let output = '';
 
   // 1. Header Global — use styled HTML for WORKBOOK, plain markdown otherwise
@@ -3964,7 +3964,7 @@ function fillPromptTemplate(template: string, variables: Record<string, any>): s
 // 8. PROTAGONIST ENFORCER (CRITICAL FIX)
 // ==========================================
 
-export class ProtagonistEnforcer {
+class ProtagonistEnforcer {
   private static DEFAULT_BANNED_NAMES = [
     'ion', 'maria', 'ana', 'bogdan', 'vasile', 'elena', 
     'andrei', 'mihai', 'alexandru', 'ioana', 'george'
