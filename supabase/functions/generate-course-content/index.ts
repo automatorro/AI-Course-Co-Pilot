@@ -1824,103 +1824,286 @@ export function repairAndParseJson<T>(text: string): T {
   }
 }
 
-// ==========================================
-// 5b. PER-DELIVERABLE GENERATORS
-// ==========================================
+type RenderTarget = 'WORKBOOK' | 'MANUAL' | 'EXERCISES' | 'EXAMPLES' | 'VIDEO_SCRIPT';
 
-/** Build DNA blocks from course for prompt injection */
-function buildDNABlocks(course: Course): DNABlocks {
-  // T1: Terminology
-  let terminologyBlock = "";
-  if (course.dna?.terminology) {
-    const t = course.dna.terminology;
-    terminologyBlock = `\n\n### TERMINOLOGY RULES (STRICT)\n` +
-      `- Participant: ${t.participant || "Participant"}\n` +
-      `- Exercise: ${t.exercise || "Exercise"}\n` +
-      `- Trainer: ${t.trainer || "Trainer"}`;
-    if (t.mandatoryTerms && Object.keys(t.mandatoryTerms).length > 0) {
-      const termsList = Object.entries(t.mandatoryTerms).map(([k, v]: [string, any]) => {
-        if (typeof v === 'object' && v !== null && v.term) return `${v.term} (${v.definition || ''})`;
-        return `${k} -> ${v}`;
-      }).join(', ');
-      terminologyBlock += `\n- Mandatory Terms: ${termsList}`;
-    }
-    terminologyBlock += `\n`;
+export const renderToMarkdown = (data: GoldenModuleData, target: RenderTarget, contextInfo?: string): string => {
+  let output = '';
+
+  // 1. Header Global — use styled HTML for WORKBOOK, plain markdown otherwise
+  if (target === 'WORKBOOK') {
+    // Calculate practical vs theory split based on section types
+    const totalSections = data.sections?.length || 1;
+    const practicalTypes = ['ACTIVITY', 'ICE_BREAKER', 'WARM_UP', 'DEBRIEF', 'DISCUSSION'];
+    const practicalCount = (data.sections || []).filter(s => practicalTypes.includes(s.type)).length;
+    const practicalPercent = Math.round((practicalCount / totalSections) * 100);
+    const theoryPercent = 100 - practicalPercent;
+    output += `<div style="margin-bottom:24px;">`;
+    output += `<h1 style="color:#1a1a2e;font-size:22px;margin-bottom:4px;font-family:Arial,sans-serif;">${data.moduleTitle}</h1>`;
+    output += `<p style="color:#666;font-size:13px;margin:0;font-family:Arial,sans-serif;">${data.moduleDurationMinutes} minute | ${practicalPercent}% Activitate practică + ${theoryPercent}% Teorie</p>`;
+    output += `<hr style="border:0;border-top:2px solid #4a90d9;margin:8px 0 16px 0;">`;
+    output += `</div>`;
+  } else {
+    output += `# ${data.moduleTitle}\n`;
+    output += `**Duration:** ${data.moduleDurationMinutes} min | **Format:** ${data.environment}\n\n`;
   }
 
-  // T2: Voice Profile
-  let voiceProfileBlock = "";
-  if (course.dna?.voiceProfile) {
-    const v = course.dna.voiceProfile;
-    const formality = (v.formality || '').toLowerCase();
-    const ARCHETYPES: Record<string, string> = {
-      professional: `**ARCHETYPE**: "The Mentor" (Professional & Warm)\n- Tone: Authoritative but accessible.\n- Style: Clear, structured, encouraging.\n- Forbidden: Slang, academic jargon.`,
-      energetic: `**ARCHETYPE**: "The Coach" (Energetic & Motivational)\n- Tone: High energy, punchy, action-oriented.\n- Style: Short sentences, strong verbs, calls to action.\n- Forbidden: Passive voice, long paragraphs.`,
-      casual: `**ARCHETYPE**: "The Buddy" (Relaxed & Direct)\n- Tone: Informal, peer-to-peer.\n- Style: Contractions, humor, direct address.\n- Forbidden: Stiff corporate speak.`,
-    };
-    let archetype = ARCHETYPES.professional;
-    if (formality.includes('casual') || formality.includes('buddy')) archetype = ARCHETYPES.casual;
-    if (formality.includes('energetic') || formality.includes('motivational')) archetype = ARCHETYPES.energetic;
-
-    voiceProfileBlock = `\n\n### VOICE & TONE (FROM DNA)\n${archetype}\n` +
-      `- Formality: ${v.formality || "Professional"}\n` +
-      `- Humor: ${v.humorLevel || (v as any).humor || "Light"}\n`;
-    if (v.forbiddenPhrases?.length) voiceProfileBlock += `- Forbidden: ${v.forbiddenPhrases.join(', ')}\n`;
-    if (v.signaturePhrases?.length) voiceProfileBlock += `- Signature: ${v.signaturePhrases.join(', ')}\n`;
-    voiceProfileBlock += `\n`;
+  // --- DOMAIN CONTEXT ---
+  if (data.domainContext) {
+      output += `> **DOMAIN CONTEXT**\n`;
+      if (data.domainContext.industryTerms) {
+          const terms = Object.entries(data.domainContext.industryTerms).map(([k, v]) => `${k}: ${v}`).join('; ');
+          output += `> *Terms:* ${terms.substring(0, 100)}...\n`;
+      }
+      output += `\n`;
   }
 
-  // T3: Learning Philosophy
-  let philosophyBlock = "";
-  if (course.dna?.learningPhilosophy) {
-    const p = course.dna.learningPhilosophy;
-    philosophyBlock = `\n\n### LEARNING PHILOSOPHY\n`;
-    if (p.manifesto?.length) philosophyBlock += `- Manifesto: ${p.manifesto.join('. ')}\n`;
-    if (p.rules_of_engagement?.length) philosophyBlock += `- Rules: ${p.rules_of_engagement.join('. ')}\n`;
-    philosophyBlock += `\n`;
+  if (target === 'MANUAL' && contextInfo) {
+      output += `> **COURSE CONTEXT (VERIFICATION)**\n`;
+      output += `> This content was generated based on the following constraints:\n`;
+      output += `> ${contextInfo.replace(/\n/g, '\n> ')}\n\n`;
+      output += `---\n\n`;
   }
 
-  // T4: Domain Context
-  let domainContextBlock = "";
-  if (course.dna?.domainContext) {
-    const d = course.dna.domainContext;
-    domainContextBlock = `\n\n### DOMAIN & INDUSTRY CONTEXT (CRITICAL)\n`;
-    if (d.industryTerms && Object.keys(d.industryTerms).length > 0) {
-      domainContextBlock += `**Industry Terms**:\n`;
-      Object.entries(d.industryTerms).forEach(([term, def]) => { domainContextBlock += `- ${term}: ${def}\n`; });
-    }
-    if (d.clientProfiles?.length) {
-      domainContextBlock += `\n**Client Profiles**:\n`;
-      d.clientProfiles.forEach((cp: any) => { domainContextBlock += `- ${cp.type}: ${cp.decisionLogic} (Approach: ${cp.approach})\n`; });
-    }
-    if (d.productCatalog?.length) {
-      domainContextBlock += `\n**Product Catalog**:\n`;
-      d.productCatalog.forEach((pc: any) => { domainContextBlock += `- ${pc.category}: ${pc.items.join(', ')}\n`; });
-    }
-    if (d.competitorIntelligence?.length) {
-      domainContextBlock += `\n**Competitor Intelligence**:\n`;
-      d.competitorIntelligence.forEach((ci: any) => { domainContextBlock += `- ${ci.name} (Weakness: ${ci.weaknesses.join(', ')}) -> Counter: ${ci.counterStrategy}\n`; });
-    }
-    if (d.negotiationFrameworks?.length) {
-      domainContextBlock += `\n**Negotiation Frameworks**:\n`;
-      d.negotiationFrameworks.forEach((nf: any) => { domainContextBlock += `- ${nf.name}: ${nf.steps.join(' -> ')}\n`; });
-    }
-    domainContextBlock += `\n`;
+  if (target === 'EXAMPLES') {
+      return renderExamplesLibrary(data);
   }
 
-  // T5: Environment constraints
-  const envConstraints = (course.environment || 'LIVE').toUpperCase() === 'ONLINE'
-    ? `**ENVIRONMENT: ONLINE (VIRTUAL CLASSROOM — ZOOM/TEAMS)**
-- INTERACTION: Must use "Breakout Rooms", "Chat Polls", "Miro Board links", "Screen Share".
-- CONSTRAINTS: Max 10 min monologues (Zoom Fatigue). Frequent "Type in chat" prompts.
-- MATERIALS: PDFs, Digital Workbooks, Online Quizzes.`
-    : `**ENVIRONMENT: LIVE (IN-PERSON WORKSHOP)**
-- INTERACTION: Face-to-face ONLY: "Turn to your neighbor", "Physical Flipcharts", "Room Movement", "Gallery Walk", "Role Play in room", "Group Discussions".
-- FORBIDDEN: DO NOT mention videos, webinars, online dashboards, virtual forums, zoom links, or screen sharing.
-- MATERIALS: Printed Workbooks, Sticky Notes, Markers, Flipchart paper.`;
+  // 2. Iterate through sections
+  data.sections.forEach((section, index) => {
+    if (target === 'WORKBOOK') {
+      output += `<hr style="border:0;border-top:1px solid #e0e0e0;margin:20px 0;">\n`;
+      // Section header is rendered inside renderWorkbookSection for activity types;
+      // for theory it's also rendered there. No separate header needed.
+    } else {
+      output += `---\n\n`; // Section separator
+      output += `## Section ${index + 1}: ${section.title} (${section.durationMinutes} min)\n\n`;
+    }
 
-  return { terminologyBlock, voiceProfileBlock, philosophyBlock, domainContextBlock, envConstraints };
-}
+    switch (target) {
+      case 'WORKBOOK':
+        output += renderWorkbookSection(section, data.localizedLabels, data.domainContext);
+        break;
+      case 'MANUAL':
+        output += renderManualSection(section, data.narrativeContext.protagonistName, data.localizedLabels);
+        break;
+      case 'EXERCISES':
+        if (section.exercisesDetailed) {
+           output += renderExerciseSheet(section.exercisesDetailed, data.localizedLabels);
+        }
+        if (section.exerciseSequence && Array.isArray(section.exerciseSequence)) {
+            section.exerciseSequence.forEach(ex => {
+                output += renderExerciseSequenceItem(ex, data.localizedLabels);
+            });
+        }
+        if (!section.exercisesDetailed && (!section.exerciseSequence || section.exerciseSequence.length === 0)) {
+            output += `*(${data.localizedLabels?.activity || 'No detailed exercises in this section'})*\n\n`;
+        }
+        break;
+       case 'VIDEO_SCRIPT':
+         if (section.videoScript) {
+             output += renderVideoScript(section.videoScript, data.localizedLabels);
+         }
+         break;
+    }
+    output += `\n\n`;
+  });
+
+  return cleanMarkdown(output);
+};
+
+// Helper: escape HTML special characters to prevent XSS in generated content
+const escHtml = (s: string): string =>
+  String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+// Helper: convert plain text with newlines to HTML paragraphs (preserves structure)
+const textToHtmlParagraphs = (text: string): string => {
+  if (!text) return '';
+  // Split on double newlines for paragraphs, single newlines become <br>
+  return text.split(/\n{2,}/).map(para =>
+    `<p style="margin:6px 0;line-height:1.6;">${para.replace(/\n/g, '<br>')}</p>`
+  ).join('');
+};
+
+const renderWorkbookSection = (section: GoldenSection, labels: GoldenModuleData['localizedLabels'], domainContext?: GoldenModuleData['domainContext']): string => {
+  const ACTIVITY_TYPES = ['ACTIVITY', 'ICE_BREAKER', 'WARM_UP', 'DEBRIEF'];
+  const font = 'font-family:Arial,sans-serif;';
+
+  // BREAK
+  if (section.type === 'BREAK') {
+    return `<div style="text-align:center;padding:12px;color:#888;${font}border:1px dashed #ccc;margin:12px 0;border-radius:4px;">☕ ${escHtml(section.title || 'Pauză')} — ${section.durationMinutes} min</div>\n`;
+  }
+
+  const content = section.participantContent;
+  const exercise = section.exercisesDetailed;
+
+  if (!content && !exercise && (!section.exerciseSequence || section.exerciseSequence.length === 0)) {
+    return `<p style="color:#c00;${font}"><em>Conținut lipsă pentru secțiunea "${escHtml(section.title)}". Regenerați modulul.</em></p>\n`;
+  }
+
+  let html = '';
+
+  // ----- ACTIVITY BOX -----
+  if (ACTIVITY_TYPES.includes(section.type)) {
+    const actLabel = (labels as any)?.activityLabel || labels?.activity || 'ACTIVITATE';
+    html += `<div style="border:1px solid #28a745;border-radius:4px;margin:16px 0;${font}">`;
+    html += `<div style="background:#28a745;color:white;padding:8px 14px;font-weight:bold;font-size:14px;">${escHtml(actLabel)}: ${escHtml(section.title)} (${section.durationMinutes} min)</div>`;
+    html += `<div style="padding:12px 14px;">`;
+
+    if (content?.theoryMarkdown) {
+      // Parse numbered/bulleted lists from theoryMarkdown for activity instructions
+      const lines = content.theoryMarkdown.split('\n').filter((l: string) => l.trim());
+      html += `<table style="width:100%;border-collapse:collapse;">`;
+      lines.forEach((line: string) => {
+        const clean = line.replace(/^[-*•\d+\.]\s*/, '').trim();
+        if (clean) html += `<tr><td style="padding:5px 8px;border-bottom:1px solid #e8f5e9;">${escHtml(clean)}</td></tr>`;
+      });
+      html += `</table>`;
+    }
+
+    if (content?.keyTakeaways?.length) {
+      const whyLabel = (labels as any)?.whyWeDoThis || 'De ce facem asta?';
+      html += `<div style="padding:8px 14px 4px;font-style:italic;color:#2e7d32;font-weight:600;">${escHtml(whyLabel)}</div>`;
+      html += `<table style="width:100%;border-collapse:collapse;">`;
+      content.keyTakeaways.forEach((pt: string) => {
+        html += `<tr><td style="padding:4px 14px;color:#555;">${escHtml(pt)}</td></tr>`;
+      });
+      html += `</table>`;
+    }
+
+    html += `</div></div>\n`;
+
+  // ----- THEORY / DISCUSSION -----
+  } else {
+    html += `<h3 style="color:#1a1a2e;border-bottom:2px solid #4a90d9;padding-bottom:4px;margin:16px 0 8px 0;${font}">${escHtml(section.title)}</h3>`;
+
+    if (content?.theoryMarkdown) {
+      html += `<div style="${font}line-height:1.7;margin-bottom:12px;">${textToHtmlParagraphs(content.theoryMarkdown)}</div>`;
+    }
+
+    // Client profiles comparison table (from domainContext)
+    if (domainContext?.clientProfiles && Array.isArray(domainContext.clientProfiles) && domainContext.clientProfiles.length >= 2) {
+      const HEADER_COLORS = ['#1a3c6e', '#2e7d32', '#b71c1c', '#6a1b9a'];
+      const profiles = domainContext.clientProfiles.slice(0, 4);
+      html += `<table style="width:100%;border-collapse:collapse;margin:16px 0;">`;
+      html += `<tr>`;
+      profiles.forEach((p: any, idx: number) => {
+        html += `<th style="background:${HEADER_COLORS[idx] || '#444'};color:white;padding:10px;text-align:center;${font}">${escHtml(p.type || `Tip ${idx+1}`)}</th>`;
+      });
+      html += `</tr>`;
+      // Row: decisionLogic
+      html += `<tr>`;
+      profiles.forEach((p: any) => {
+        html += `<td style="padding:8px;border:1px solid #ddd;vertical-align:top;${font}">${escHtml(p.decisionLogic || '')}</td>`;
+      });
+      html += `</tr>`;
+      // Row: approach
+      if (profiles.some((p: any) => p.approach)) {
+        html += `<tr>`;
+        profiles.forEach((p: any) => {
+          html += `<td style="padding:8px;border:1px solid #ddd;vertical-align:top;background:#f9f9f9;${font}">${escHtml(p.approach || '')}</td>`;
+        });
+        html += `</tr>`;
+      }
+      html += `</table>`;
+    }
+
+    if (content?.keyTakeaways?.length) {
+      const ktLabel = labels?.keyTakeaways || 'Idei cheie';
+      html += `<div style="background:#f0f7ff;border-left:4px solid #4a90d9;padding:10px 14px;margin:12px 0;${font}">`;
+      html += `<strong>🔑 ${escHtml(ktLabel)}:</strong><ul style="margin:6px 0 0 0;padding-left:20px;">`;
+      content.keyTakeaways.forEach((pt: string) => {
+        html += `<li style="margin:4px 0;">${escHtml(pt)}</li>`;
+      });
+      html += `</ul></div>`;
+    }
+
+    if (content?.actionableSteps?.length) {
+      const apLabel = labels?.actionPlan || 'Plan de acțiune';
+      html += `<div style="margin:12px 0;${font}"><strong>🚀 ${escHtml(apLabel)}:</strong><ol style="margin:6px 0 0 0;padding-left:20px;">`;
+      content.actionableSteps.forEach((step: string) => {
+        html += `<li style="margin:4px 0;">${escHtml(step)}</li>`;
+      });
+      html += `</ol></div>`;
+    }
+  }
+
+  // ----- EXERCISE BOX (applies to both activity and theory sections) -----
+  const renderExerciseBox = (ex: NonNullable<GoldenSection['exercisesDetailed']>) => {
+    const actLabel = labels?.activity || 'Exercițiu';
+    const objLabel = labels?.objective || 'Obiectiv';
+    const instrLabel = labels?.instructionsParticipant || 'Instrucțiuni';
+    const debriefLabel = labels?.debrief || 'Checklist succes';
+    let exHtml = `<div style="border:1px solid #ff9800;border-radius:4px;margin:16px 0;${font}">`;
+    exHtml += `<div style="background:#ff9800;color:white;padding:8px 14px;font-weight:bold;">🎯 ${escHtml(actLabel)}: ${escHtml(ex.title || '')}${ex.durationMinutes ? ` — ${ex.durationMinutes} min` : ''}</div>`;
+    exHtml += `<div style="padding:12px 14px;">`;
+    if (ex.objective) exHtml += `<p style="margin:0 0 8px 0;"><strong>${escHtml(objLabel)}:</strong> ${escHtml(ex.objective)}</p>`;
+    if (ex.instructionsParticipant) {
+      exHtml += `<p style="margin:0 0 4px 0;"><strong>${escHtml(instrLabel)}:</strong></p>`;
+      // Parse numbered steps from instruction text
+      const lines = ex.instructionsParticipant.split('\n').filter((l: string) => l.trim());
+      exHtml += `<ol style="padding-left:20px;margin:4px 0 12px 0;">`;
+      lines.forEach((line: string) => {
+        const clean = line.replace(/^\d+\.\s*/, '').trim();
+        if (clean) exHtml += `<li style="margin:4px 0;">${escHtml(clean)}</li>`;
+      });
+      exHtml += `</ol>`;
+    }
+    // Workspace area
+    exHtml += `<div style="border:1px dashed #aaa;min-height:80px;padding:8px;margin:8px 0;background:#fafafa;color:#999;font-style:italic;">Spațiu de lucru...</div>`;
+    if (ex.successIndicators?.length) {
+      exHtml += `<p style="margin:8px 0 4px 0;"><strong>${escHtml(debriefLabel)}:</strong></p>`;
+      ex.successIndicators.forEach((item: string) => {
+        exHtml += `<div style="margin:3px 0;">☐ ${escHtml(item)}</div>`;
+      });
+    }
+    exHtml += `</div></div>`;
+    return exHtml;
+  };
+
+  if (exercise) {
+    html += renderExerciseBox(exercise);
+  }
+
+  if (section.exerciseSequence?.length) {
+    section.exerciseSequence.forEach((ex: any) => {
+      html += renderExerciseBox({
+        title: ex.title,
+        objective: ex.type,
+        durationMinutes: ex.durationMinutes,
+        instructionsParticipant: ex.instructionsParticipant || '',
+        instructionsFacilitator: ex.instructionsFacilitator || '',
+        materialsNeeded: ex.materialsNeeded || [],
+        debriefingQuestions: ex.debriefingQuestions || [],
+        successIndicators: ex.successIndicators || [],
+        adaptationNotes: ex.adaptationNotes || '',
+      });
+    });
+  }
+
+  if (content?.reflectionQuestions?.length) {
+    const reflLabel = labels?.reflection || 'Reflecție';
+    html += `<div style="margin:16px 0;${font}"><strong>🤔 ${escHtml(reflLabel)}:</strong>`;
+    content.reflectionQuestions.forEach((q: string) => {
+      html += `<div style="margin:10px 0;">`;
+      html += `<p style="font-weight:600;margin:0 0 4px 0;">${escHtml(q)}</p>`;
+      html += `<div style="border-bottom:1px solid #ccc;min-height:40px;margin-bottom:4px;"></div>`;
+      html += `<div style="border-bottom:1px solid #ccc;min-height:40px;"></div>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+  }
+
+  return html;
+};
+
+const renderManualSection = (section: GoldenSection, protagonistName: string, labels: GoldenModuleData['localizedLabels']): string => {
+  const instr = section.trainerInstructions;
+  if (!instr) {
+      return `> Missing trainer instructions for section "${section.title}"\n`;
+  }
+
+  let md = `### 👨‍🏫 ${labels?.trainerInstructions || 'Trainer Instructions'}\n`;
+  md += `**${labels?.method || 'Method'}:** ${instr.deliveryMethod || 'N/A'}\n\n`;
 
 /** Build a fallback ModuleContext when LLM generation fails */
 function buildFallbackModuleContext(
@@ -3253,6 +3436,33 @@ async function handleLegacyStep(
       return await callLLM(prompt, course.language || 'ro');
   }
 
+  // --- GOLDEN PATH FOR MODULE-LEVEL STEPS ---
+  // These step types require per-module generation via the Golden JSON approach.
+  // Processing them through the generic callLLM fallback can cause routing ambiguity
+  // and produces inferior content. We explicitly iterate modules here.
+  if (['exercises', 'examples_and_stories', 'facilitator_notes', 'facilitator_manual'].includes(step_type)) {
+    const modules = course.blueprint?.modules;
+    if (!modules || modules.length === 0) {
+      Logger.warn(`[handleLegacyStep] No blueprint modules for step_type=${step_type}. Using generic fallback.`);
+      return await callLLM(`Generate ${step_type} content for course "${course.title}". Language: ${course.language || 'ro'}.`, course.language || 'ro');
+    }
+    const stepKeyMap: Record<string, string> = {
+      'exercises': 'course.steps.exercises',
+      'examples_and_stories': 'course.steps.examples',
+      'facilitator_notes': 'course.steps.manual',
+      'facilitator_manual': 'course.steps.manual',
+    };
+    const goldenStepKey = stepKeyMap[step_type] || 'course.steps.exercises';
+    Logger.info(`[handleLegacyStep] Processing ${step_type} as Golden per-module. Modules: ${modules.length}, step_key: ${goldenStepKey}`);
+    const results: string[] = [];
+    for (let i = 0; i < modules.length; i++) {
+      const moduleId = await resolveModuleId(supabase, course.id, modules[i], i);
+      const content = await handleGoldenStep(supabase, course, moduleId, goldenStepKey);
+      results.push(content);
+    }
+    return results.join('\n\n---\n\n');
+  }
+
   if (step_type === 'course.steps.course_slides' || step_type === 'slides') {
       let moduleListStr = "";
       if (course.blueprint && Array.isArray(course.blueprint.modules)) {
@@ -3850,156 +4060,258 @@ async function resolveModuleId(supabase: any, courseId: string, moduleData: any,
   return newModule.id;
 }
 
+// --- Interfaces for structured workbook intro/outro data ---
+interface WorkbookIntroData {
+  localizedLabels: {
+    activityLabel: string;
+    whyWeDoThis: string;
+    contextTitle: string;
+    realityCol: string;
+    opportunityCol: string;
+    companyInfoTitle: string;
+    roadmapTitle: string;
+    durationLabel: string;
+    practicalLabel: string;
+    theoryLabel: string;
+  };
+  warmupActivity: {
+    title: string;
+    durationMinutes: number;
+    instructions: string[];
+    rationale: string[];
+  };
+  contextTable: {
+    rows: Array<{ reality: string; opportunity: string }>;
+  };
+  companyInfo?: {
+    rows: Array<{ label: string; value: string }>;
+  };
+  roadmap: {
+    modules: Array<{ title: string; durationMinutes: number; practicalPercent: number }>;
+  };
+}
+
+interface WorkbookOutroData {
+  localizedLabels: {
+    actionPlanTitle: string;
+    days30: string;
+    days60: string;
+    days90: string;
+    commitmentTitle: string;
+    nextStepsTitle: string;
+    nameLabel: string;
+    dateLabel: string;
+    signatureLabel: string;
+  };
+  actionPlan: {
+    rows: Array<{ days30: string; days60: string; days90: string }>;
+  };
+  nextSteps: string[];
+}
+
+function renderWorkbookIntroHtml(data: WorkbookIntroData): string {
+  const font = 'font-family:Arial,sans-serif;';
+  const L = data.localizedLabels;
+  let html = '';
+
+  // 1. Warm-up activity box
+  html += `<div style="border:1px solid #28a745;border-radius:4px;margin:0 0 20px 0;${font}">`;
+  html += `<div style="background:#28a745;color:white;padding:8px 14px;font-weight:bold;font-size:14px;">${escHtml(L.activityLabel)}: ${escHtml(data.warmupActivity.title)} (${data.warmupActivity.durationMinutes} min)</div>`;
+  html += `<div style="padding:12px 14px;">`;
+  if (data.warmupActivity.instructions.length) {
+    html += `<table style="width:100%;border-collapse:collapse;">`;
+    data.warmupActivity.instructions.forEach(instr => {
+      html += `<tr><td style="padding:5px 8px;border-bottom:1px solid #e8f5e9;">${escHtml(instr)}</td></tr>`;
+    });
+    html += `</table>`;
+  }
+  if (data.warmupActivity.rationale.length) {
+    html += `<div style="padding:8px 0 4px;font-style:italic;color:#2e7d32;font-weight:600;">${escHtml(L.whyWeDoThis)}</div>`;
+    html += `<table style="width:100%;border-collapse:collapse;">`;
+    data.warmupActivity.rationale.forEach(r => {
+      html += `<tr><td style="padding:4px 8px;color:#555;">• ${escHtml(r)}</td></tr>`;
+    });
+    html += `</table>`;
+  }
+  html += `</div></div>`;
+
+  // 2. Context table (reality vs opportunity)
+  if (data.contextTable.rows.length) {
+    html += `<h3 style="color:#1a1a2e;border-bottom:2px solid #4a90d9;padding-bottom:4px;margin:16px 0 8px 0;${font}">${escHtml(L.contextTitle)}</h3>`;
+    html += `<table style="width:100%;border-collapse:collapse;margin-bottom:20px;">`;
+    html += `<tr>`;
+    html += `<th style="background:#b71c1c;color:white;padding:10px;text-align:left;${font}width:50%;">${escHtml(L.realityCol)}</th>`;
+    html += `<th style="background:#2e7d32;color:white;padding:10px;text-align:left;${font}width:50%;">${escHtml(L.opportunityCol)}</th>`;
+    html += `</tr>`;
+    data.contextTable.rows.forEach((row, i) => {
+      const bg = i % 2 === 0 ? '#fff' : '#f9f9f9';
+      html += `<tr style="background:${bg};">`;
+      html += `<td style="padding:8px 10px;border:1px solid #ddd;vertical-align:top;${font}">${escHtml(row.reality)}</td>`;
+      html += `<td style="padding:8px 10px;border:1px solid #ddd;vertical-align:top;${font}">${escHtml(row.opportunity)}</td>`;
+      html += `</tr>`;
+    });
+    html += `</table>`;
+  }
+
+  // 3. Company info (optional)
+  if (data.companyInfo?.rows?.length) {
+    html += `<h3 style="color:#1a1a2e;border-bottom:2px solid #4a90d9;padding-bottom:4px;margin:16px 0 8px 0;${font}">${escHtml(L.companyInfoTitle)}</h3>`;
+    html += `<table style="width:100%;border-collapse:collapse;margin-bottom:20px;">`;
+    data.companyInfo.rows.forEach((row, i) => {
+      const bg = i % 2 === 0 ? '#fff' : '#f9f9f9';
+      html += `<tr style="background:${bg};">`;
+      html += `<td style="padding:6px 10px;border:1px solid #ddd;font-weight:bold;width:35%;${font}">${escHtml(row.label)}</td>`;
+      html += `<td style="padding:6px 10px;border:1px solid #ddd;${font}">${escHtml(row.value)}</td>`;
+      html += `</tr>`;
+    });
+    html += `</table>`;
+  }
+
+  // 4. Course roadmap
+  if (data.roadmap.modules.length) {
+    html += `<h3 style="color:#1a1a2e;border-bottom:2px solid #4a90d9;padding-bottom:4px;margin:16px 0 8px 0;${font}">${escHtml(L.roadmapTitle)}</h3>`;
+    html += `<table style="width:100%;border-collapse:collapse;margin-bottom:20px;">`;
+    html += `<tr>`;
+    html += `<th style="background:#1a3c6e;color:white;padding:8px 10px;text-align:left;${font}">#</th>`;
+    html += `<th style="background:#1a3c6e;color:white;padding:8px 10px;text-align:left;${font}">Modul</th>`;
+    html += `<th style="background:#1a3c6e;color:white;padding:8px 10px;text-align:center;${font}">${escHtml(L.durationLabel)}</th>`;
+    html += `<th style="background:#1a3c6e;color:white;padding:8px 10px;text-align:center;${font}">${escHtml(L.practicalLabel)}/${escHtml(L.theoryLabel)}</th>`;
+    html += `</tr>`;
+    data.roadmap.modules.forEach((m, i) => {
+      const bg = i % 2 === 0 ? '#fff' : '#f0f4ff';
+      html += `<tr style="background:${bg};">`;
+      html += `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center;${font}">${i + 1}</td>`;
+      html += `<td style="padding:6px 10px;border:1px solid #ddd;${font}">${escHtml(m.title)}</td>`;
+      html += `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center;${font}">${m.durationMinutes} min</td>`;
+      html += `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center;${font}">${m.practicalPercent}% / ${100 - m.practicalPercent}%</td>`;
+      html += `</tr>`;
+    });
+    html += `</table>`;
+  }
+
+  return html;
+}
+
+function renderWorkbookOutroHtml(data: WorkbookOutroData): string {
+  const font = 'font-family:Arial,sans-serif;';
+  const L = data.localizedLabels;
+  let html = '';
+
+  // 1. Action plan table
+  if (data.actionPlan.rows.length) {
+    html += `<h3 style="color:#1a1a2e;border-bottom:2px solid #4a90d9;padding-bottom:4px;margin:0 0 12px 0;${font}">${escHtml(L.actionPlanTitle)}</h3>`;
+    html += `<table style="width:100%;border-collapse:collapse;margin-bottom:24px;">`;
+    html += `<tr>`;
+    html += `<th style="background:#1565c0;color:white;padding:10px;text-align:center;${font}width:33%;">${escHtml(L.days30)}</th>`;
+    html += `<th style="background:#2e7d32;color:white;padding:10px;text-align:center;${font}width:33%;">${escHtml(L.days60)}</th>`;
+    html += `<th style="background:#6a1b9a;color:white;padding:10px;text-align:center;${font}width:34%;">${escHtml(L.days90)}</th>`;
+    html += `</tr>`;
+    data.actionPlan.rows.forEach((row, i) => {
+      const bg = i % 2 === 0 ? '#fff' : '#f9f9f9';
+      html += `<tr style="background:${bg};">`;
+      html += `<td style="padding:8px 10px;border:1px solid #ddd;vertical-align:top;${font}">${escHtml(row.days30)}</td>`;
+      html += `<td style="padding:8px 10px;border:1px solid #ddd;vertical-align:top;${font}">${escHtml(row.days60)}</td>`;
+      html += `<td style="padding:8px 10px;border:1px solid #ddd;vertical-align:top;${font}">${escHtml(row.days90)}</td>`;
+      html += `</tr>`;
+    });
+    html += `</table>`;
+  }
+
+  // 2. Next steps checklist
+  if (data.nextSteps.length) {
+    html += `<h3 style="color:#1a1a2e;border-bottom:2px solid #4a90d9;padding-bottom:4px;margin:0 0 12px 0;${font}">${escHtml(L.nextStepsTitle)}</h3>`;
+    html += `<div style="margin-bottom:20px;">`;
+    data.nextSteps.forEach(step => {
+      html += `<div style="margin:6px 0;${font}">☐ ${escHtml(step)}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  // 3. Commitment card
+  html += `<div style="border:2px solid #1a3c6e;border-radius:6px;padding:20px;margin-top:16px;${font}">`;
+  html += `<h3 style="color:#1a3c6e;margin:0 0 16px 0;text-align:center;">${escHtml(L.commitmentTitle)}</h3>`;
+  html += `<div style="margin:12px 0;">${escHtml(L.nameLabel)}<div style="border-bottom:1px solid #333;min-height:28px;margin-top:4px;"></div></div>`;
+  html += `<div style="margin:12px 0;">${escHtml(L.dateLabel)}<div style="border-bottom:1px solid #333;min-height:28px;margin-top:4px;"></div></div>`;
+  html += `<div style="margin:12px 0;">${escHtml(L.signatureLabel)}<div style="border-bottom:1px solid #333;min-height:50px;margin-top:4px;"></div></div>`;
+  html += `</div>`;
+
+  return html;
+}
+
 async function generateWorkbookIntro(course: Course): Promise<string> {
-  // 1. Extract DNA Context
-  const dna = course.dna || {};
-  const voice = dna.voiceProfile || {};
-  const terminology = dna.terminology || {};
-  
-  let dnaContext = "";
-  
-  // Voice
-  dnaContext += `\n**VOICE & TONE**:\n`;
-  dnaContext += `- Formality: ${voice.formality || "Professional"}\n`;
-  dnaContext += `- Humor: ${voice.humorLevel || "Light"}\n`;
-  if (voice.forbiddenPhrases && Array.isArray(voice.forbiddenPhrases) && voice.forbiddenPhrases.length > 0) {
-      dnaContext += `- Forbidden Phrases: ${voice.forbiddenPhrases.join(', ')}\n`;
+  const lang = course.language || 'Romanian';
+  const dnaContext = {
+    domainContext: (course.dna as any)?.domainContext,
+    challenges: (course.dna as any)?.challenges?.slice?.(0, 5),
+    opportunities: (course.dna as any)?.opportunities?.slice?.(0, 5),
+    companyFacts: (course.dna as any)?.companyFacts,
+    modules: course.blueprint?.modules?.slice?.(0, 15)?.map((m: any) => ({ title: m.title, duration: m.duration_minutes || m.duration })),
+  };
+  const interfaceText = `{
+  localizedLabels: { activityLabel, whyWeDoThis, contextTitle, realityCol, opportunityCol, companyInfoTitle, roadmapTitle, durationLabel, practicalLabel, theoryLabel },
+  warmupActivity: { title: string, durationMinutes: number, instructions: string[], rationale: string[] },
+  contextTable: { rows: Array<{ reality: string, opportunity: string }> },
+  companyInfo?: { rows: Array<{ label: string, value: string }> },
+  roadmap: { modules: Array<{ title: string, durationMinutes: number, practicalPercent: number }> }
+}`;
+
+  const prompt = `Generate a JSON object for the Workbook Introduction section.
+COURSE: "${course.title}"
+AUDIENCE: "${course.target_audience || 'Professionals'}"
+LANGUAGE: ${lang}
+DNA CONTEXT (extract REAL data for contextTable and companyInfo from this):
+${JSON.stringify(dnaContext, null, 2).substring(0, 2500)}
+
+Return ONLY valid JSON matching this interface:
+${interfaceText}
+
+RULES:
+1. ALL string values MUST be in ${lang}
+2. warmupActivity: design a specific, relevant warm-up for THIS course topic (not generic)
+3. contextTable: 4-6 rows using REAL data from DNA — challenges participants face (reality) vs what course solves (opportunity)
+4. companyInfo: include ONLY if DNA has company/product/industry data; omit field if no data available
+5. roadmap: use actual module titles from DNA context; estimate practicalPercent 60-80 for most modules
+6. Return ONLY JSON, no markdown fences, no explanation`;
+
+  try {
+    const raw = await callLLM(prompt, course.language || 'ro');
+    const introData = repairAndParseJson<WorkbookIntroData>(raw);
+    return renderWorkbookIntroHtml(introData);
+  } catch (e) {
+    Logger.error('[generateWorkbookIntro] Failed to parse JSON or render HTML', e);
+    // Fallback: minimal HTML intro
+    return `<h2 style="font-family:Arial,sans-serif;color:#1a1a2e;">Bun venit la ${course.title || 'Curs'}</h2><p style="font-family:Arial,sans-serif;">Acest caiet este instrumentul tău de lucru pe parcursul cursului. Notează, reflectează și completează exercițiile.</p>`;
   }
-  
-  // Terminology
-  if (terminology.participant || terminology.trainer) {
-      dnaContext += `\n**TERMINOLOGY**:\n`;
-      dnaContext += `- Participant: ${terminology.participant || "Participant"}\n`;
-      dnaContext += `- Trainer: ${terminology.trainer || "Trainer"}\n`;
-  }
-
-  // Domain Context
-  if (dna.domainContext) {
-      const d = dna.domainContext;
-      if (d.industryTerms) {
-          dnaContext += `\n**INDUSTRY TERMS**:\n${Object.entries(d.industryTerms).map(([k,v]) => `- ${k}: ${v}`).join('\n')}\n`;
-      }
-  }
-
-  // Style Block (Pedagogical Tone)
-  const styleBlock = getStyleBlock(course.target_audience || "General Audience");
-
-  const prompt = `
-  **TASK**: Write a SUBSTANTIAL Introduction for the Participant Workbook (approx 300-500 words).
-  **COURSE**: "${course.title}"
-  **TARGET AUDIENCE**: "${course.target_audience}"
-  **LANGUAGE**: ${course.language || 'Romanian'} (STRICT)
-  
-  ${dnaContext}
-  
-  ${styleBlock}
-
-  **CONTENT TO GENERATE**:
-  1. **Welcome Message**: Warm, professional welcome matching the Voice Profile. Address the "${terminology.participant || 'Participant'}" directly.
-  2. **The "Why"**: Explain why this course is critical for their role/industry.
-  3. **Learning Philosophy**: Briefly explain the methodology (Active Learning, Practical Application).
-  4. **How to use this workbook**: Clear instructions (e.g., "This is your personal log", "Complete all exercises").
-  
-  **FORMAT**: Markdown. Use headers (##, ###), bullet points, and bold text for emphasis.
-
-  **CRITICAL RULES (NON-NEGOTIABLE)**: 
-  1. **LANGUAGE PURITY**: Output ONLY in ${course.language || 'Romanian'}. Do NOT use English headings, subheadings, or phrases.
-  2. **DNA COMPLIANCE**: Use the specified Terminology (e.g. "${terminology.participant || 'Participant'}" instead of "Student").
-  3. **VOICE & TONE**: Strictly follow the defined Voice Profile (Formality: ${voice.formality}, Humor: ${voice.humorLevel}).
-  4. **NO META-COMMENTARY**: No "Here is the introduction...", no apologies, no "As an AI".
-  5. **BANNED PHRASES**: Do NOT use: ${voice.forbiddenPhrases ? voice.forbiddenPhrases.join(', ') : "None"}.
-  `;
-  
-  let attempts = 0;
-  while (attempts < 2) {
-      attempts++;
-      try {
-        const content = await callLLM(prompt, course.language || 'ro');
-        const validation = await isContentValidByAI(content, course.language || 'ro');
-        if (validation.valid) return content;
-        Logger.warn(`[WorkbookIntro] Validation failed (Attempt ${attempts}): ${validation.reason}`);
-        if (attempts === 2) throw new Error(`Workbook Intro Rejected: ${validation.reason}`);
-      } catch (e) {
-        Logger.error(`[WorkbookIntro] Error:`, e);
-        if (attempts === 2) throw e;
-      }
-  }
-  throw new Error("Failed to generate Workbook Intro after retries.");
 }
 
 async function generateWorkbookOutro(course: Course): Promise<string> {
-  // 1. Extract DNA Context
-  const dna = course.dna || {};
-  const voice = dna.voiceProfile || {};
-  const terminology = dna.terminology || {};
-  
-  let dnaContext = "";
-  
-  // Voice
-  dnaContext += `\n**VOICE & TONE**:\n`;
-  dnaContext += `- Formality: ${voice.formality || "Professional"}\n`;
-  dnaContext += `- Humor: ${voice.humorLevel || "Light"}\n`;
-  if (voice.forbiddenPhrases && Array.isArray(voice.forbiddenPhrases) && voice.forbiddenPhrases.length > 0) {
-      dnaContext += `- Forbidden Phrases: ${voice.forbiddenPhrases.join(', ')}\n`;
+  const lang = course.language || 'Romanian';
+  const interfaceText = `{
+  localizedLabels: { actionPlanTitle, days30, days60, days90, commitmentTitle, nextStepsTitle, nameLabel, dateLabel, signatureLabel },
+  actionPlan: { rows: Array<{ days30: string, days60: string, days90: string }> },
+  nextSteps: string[]
+}`;
+
+  const prompt = `Generate a JSON object for the Workbook Conclusion section.
+COURSE: "${course.title}"
+LANGUAGE: ${lang}
+
+Return ONLY valid JSON matching this interface:
+${interfaceText}
+
+RULES:
+1. ALL string values MUST be in ${lang}
+2. actionPlan: 3-4 rows of concrete actions participants should take in first 30/60/90 days after the course
+3. nextSteps: 5-7 specific, actionable steps directly related to the course content
+4. Labels should be natural in ${lang} (e.g. Romanian: "Plan de Acțiune 30-60-90", "Angajamentul meu")
+5. Return ONLY JSON, no markdown fences, no explanation`;
+
+  try {
+    const raw = await callLLM(prompt, course.language || 'ro');
+    const outroData = repairAndParseJson<WorkbookOutroData>(raw);
+    return renderWorkbookOutroHtml(outroData);
+  } catch (e) {
+    Logger.error('[generateWorkbookOutro] Failed to parse JSON or render HTML', e);
+    return `<h2 style="font-family:Arial,sans-serif;color:#1a1a2e;">Pași următori</h2><p style="font-family:Arial,sans-serif;">Aplică ce ai învățat! Identifică 3 acțiuni concrete pe care le vei lua în următoarele 30 de zile.</p>`;
   }
-  
-  // Terminology
-  if (terminology.participant || terminology.trainer) {
-      dnaContext += `\n**TERMINOLOGY**:\n`;
-      dnaContext += `- Participant: ${terminology.participant || "Participant"}\n`;
-      dnaContext += `- Trainer: ${terminology.trainer || "Trainer"}\n`;
-  }
-
-  // Domain Context
-  if (dna.domainContext) {
-      const d = dna.domainContext;
-      if (d.industryTerms) {
-          dnaContext += `\n**INDUSTRY TERMS**:\n${Object.entries(d.industryTerms).map(([k,v]) => `- ${k}: ${v}`).join('\n')}\n`;
-      }
-  }
-
-  // Style Block (Pedagogical Tone)
-  const styleBlock = getStyleBlock(course.target_audience || "General Audience");
-
-  const prompt = `
-  **TASK**: Write a SUBSTANTIAL Conclusion/Outro for the Participant Workbook (approx 200-300 words).
-  **COURSE**: "${course.title}"
-  **TARGET AUDIENCE**: "${course.target_audience}"
-  **LANGUAGE**: ${course.language || 'Romanian'} (STRICT)
-  
-  ${dnaContext}
-  
-  ${styleBlock}
-
-  **CONTENT TO GENERATE**:
-  1. **Final Congratulations**: Acknowledge the effort and completion of the journey. Address the "${terminology.participant || 'Participant'}" directly.
-  2. **Call to Action**: Specific encouragement to apply the concepts immediately (e.g. "Tomorrow, start by...").
-  3. **Continuous Learning**: Remind them that this is just the beginning.
-  4. **Inspiring Quote**: A relevant quote (translated to ${course.language || 'Romanian'}).
-  
-  **FORMAT**: Markdown.
-
-  **CRITICAL RULES (NON-NEGOTIABLE)**: 
-  1. **LANGUAGE PURITY**: Output ONLY in ${course.language || 'Romanian'}. Do NOT use English headings, subheadings, or phrases.
-  2. **DNA COMPLIANCE**: Use the specified Terminology (e.g. "${terminology.participant || 'Participant'}" instead of "Student").
-  3. **VOICE & TONE**: Strictly follow the defined Voice Profile (Formality: ${voice.formality}, Humor: ${voice.humorLevel}).
-  4. **NO META-COMMENTARY**: No "Here is the conclusion...", no apologies, no "As an AI".
-  5. **BANNED PHRASES**: Do NOT use: ${voice.forbiddenPhrases ? voice.forbiddenPhrases.join(', ') : "None"}.
-  `;
-  
-  let attempts = 0;
-  while (attempts < 2) {
-      attempts++;
-      try {
-        const content = await callLLM(prompt, course.language || 'ro');
-        const validation = await isContentValidByAI(content, course.language || 'ro');
-        if (validation.valid) return content;
-        Logger.warn(`[WorkbookOutro] Validation failed (Attempt ${attempts}): ${validation.reason}`);
-        if (attempts === 2) throw new Error(`Workbook Outro Rejected: ${validation.reason}`);
-      } catch (e) {
-        Logger.error(`[WorkbookOutro] Error:`, e);
-        if (attempts === 2) throw e;
-      }
-  }
-  throw new Error("Failed to generate Workbook Outro after retries.");
 }

@@ -623,6 +623,91 @@ async function renderMarkdownElements(
 }
 
 /**
+ * Renders HTML content to PDF pages using html2canvas.
+ * Returns the new Y position (always at top of next page after rendering).
+ */
+async function renderHtmlContentToPdf(doc: jsPDF, html: string, startY: number): Promise<number> {
+    try {
+        // Dynamically import html2canvas to avoid bundle issues if not available
+        const html2canvas = (await import('html2canvas')).default;
+
+        // Create a hidden container with A4-like width
+        const container = document.createElement('div');
+        container.style.cssText = [
+            'position:fixed',
+            'top:-9999px',
+            'left:-9999px',
+            'width:794px',        // ~A4 at 96dpi
+            'padding:20px 30px',
+            'background:white',
+            'font-family:Arial,sans-serif',
+            'font-size:12px',
+            'line-height:1.5',
+            'color:#111',
+            'box-sizing:border-box',
+        ].join(';');
+        container.innerHTML = html;
+        document.body.appendChild(container);
+
+        const canvas = await html2canvas(container, {
+            scale: 1.5,
+            useCORS: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+        });
+        document.body.removeChild(container);
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdfWidth = PDF_CONFIG.contentWidth;
+        const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+        const pageContentHeight = PDF_CONFIG.pageHeight - 2 * PDF_CONFIG.margin;
+
+        // Split into pages if content is taller than one page
+        let remainingHeight = pdfHeight;
+        let sourceY = 0;
+        let isFirstPage = true;
+
+        while (remainingHeight > 0) {
+            if (!isFirstPage) {
+                doc.addPage();
+                startY = PDF_CONFIG.margin;
+            }
+
+            const sliceHeight = Math.min(remainingHeight, pageContentHeight - (isFirstPage ? startY - PDF_CONFIG.margin : 0));
+            const availableY = isFirstPage ? startY : PDF_CONFIG.margin;
+
+            // Calculate source slice in canvas coordinates
+            const canvasSliceHeight = (sliceHeight / pdfWidth) * canvas.width;
+
+            // Create a temp canvas for the slice
+            const sliceCanvas = document.createElement('canvas');
+            sliceCanvas.width = canvas.width;
+            sliceCanvas.height = Math.ceil(canvasSliceHeight);
+            const ctx = sliceCanvas.getContext('2d');
+            if (ctx) {
+                ctx.drawImage(canvas, 0, sourceY * (canvas.width / pdfWidth), canvas.width, Math.ceil(canvasSliceHeight), 0, 0, canvas.width, Math.ceil(canvasSliceHeight));
+            }
+
+            doc.addImage(sliceCanvas.toDataURL('image/png'), 'PNG', PDF_CONFIG.margin, availableY, pdfWidth, sliceHeight);
+
+            sourceY += sliceHeight / pdfWidth * canvas.width;
+            remainingHeight -= sliceHeight;
+            isFirstPage = false;
+        }
+
+        return PDF_CONFIG.margin; // Return top of next page
+    } catch (e) {
+        console.error('[PDF Export] html2canvas render failed, falling back to text', e);
+        // Fallback: strip HTML and render as plain text
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        const textContent = tempDiv.textContent || tempDiv.innerText || '';
+        const elements = parseMarkdown(textContent);
+        return await renderMarkdownElements(doc, elements, startY);
+    }
+}
+
+/**
  * Adds course content pages
  */
 async function addCourseContent(
@@ -660,9 +745,15 @@ async function addCourseContent(
 
         y += PDF_CONFIG.spacing.afterTitle;
 
-        // Parse and render content
-        const elements = parseMarkdown(step.content);
-        y = await renderMarkdownElements(doc, elements, y);
+        // Parse and render content — HTML content uses html2canvas for fidelity
+        const content = step.content || '';
+        const isHtml = content.trimStart().startsWith('<') && content.includes('</');
+        if (isHtml) {
+            y = await renderHtmlContentToPdf(doc, content, y);
+        } else {
+            const elements = parseMarkdown(content);
+            y = await renderMarkdownElements(doc, elements, y);
+        }
     }
 }
 
