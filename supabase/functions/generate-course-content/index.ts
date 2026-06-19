@@ -766,16 +766,15 @@ class GeminiProvider implements IAIProvider {
     const apiKey = Config.GEMINI_API_KEY;
     if (!apiKey) throw new Error("Gemini API Key missing");
 
-    // Primary Model: gemini-2.0-flash (Active until March 2026)
-    // Fallback: gemini-2.0-flash-lite or gemini-1.5-flash (if still accessible via legacy)
-    // Updated 2026-01-30: gemini-1.5 series is deprecated. Switching to 2.0.
+    // Primary Model: gemini-2.5-flash
+    // Fallback Model: gemini-1.5-flash (cheap, fast and stable fallback)
     try {
-      Logger.info("Attempting Gemini 2.0-flash...");
-      return await this.callApi("gemini-2.0-flash", apiKey, prompt);
+      Logger.info("Attempting Gemini 2.5-flash...");
+      return await this.callApi("gemini-2.5-flash", apiKey, prompt);
     } catch (error: any) {
       if (this.isFallbackTrigger(error)) {
-        Logger.warn(`Gemini 2.0-flash failed (${error.message}). Falling back to gemini-2.0-flash-lite...`);
-        return await this.callApi("gemini-2.0-flash-lite", apiKey, prompt);
+        Logger.warn(`Gemini 2.5-flash failed (${error.message}). Falling back to gemini-1.5-flash...`);
+        return await this.callApi("gemini-1.5-flash", apiKey, prompt);
       }
       throw error;
     }
@@ -1593,8 +1592,11 @@ You are an expert Instructional Designer creating **PRESENTATION SLIDES** for a 
 </NOTES>
 <SLIDE_END id="{{moduleId}}_1">
 
-Start with slide 1. End with the last slide. No other text.
-ALL content in **{{language}}**.
+### CRITICAL OUTPUT INSTRUCTIONS
+1. **NO MARKDOWN WRAPPERS**: Do NOT wrap your output in ```xml or ```markdown code blocks. Start directly with the first `<SLIDE_BEGIN id="...">` and end with the last `</SLIDE_END>`. No preamble, intro, or concluding text.
+2. **STRICT IDS**: The slide IDs must start exactly at `{{moduleId}}_1` and increment consecutively (`{{moduleId}}_2`, `{{moduleId}}_3`, etc.).
+3. **STRICT TAGS**: Ensure all tags like `<TITLE>`, `<VISUAL>`, `<CONTENT>`, `<NOTES>` are in uppercase, correctly opened, and closed. Do not omit the slide-layout comment inside the block.
+4. **ALL CONTENT IN {{language}}**: Every title, bullet point, visual description, and speaker note must be strictly in {{language}}.
 `;
 
 /**

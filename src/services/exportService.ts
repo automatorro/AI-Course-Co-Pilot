@@ -373,7 +373,7 @@ export const parseContentSections = (markdown: string, language: string = 'en'):
     // --- 1. XML-BASED PARSING (STRICT MODE) ---
     // Căutăm blocuri <SLIDE_BEGIN ...> ... <SLIDE_END ...> SAU <SLIDE_START ...>
     // Suportă id="1", id='1', spații flexibile, și START/BEGIN
-    const slideBlockRegex = /<SLIDE_(?:BEGIN|START)\s+id=["']([^"']+)["']>([\s\S]*?)<SLIDE_(?:END|STOP)\s+id=["']\1["']>/gi;
+    const slideBlockRegex = /<SLIDE_(?:BEGIN|START)\s+id=["']?([^"' >]+)["']?>([\s\S]*?)<SLIDE_(?:END|STOP)\s+id=["']?\1["']?>/gi;
     let match;
     let hasXmlSlides = false;
 
