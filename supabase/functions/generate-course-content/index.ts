@@ -1607,9 +1607,9 @@ You are an expert Instructional Designer creating **PRESENTATION SLIDES** for a 
 <SLIDE_END id="{{moduleId}}_1">
 
 ### CRITICAL OUTPUT INSTRUCTIONS
-1. **NO MARKDOWN WRAPPERS**: Do NOT wrap your output in ```xml or ```markdown code blocks. Start directly with the first `<SLIDE_BEGIN id="...">` and end with the last `</SLIDE_END>`. No preamble, intro, or concluding text.
-2. **STRICT IDS**: The slide IDs must start exactly at `{{moduleId}}_1` and increment consecutively (`{{moduleId}}_2`, `{{moduleId}}_3`, etc.).
-3. **STRICT TAGS**: Ensure all tags like `<TITLE>`, `<VISUAL>`, `<CONTENT>`, `<NOTES>` are in uppercase, correctly opened, and closed. Do not omit the slide-layout comment inside the block.
+1. **NO MARKDOWN WRAPPERS**: Do NOT wrap your output in "xml" or "markdown" code blocks. Start directly with the first "<SLIDE_BEGIN id=\"...\">" and end with the last "</SLIDE_END>". No preamble, intro, or concluding text.
+2. **STRICT IDS**: The slide IDs must start exactly at "{{moduleId}}_1" and increment consecutively ("{{moduleId}}_2", "{{moduleId}}_3", etc.).
+3. **STRICT TAGS**: Ensure all tags like "<TITLE>", "<VISUAL>", "<CONTENT>", "<NOTES>" are in uppercase, correctly opened, and closed. Do not omit the slide-layout comment inside the block.
 4. **ALL CONTENT IN {{language}}**: Every title, bullet point, visual description, and speaker note must be strictly in {{language}}.
 `;
 
@@ -2120,6 +2120,37 @@ const renderManualSection = (section: GoldenSection, protagonistName: string, la
 
   let md = `### 👨‍🏫 ${labels?.trainerInstructions || 'Trainer Instructions'}\n`;
   md += `**${labels?.method || 'Method'}:** ${instr.deliveryMethod || 'N/A'}\n\n`;
+
+  if (instr.logistics && instr.logistics.length > 0) {
+      md += `**🛠️ Logistics:** ${instr.logistics.join(', ')}\n\n`;
+  }
+
+  if (instr.facilitatorPrep) {
+      md += `**📋 Prep:** ${instr.facilitatorPrep}\n\n`;
+  }
+
+  if (instr.breakoutRoomConfig) {
+      md += `**👥 Breakout Rooms:**\n`;
+      md += `*Time:* ${instr.breakoutRoomConfig.durationMinutes} min | *Size:* ${instr.breakoutRoomConfig.groupSize} ppl\n`;
+      md += `*Task:* ${instr.breakoutRoomConfig.taskDescription}\n\n`;
+  }
+
+  if (instr.script) {
+      md += `#### 🗣️ ${labels?.script || 'Script (Verbatim)'}\n`;
+      md += `> ${instr.script.replace(/\n/g, '\n> ')}\n\n`;
+  }
+
+  if (section.visuals && section.visuals.slidesSequence.length > 0) {
+      md += `#### 📊 ${labels?.slidesSequence || 'Slides Sequence'}\n`;
+      section.visuals.slidesSequence.forEach(slide => {
+          md += `- **[Slide] ${slide.title}** (${slide.type})\n`;
+          if (slide.bullets) slide.bullets.forEach(b => md += `  - ${b}\n`);
+      });
+  }
+
+  return md;
+};
+
 
 /** Build a fallback ModuleContext when LLM generation fails */
 function buildFallbackModuleContext(
