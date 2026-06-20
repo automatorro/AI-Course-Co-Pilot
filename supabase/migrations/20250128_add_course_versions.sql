@@ -19,10 +19,12 @@ CREATE INDEX idx_course_versions_step_id ON course_versions(step_id);
 -- RLS Policies
 ALTER TABLE course_versions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own course versions" ON course_versions;
 CREATE POLICY "Users can view their own course versions"
   ON course_versions FOR SELECT
   USING (auth.uid() = created_by);
 
+DROP POLICY IF EXISTS "Users can create versions for their courses" ON course_versions;
 CREATE POLICY "Users can create versions for their courses"
   ON course_versions FOR INSERT
   WITH CHECK (auth.uid() = created_by);

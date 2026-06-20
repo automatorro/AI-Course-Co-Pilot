@@ -11,10 +11,13 @@ create table if not exists public.user_usage (
 
 alter table public.user_usage enable row level security;
 
+drop policy if exists "Users can view their own usage" on public.user_usage;
 create policy "Users can view their own usage"
   on public.user_usage for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Service role can insert usage" on public.user_usage;
 create policy "Service role can insert usage"
   on public.user_usage for insert
   with check (true);
+

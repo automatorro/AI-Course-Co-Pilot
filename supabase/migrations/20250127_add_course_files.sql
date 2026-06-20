@@ -22,14 +22,17 @@ CREATE INDEX IF NOT EXISTS idx_course_files_user_id ON course_files(user_id);
 ALTER TABLE course_files ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies: Users can only access files for their own courses
+DROP POLICY IF EXISTS "Users can view their own course files" ON course_files;
 CREATE POLICY "Users can view their own course files"
   ON course_files FOR SELECT
   USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can upload files to their own courses" ON course_files;
 CREATE POLICY "Users can upload files to their own courses"
   ON course_files FOR INSERT
   WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Users can delete their own course files" ON course_files;
 CREATE POLICY "Users can delete their own course files"
   ON course_files FOR DELETE
   USING (user_id = auth.uid());

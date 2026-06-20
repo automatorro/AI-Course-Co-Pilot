@@ -16,18 +16,21 @@ alter table ai_cache add constraint ai_cache_prompt_hash_key unique (prompt_hash
 alter table ai_cache enable row level security;
 
 -- Allow all authenticated users to read from the cache (shared cache)
+drop policy if exists "Allow read access to authenticated users" on ai_cache;
 create policy "Allow read access to authenticated users"
 on ai_cache for select
 to authenticated
 using (true);
 
 -- Allow all authenticated users to insert into the cache
+drop policy if exists "Allow insert access to authenticated users" on ai_cache;
 create policy "Allow insert access to authenticated users"
 on ai_cache for insert
 to authenticated
 with check (true);
 
 -- Allow service role to do everything
+drop policy if exists "Allow service role full access" on ai_cache;
 create policy "Allow service role full access"
 on ai_cache
 to service_role
