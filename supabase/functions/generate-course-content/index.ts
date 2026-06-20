@@ -1040,7 +1040,7 @@ function containsBannedPhrases(content: string, language: string = 'ro'): boolea
 }
 
 // Helper wrapper for existing business logic with RETRY & CLEANUP
-async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean = false): Promise<string> {
+async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean = false, skipAiValidation: boolean = false): Promise<string> {
   let response = await orchestrator.execute(prompt);
 
   // Phase 1: Fast Static Check
@@ -1050,7 +1050,12 @@ async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean
       return response;
     }
     Logger.warn(`Banned phrases detected (Static Check - Lang: ${language}). Retrying...`);
-    return retryWithStrictInstructions(prompt, language, "Contains banned phrases (e.g. English words in Romanian text).");
+    return retryWithStrictInstructions(prompt, language, "Contains banned phrases (e.g. English words in Romanian text).", skipAiValidation);
+  }
+
+  if (skipAiValidation) {
+    Logger.info("[callLLM] Skipping Phase 2 AI Validation as requested.");
+    return response;
   }
 
   // Phase 2: AI Validator (Universal Check) - Only if static check passed
@@ -1060,14 +1065,14 @@ async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean
           Logger.error(`[CRITICAL] AI Validator rejected RETRY attempt: ${aiValidation.reason}. Returning anyway to avoid loop.`);
       } else {
           Logger.warn(`AI Validator rejected content: ${aiValidation.reason}. Retrying...`);
-          return retryWithStrictInstructions(prompt, language, aiValidation.reason);
+          return retryWithStrictInstructions(prompt, language, aiValidation.reason, skipAiValidation);
       }
   }
 
   return response;
 }
 
-async function retryWithStrictInstructions(prompt: string, language: string, errorReason?: string): Promise<string> {
+async function retryWithStrictInstructions(prompt: string, language: string, errorReason?: string, skipAiValidation: boolean = false): Promise<string> {
     const strictInstruction = `
     \n\n
     *** CRITICAL INSTRUCTION - STRICT MODE ***
@@ -1086,7 +1091,7 @@ async function retryWithStrictInstructions(prompt: string, language: string, err
     GENERATE THE CORRECTED CONTENT NOW.
     `;
     
-    return callLLM(prompt + strictInstruction, language, true);
+    return callLLM(prompt + strictInstruction, language, true, skipAiValidation);
 }
 
 // ==========================================
@@ -2415,7 +2420,8 @@ async function generateWorkbookContent(course: Course, ctx: ModuleContext, dna: 
     objectiveLabel: (lang || '').startsWith('ro') ? 'Obiectiv' : 'Objective',
   });
 
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
+  // Skip AI validation for large workbook generation to prevent Gateway Timeout (504)
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
   return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
 }
 
@@ -2449,7 +2455,8 @@ async function generateManualContent(course: Course, ctx: ModuleContext, dna: DN
     envRules,
   });
 
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
+  // Skip AI validation for large manual generation to prevent Gateway Timeout (504)
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
   return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
 }
 
@@ -2479,7 +2486,8 @@ async function generateSlidesContent(course: Course, ctx: ModuleContext, dna: DN
     slideCount,
   });
 
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
+  // Skip AI validation for slides generation to prevent Gateway Timeout (504)
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
   return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
 }
 
@@ -2509,7 +2517,8 @@ async function generateExercisesContent(course: Course, ctx: ModuleContext, dna:
     objectiveLabel: (lang || '').startsWith('ro') ? 'Obiectiv' : 'Objective',
   });
 
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
+  // Skip AI validation for exercises generation to prevent Gateway Timeout (504)
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
   return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
 }
 
@@ -2528,7 +2537,8 @@ async function generateVideoScriptContent(course: Course, ctx: ModuleContext, dn
     timingPlan: formatTimingPlan(ctx),
   });
 
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
+  // Skip AI validation for video script generation to prevent Gateway Timeout (504)
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
   return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
 }
 
@@ -2555,7 +2565,8 @@ For each story, use this format:
 
 Write ALL in **${lang}**. No preamble.
 `;
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
+  // Skip AI validation for examples generation to prevent Gateway Timeout (504)
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
   return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
 }
 
