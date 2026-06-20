@@ -657,7 +657,6 @@ async function renderHtmlContentToPdf(doc: jsPDF, html: string, startY: number):
         });
         document.body.removeChild(container);
 
-        const imgData = canvas.toDataURL('image/png');
         const pdfWidth = PDF_CONFIG.contentWidth;
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
         const pageContentHeight = PDF_CONFIG.pageHeight - 2 * PDF_CONFIG.margin;
