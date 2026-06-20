@@ -2607,6 +2607,14 @@ serve(async (req) => {
         });
     }
 
+    if (action === 'refine_blueprint') {
+        const { course, blueprint, language } = body;
+        const result = await handleRefineBlueprint(course, blueprint, language);
+        return new Response(JSON.stringify({ content: result }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+    }
+
     // ==========================================
     // NEW: Client-Side Iteration Handlers
     // ==========================================
@@ -4074,6 +4082,66 @@ async function handleChatOnboarding(chat_history: any[], course: any): Promise<s
         message: analystData.message, 
         blueprint: blueprintData
     });
+}
+
+async function handleRefineBlueprint(course: any, blueprint: any, language: string): Promise<string> {
+    const lang = language || course.language || 'Romanian';
+    const prompt = `
+    **ROLE**: Expert Instructional Designer.
+    **TASK**: Analyze the current Course Blueprint and refine it to make it more pedagogical, structured, and engaging.
+    **LANGUAGE**: ${lang}
+    
+    **COURSE INFO**:
+    Title: ${course.title}
+    Audience: ${course.target_audience}
+    Duration: ${course.estimated_duration}
+    
+    **CURRENT BLUEPRINT**:
+    ${JSON.stringify(blueprint, null, 2)}
+    
+    **REFINEMENT RULES**:
+    1. **Pedagogical improvements**: Enhance module titles, section titles, and learning objectives to make them clearer, more professional, and directly actionable.
+    2. **Engagement**: Ensure sections within each module have a logical flow (e.g. starting with Hook/Warmup, then Theory/Explainer, then Practice/Exercise, and finishing with Review/Quiz/Decisions).
+    3. **Consistency**: Ensure all modules and sections conform to the target audience level and style.
+    4. **Maintain structure**: Keep the same number of modules or a very similar logical structure. Make sure every module has sections with titles and correct \`content_type\` fields (\`slides\`, \`video_script\`, \`exercise\`, \`quiz\` etc.).
+    5. **Language**: All output must be strictly in **${lang}**.
+    
+    **OUTPUT FORMAT (JSON ONLY - matching this schema)**:
+    {
+      "title": "[Refined Course Title]",
+      "target_audience": "[Refined Target Audience description]",
+      "estimated_duration": "[Refined Estimated Duration]",
+      "modules": [
+        {
+          "id": "Module ID (keep original or generate standard)",
+          "title": "[Refined Module Title]",
+          "duration": "[Module Duration in minutes]",
+          "learning_objective": "[Refined learning objective]",
+          "sections": [
+            {
+              "id": "Section ID",
+              "title": "[Refined Section Title]",
+              "content_type": "[slides | video_script | exercise | quiz]"
+            }
+          ]
+        }
+      ]
+    }
+    
+    Return ONLY valid JSON. No explanations, no markdown fences.
+    `;
+
+    Logger.info("[RefineBlueprint] Calling LLM...");
+    const raw = await callLLM(prompt, lang);
+    Logger.info("[RefineBlueprint] Raw response received");
+    
+    try {
+        const parsed = repairAndParseJson(raw);
+        return JSON.stringify(parsed);
+    } catch (e) {
+        Logger.error("[RefineBlueprint] Failed to parse refined blueprint", e);
+        return JSON.stringify(blueprint);
+    }
 }
 
 function fillPromptTemplate(template: string, variables: Record<string, any>): string {

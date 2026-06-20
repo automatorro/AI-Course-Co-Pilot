@@ -82,7 +82,7 @@ const BlueprintRefineModal: React.FC<Props> = ({ isOpen, course, original, onClo
           <h3 className="text-lg font-bold">{t('blueprint.refine.title')}</h3>
           <button onClick={onClose} className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700" aria-label="Close"><X size={18} /></button>
         </div>
-        <div className="p-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {loading ? (
             <div className="flex items-center gap-2"><Loader2 className="animate-spin" size={18} /><span>{t('blueprint.refine.loading')}</span></div>
           ) : error ? (
@@ -99,34 +99,35 @@ const BlueprintRefineModal: React.FC<Props> = ({ isOpen, course, original, onClo
               </div>
             </div>
           )}
-        </div>
-        {!loading && refined && (
-          <div className="px-4 pb-2">
-            <div className="p-3 rounded-lg bg-ink-50 dark:bg-ink-800/30">
-              <div className="flex items-center gap-2 mb-2">
-                <Diff size={16} />
-                <span className="text-sm font-semibold">{t('blueprint.refine.changes')}</span>
-              </div>
-              <ul className="list-disc ml-5 text-sm">
-                {changes.length === 0 ? (<li>{t('blueprint.refine.noChanges')}</li>) : changes.map((c, i) => (<li key={i}>{c}</li>))}
-              </ul>
-            </div>
-            {validation && (
-              <div className={`mt-3 p-3 rounded-lg ${validation.ok ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300' : 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300'}`}>
-                <div className="flex items-center gap-2 mb-1">
-                  {validation.ok ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
-                  <span className="font-semibold text-sm">{validation.ok ? t('blueprint.refine.validation.ok') : t('blueprint.refine.validation.warn')}</span>
+
+          {!loading && refined && (
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-ink-50 dark:bg-ink-800/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Diff size={16} />
+                  <span className="text-sm font-semibold">{t('blueprint.refine.changes')}</span>
                 </div>
-                {!validation.ok && (
-                  <ul className="list-disc ml-5 text-sm">
-                    {validation.missingInB?.length ? (<li>{t('blueprint.refine.validation.missing', { items: validation.missingInB.join(', ') })}</li>) : null}
-                    {validation.extraInB?.length ? (<li>{t('blueprint.refine.validation.extra', { items: validation.extraInB.join(', ') })}</li>) : null}
-                  </ul>
-                )}
+                <ul className="list-disc ml-5 text-sm">
+                  {changes.length === 0 ? (<li>{t('blueprint.refine.noChanges')}</li>) : changes.map((c, i) => (<li key={i}>{c}</li>))}
+                </ul>
               </div>
-            )}
-          </div>
-        )}
+              {validation && (
+                <div className={`p-3 rounded-lg ${validation.ok ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300' : 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300'}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    {validation.ok ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+                    <span className="font-semibold text-sm">{validation.ok ? t('blueprint.refine.validation.ok') : t('blueprint.refine.validation.warn')}</span>
+                  </div>
+                  {!validation.ok && (
+                    <ul className="list-disc ml-5 text-sm">
+                      {validation.missingInB?.length ? (<li>{t('blueprint.refine.validation.missing', { items: validation.missingInB.join(', ') })}</li>) : null}
+                      {validation.extraInB?.length ? (<li>{t('blueprint.refine.validation.extra', { items: validation.extraInB.join(', ') })}</li>) : null}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         <div className="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
           <button onClick={onClose} className="btn-secondary">{t('blueprint.edit.cancel')}</button>
           <button disabled={!refined} onClick={() => refined && onAccept(refined)} className="btn-premium flex items-center gap-2">
