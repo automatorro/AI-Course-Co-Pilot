@@ -1,7 +1,8 @@
 // ==========================================
 // GENERATED BUNDLE: generate-course-content
-// VERSION: v3.0-MODULAR
+// VERSION: v3.0.1-MODULAR
 // ARCHITECTURE: Class-based, Multi-Provider, Resilient
+// FORCE DEPLOY: 2026-06-20
 // ==========================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
