@@ -21,6 +21,11 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   return user ? <>{children}</> : <Navigate to="/login" />;
 };
 
+const HomeRoute: React.FC = () => {
+  const { user } = useAuth();
+  return user ? <Navigate to="/dashboard" /> : <HomePage />;
+};
+
 export const AppContent: React.FC = () => {
   const location = useLocation();
   const isWorkspaceRoute = location.pathname.startsWith('/course/');
@@ -29,7 +34,7 @@ export const AppContent: React.FC = () => {
       {!isWorkspaceRoute && <Header />}
       <main className={isWorkspaceRoute ? 'flex-grow' : 'pt-16 flex-grow'}>
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<HomeRoute />} />
           <Route path="/demo" element={<DemoPage />} />
           <Route path="/auto-export" element={<AutoExportPage />} />
           <Route path="/login" element={<AuthPage />} />
