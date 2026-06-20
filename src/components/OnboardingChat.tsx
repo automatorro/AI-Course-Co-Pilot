@@ -90,6 +90,8 @@ const OnboardingChat: React.FC<OnboardingChatProps> = ({ course, onBlueprintRead
             });
 
             if (error) throw error;
+            if (data?.error) throw new Error(data.error);
+            if (!data || !data.content) throw new Error('AI-ul nu a returnat conținut valid.');
 
             console.log('AI Response raw:', data);
 
@@ -102,6 +104,10 @@ const OnboardingChat: React.FC<OnboardingChatProps> = ({ course, onBlueprintRead
                 console.error('Failed to parse AI response:', parseError);
                 // Fallback if it's just plain text (unlikely given the prompt, but good for safety)
                 aiResponse = { message: data.content || "I'm having trouble processing that. Could you try again?" };
+            }
+
+            if (!aiResponse || typeof aiResponse !== 'object') {
+                throw new Error('Formatul răspunsului primit de la AI este invalid.');
             }
 
             const aiMsg: AIMessage = {

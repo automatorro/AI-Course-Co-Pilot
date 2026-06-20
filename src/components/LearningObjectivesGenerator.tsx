@@ -14,7 +14,49 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
     const [hasGenerated, setHasGenerated] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Auto-generate on mount
+    // Editing Details States
+    const [isEditingDetails, setIsEditingDetails] = useState(false);
+    const [editTitle, setEditTitle] = useState(course.title);
+    const [editSubject, setEditSubject] = useState(course.subject || '');
+    const [editAudience, setEditAudience] = useState(course.target_audience || '');
+    const [editEnvironment, setEditEnvironment] = useState(course.environment || 'LIVE');
+    const [editLanguage, setEditLanguage] = useState(course.language || 'ro');
+
+    // Sync state when course prop updates
+    useEffect(() => {
+        setEditTitle(course.title);
+        setEditSubject(course.subject || '');
+        setEditAudience(course.target_audience || '');
+        setEditEnvironment(course.environment || 'LIVE');
+        setEditLanguage(course.language || 'ro');
+    }, [course]);
+
+    const handleSaveDetails = async () => {
+        try {
+            setError(null);
+            const { error: updateError } = await supabase
+                .from('courses')
+                .update({
+                    title: editTitle,
+                    subject: editSubject,
+                    target_audience: editAudience,
+                    environment: editEnvironment,
+                    language: editLanguage
+                })
+                .eq('id', course.id);
+
+            if (updateError) throw updateError;
+            
+            setIsEditingDetails(false);
+            // Refresh parent course state
+            onComplete();
+        } catch (err: any) {
+            console.error('Error saving course details:', err);
+            setError(err.message || 'Failed to save course details');
+        }
+    };
+
+    // Auto-generate on mount only if objectives don't exist
     useEffect(() => {
         generateObjectives();
     }, []);
@@ -121,16 +163,111 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
                 {/* Content */}
                 <div className="p-6 space-y-6">
                     {/* Course Info */}
-                    <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-2">
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-sm font-medium text-ink-600 dark:text-ink-400">Course:</span>
-                            <span className="font-semibold text-ink-900 dark:text-white">{course.title}</span>
+                    {!isEditingDetails ? (
+                        <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-2 relative">
+                            <button
+                                onClick={() => {
+                                    setEditTitle(course.title);
+                                    setEditSubject(course.subject || '');
+                                    setEditAudience(course.target_audience || '');
+                                    setEditEnvironment(course.environment || 'LIVE');
+                                    setEditLanguage(course.language || 'ro');
+                                    setIsEditingDetails(true);
+                                }}
+                                className="absolute top-2 right-2 text-xs text-primary-600 hover:text-primary-700 font-semibold transition-colors"
+                            >
+                                Modifică detalii curs
+                            </button>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-sm font-medium text-ink-600 dark:text-ink-400">Course:</span>
+                                <span className="font-semibold text-ink-900 dark:text-white">{course.title}</span>
+                            </div>
+                            {course.subject && (
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-sm font-medium text-ink-600 dark:text-ink-400">Subject:</span>
+                                    <span className="text-ink-800 dark:text-ink-200">{course.subject}</span>
+                                </div>
+                            )}
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-sm font-medium text-ink-600 dark:text-ink-400">Audience:</span>
+                                <span className="text-ink-800 dark:text-ink-200">{course.target_audience}</span>
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                                <span className="text-sm font-medium text-ink-600 dark:text-ink-400">Format:</span>
+                                <span className="text-ink-800 dark:text-ink-200">{course.environment}</span>
+                            </div>
                         </div>
-                        <div className="flex items-baseline gap-2">
-                            <span className="text-sm font-medium text-ink-600 dark:text-ink-400">Audience:</span>
-                            <span className="text-ink-800 dark:text-ink-200">{course.target_audience}</span>
+                    ) : (
+                        <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-3">
+                            <h3 className="font-bold text-sm text-ink-900 dark:text-white">Editează Detaliile Cursului</h3>
+                            <div className="space-y-2">
+                                <div>
+                                    <label className="block text-xs font-medium text-ink-600">Titlu Curs</label>
+                                    <input
+                                        type="text"
+                                        value={editTitle}
+                                        onChange={(e) => setEditTitle(e.target.value)}
+                                        className="w-full input-premium text-sm p-2"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-ink-600">Subiect</label>
+                                    <input
+                                        type="text"
+                                        value={editSubject}
+                                        onChange={(e) => setEditSubject(e.target.value)}
+                                        className="w-full input-premium text-sm p-2"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-ink-600">Public Țintă</label>
+                                    <input
+                                        type="text"
+                                        value={editAudience}
+                                        onChange={(e) => setEditAudience(e.target.value)}
+                                        className="w-full input-premium text-sm p-2"
+                                    />
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="flex-1">
+                                        <label className="block text-xs font-medium text-ink-600">Format</label>
+                                        <select
+                                            value={editEnvironment}
+                                            onChange={(e) => setEditEnvironment(e.target.value as any)}
+                                            className="w-full input-premium text-sm p-2 bg-white dark:bg-gray-800"
+                                        >
+                                            <option value="LIVE">Live Workshop</option>
+                                            <option value="ONLINE">Curs Online</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className="block text-xs font-medium text-ink-600">Limbă</label>
+                                        <input
+                                            type="text"
+                                            value={editLanguage}
+                                            onChange={(e) => setEditLanguage(e.target.value)}
+                                            className="w-full input-premium text-sm p-2"
+                                            placeholder="ro"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button
+                                    onClick={() => setIsEditingDetails(false)}
+                                    className="px-3 py-1 text-xs bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-md transition-colors"
+                                >
+                                    Anulează
+                                </button>
+                                <button
+                                    onClick={handleSaveDetails}
+                                    className="px-3 py-1 text-xs bg-primary-600 text-white hover:bg-primary-700 rounded-md transition-colors font-semibold"
+                                >
+                                    Salvează detalii
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* AI-Generated Objectives */}
                     {isGenerating && (
