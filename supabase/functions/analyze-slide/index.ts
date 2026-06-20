@@ -33,7 +33,7 @@ serve(async (req) => {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const models = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
 
     const systemPrompt = `
       You are an expert instructional designer and presentation architect. 
@@ -63,12 +63,31 @@ serve(async (req) => {
 
     const prompt = `${systemPrompt}\n\nSlide Content:\n${content}`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    let responseText = "";
+    let success = false;
+    let lastError: any = null;
+
+    for (const modelName of models) {
+      try {
+        console.log(`[analyze-slide] Attempting model: ${modelName}...`);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        responseText = response.text();
+        success = true;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`[analyze-slide] Model ${modelName} failed (${err.message}). Trying next fallback...`);
+      }
+    }
+
+    if (!success) {
+      throw new Error(`All slide analysis models failed. Last error: ${lastError?.message}`);
+    }
 
     // Clean up markdown code blocks if present
-    const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
     
     let jsonResponse;
     try {

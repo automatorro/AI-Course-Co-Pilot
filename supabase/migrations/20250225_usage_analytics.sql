@@ -15,12 +15,22 @@ select
   action,
   created_at,
   case
-    -- Gemini 1.5 Flash & 2.0 Flash (~$0.075 input / $0.30 output per 1M)
-    when model like 'gemini-1.5-flash%' or model like 'gemini-2.0-flash%' then
+    -- Gemini Flash & Flash Lite models (~$0.075 input / $0.30 output per 1M)
+    when model like 'gemini-1.5-flash%' or 
+         model like 'gemini-2.0-flash%' or 
+         model like 'gemini-2.5-flash%' or 
+         model like 'gemini-3.5-flash%' or 
+         model like 'gemini-2.0-flash-lite%' or 
+         model like 'gemini-2.5-flash-lite%' or
+         model like 'gemini-3.1-flash-lite%' then
       (input_tokens * 0.000000075) + (output_tokens * 0.00000030)
     
-    -- Gemini 1.5 Pro (~$3.50 input / $10.50 output per 1M)
-    when model like 'gemini-1.5-pro%' then
+    -- Gemini Pro models (~$3.50 input / $10.50 output per 1M)
+    when model like 'gemini-1.5-pro%' or
+         model like 'gemini-2.0-pro%' or
+         model like 'gemini-2.5-pro%' or
+         model like 'gemini-3.1-pro%' or
+         model like 'gemini-3.5-pro%' then
       (input_tokens * 0.00000350) + (output_tokens * 0.00001050)
       
     -- Moonshot / Kimi (~$1.70 input / $1.70 output per 1M - aprox 12 RMB)

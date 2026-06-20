@@ -767,18 +767,27 @@ class GeminiProvider implements IAIProvider {
     const apiKey = Config.GEMINI_API_KEY;
     if (!apiKey) throw new Error("Gemini API Key missing");
 
-    // Primary Model: gemini-2.5-flash
-    // Fallback Model: gemini-1.5-flash (cheap, fast and stable fallback)
-    try {
-      Logger.info("Attempting Gemini 2.5-flash...");
-      return await this.callApi("gemini-2.5-flash", apiKey, prompt);
-    } catch (error: any) {
-      if (this.isFallbackTrigger(error)) {
-        Logger.warn(`Gemini 2.5-flash failed (${error.message}). Falling back to gemini-1.5-flash...`);
-        return await this.callApi("gemini-1.5-flash", apiKey, prompt);
+    // We try modern models in order of preference, prioritizing Gemini 3 generation:
+    // 1. gemini-3.5-flash (Primary - latest and recommended)
+    // 2. gemini-3.1-flash-lite (Second choice - fast & cheap Gemini 3 Lite)
+    // 3. gemini-2.5-flash (Third choice - deprecated but active fallback until Oct 2026)
+    const models = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+    
+    let lastError: any = null;
+    for (const model of models) {
+      try {
+        Logger.info(`Attempting Gemini model: ${model}...`);
+        return await this.callApi(model, apiKey, prompt);
+      } catch (error: any) {
+        lastError = error;
+        if (this.isFallbackTrigger(error)) {
+          Logger.warn(`Gemini model ${model} failed (${error.message}). Trying next fallback...`);
+          continue;
+        }
+        throw error;
       }
-      throw error;
     }
+    throw new Error(`All Gemini models failed. Last error: ${lastError?.message}`);
   }
 
   private async callApi(model: string, key: string, prompt: string): Promise<string> {
@@ -813,10 +822,14 @@ class GeminiProvider implements IAIProvider {
 
 
   private isFallbackTrigger(error: any): boolean {
-    // We fallback on 404 (Model not found) or 503 (Overloaded) if retries failed
-    // Note: fetchWithRetry handles transient 5xx, so if we are here, it's persistent.
+    // Fallback on 404 (not found), 503 (overloaded), or deprecation/retired errors
     const msg = error.message || "";
-    return msg.includes("404") || msg.includes("503") || msg.includes("Overloaded");
+    return msg.includes("404") || 
+           msg.includes("503") || 
+           msg.includes("Overloaded") || 
+           msg.includes("deprecated") || 
+           msg.includes("retired") || 
+           msg.includes("not found");
   }
 }
 
