@@ -1146,6 +1146,100 @@ interface DNABlocks {
   envConstraints: string;
 }
 
+/** Build DNA blocks from course for prompt injection */
+function buildDNABlocks(course: Course): DNABlocks {
+  // T1: Terminology
+  let terminologyBlock = "";
+  if (course.dna?.terminology) {
+    const t = course.dna.terminology;
+    terminologyBlock = `\n\n### TERMINOLOGY RULES (STRICT)\n` +
+      `- Participant: ${t.participant || "Participant"}\n` +
+      `- Exercise: ${t.exercise || "Exercise"}\n` +
+      `- Trainer: ${t.trainer || "Trainer"}`;
+    if (t.mandatoryTerms && Object.keys(t.mandatoryTerms).length > 0) {
+      const termsList = Object.entries(t.mandatoryTerms).map(([k, v]: [string, any]) => {
+        if (typeof v === 'object' && v !== null && v.term) return `${v.term} (${v.definition || ''})`;
+        return `${k} -> ${v}`;
+      }).join(', ');
+      terminologyBlock += `\n- Mandatory Terms: ${termsList}`;
+    }
+    terminologyBlock += `\n`;
+  }
+
+  // T2: Voice Profile
+  let voiceProfileBlock = "";
+  if (course.dna?.voiceProfile) {
+    const v = course.dna.voiceProfile;
+    const formality = (v.formality || '').toLowerCase();
+    const ARCHETYPES: Record<string, string> = {
+      professional: `**ARCHETYPE**: "The Mentor" (Professional & Warm)\n- Tone: Authoritative but accessible.\n- Style: Clear, structured, encouraging.\n- Forbidden: Slang, academic jargon.`,
+      energetic: `**ARCHETYPE**: "The Coach" (Energetic & Motivational)\n- Tone: High energy, punchy, action-oriented.\n- Style: Short sentences, strong verbs, calls to action.\n- Forbidden: Passive voice, long paragraphs.`,
+      casual: `**ARCHETYPE**: "The Buddy" (Relaxed & Direct)\n- Tone: Informal, peer-to-peer.\n- Style: Contractions, humor, direct address.\n- Forbidden: Stiff corporate speak.`,
+    };
+    let archetype = ARCHETYPES.professional;
+    if (formality.includes('casual') || formality.includes('buddy')) archetype = ARCHETYPES.casual;
+    if (formality.includes('energetic') || formality.includes('motivational')) archetype = ARCHETYPES.energetic;
+
+    voiceProfileBlock = `\n\n### VOICE & TONE (FROM DNA)\n${archetype}\n` +
+      `- Formality: ${v.formality || "Professional"}\n` +
+      `- Humor: ${v.humorLevel || (v as any).humor || "Light"}\n`;
+    if (v.forbiddenPhrases?.length) voiceProfileBlock += `- Forbidden: ${v.forbiddenPhrases.join(', ')}\n`;
+    if (v.signaturePhrases?.length) voiceProfileBlock += `- Signature: ${v.signaturePhrases.join(', ')}\n`;
+    voiceProfileBlock += `\n`;
+  }
+
+  // T3: Learning Philosophy
+  let philosophyBlock = "";
+  if (course.dna?.learningPhilosophy) {
+    const p = course.dna.learningPhilosophy;
+    philosophyBlock = `\n\n### LEARNING PHILOSOPHY\n`;
+    if (p.manifesto?.length) philosophyBlock += `- Manifesto: ${p.manifesto.join('. ')}\n`;
+    if (p.rules_of_engagement?.length) philosophyBlock += `- Rules: ${p.rules_of_engagement.join('. ')}\n`;
+    philosophyBlock += `\n`;
+  }
+
+  // T4: Domain Context
+  let domainContextBlock = "";
+  if (course.dna?.domainContext) {
+    const d = course.dna.domainContext;
+    domainContextBlock = `\n\n### DOMAIN & INDUSTRY CONTEXT (CRITICAL)\n`;
+    if (d.industryTerms && Object.keys(d.industryTerms).length > 0) {
+      domainContextBlock += `**Industry Terms**:\n`;
+      Object.entries(d.industryTerms).forEach(([term, def]) => { domainContextBlock += `- ${term}: ${def}\n`; });
+    }
+    if (d.clientProfiles?.length) {
+      domainContextBlock += `\n**Client Profiles**:\n`;
+      d.clientProfiles.forEach((cp: any) => { domainContextBlock += `- ${cp.type}: ${cp.decisionLogic} (Approach: ${cp.approach})\n`; });
+    }
+    if (d.productCatalog?.length) {
+      domainContextBlock += `\n**Product Catalog**:\n`;
+      d.productCatalog.forEach((pc: any) => { domainContextBlock += `- ${pc.category}: ${pc.items.join(', ')}\n`; });
+    }
+    if (d.competitorIntelligence?.length) {
+      domainContextBlock += `\n**Competitor Intelligence**:\n`;
+      d.competitorIntelligence.forEach((ci: any) => { domainContextBlock += `- ${ci.name} (Weakness: ${ci.weaknesses.join(', ')}) -> Counter: ${ci.counterStrategy}\n`; });
+    }
+    if (d.negotiationFrameworks?.length) {
+      domainContextBlock += `\n**Negotiation Frameworks**:\n`;
+      d.negotiationFrameworks.forEach((nf: any) => { domainContextBlock += `- ${nf.name}: ${nf.steps.join(' -> ')}\n`; });
+    }
+    domainContextBlock += `\n`;
+  }
+
+  // T5: Environment constraints
+  const envConstraints = (course.environment || 'LIVE').toUpperCase() === 'ONLINE'
+    ? `**ENVIRONMENT: ONLINE (VIRTUAL CLASSROOM — ZOOM/TEAMS)**
+- INTERACTION: Must use "Breakout Rooms", "Chat Polls", "Miro Board links", "Screen Share".
+- CONSTRAINTS: Max 10 min monologues (Zoom Fatigue). Frequent "Type in chat" prompts.
+- MATERIALS: PDFs, Digital Workbooks, Online Quizzes.`
+    : `**ENVIRONMENT: LIVE (IN-PERSON WORKSHOP)**
+- INTERACTION: Face-to-face ONLY: "Turn to your neighbor", "Physical Flipcharts", "Room Movement", "Gallery Walk", "Role Play in room", "Group Discussions".
+- FORBIDDEN: DO NOT mention videos, webinars, online dashboards, virtual forums, zoom links, or screen sharing.
+- MATERIALS: Printed Workbooks, Sticky Notes, Markers, Flipchart paper.`;
+
+  return { terminologyBlock, voiceProfileBlock, philosophyBlock, domainContextBlock, envConstraints };
+}
+
 function isValidModuleContext(data: any): data is ModuleContext {
   if (!data || typeof data !== 'object') return false;
   if (data.contextVersion !== 'v4.0') return false;
