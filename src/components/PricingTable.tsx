@@ -94,18 +94,20 @@ const PricingTable: React.FC<PricingTableProps> = ({ user, setError }) => {
             } bg-white dark:bg-gray-800`}
           >
             <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">{plan.name}</h3>
-            <p className="mt-4 text-gray-500 dark:text-gray-400">{t(`homepage.pricing.${plan.featuresKey}`)[0]}</p>
+            <p className="mt-4 text-gray-500 dark:text-gray-400">
+              {Array.isArray(t(`homepage.pricing.${plan.featuresKey}`)) ? t(`homepage.pricing.${plan.featuresKey}`)[0] : ''}
+            </p>
             <p className="mt-6 text-5xl font-bold tracking-tight text-gray-900 dark:text-white">
               {plan.price > 0 ? `€${plan.price}` : 'Free'}
               <span className="text-lg font-medium text-gray-500 dark:text-gray-400">{plan.duration}</span>
             </p>
             <ul role="list" className="mt-8 space-y-4 text-sm leading-6 text-gray-600 dark:text-gray-300">
-              {(t(`homepage.pricing.${plan.featuresKey}`) as unknown as string[]).map((feature, index) => (
+              {Array.isArray(t(`homepage.pricing.${plan.featuresKey}`)) ? (t(`homepage.pricing.${plan.featuresKey}`) as string[]).map((feature, index) => (
                 <li key={index} className="flex gap-x-3">
                   <Check className="h-6 w-5 flex-none text-primary-600" aria-hidden="true" />
                   {feature}
                 </li>
-              ))}
+              )) : null}
             </ul>
             <button
               onClick={() => handleCheckout(plan)}
