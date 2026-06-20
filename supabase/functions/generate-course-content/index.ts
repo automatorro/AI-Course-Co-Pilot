@@ -4221,10 +4221,10 @@ async function resolveModuleId(supabase: any, courseId: string, moduleData: any,
     .select('id')
     .eq('course_id', courseId)
     .eq('module_index', moduleIndex)
-    .single();
+    .limit(1);
     
-  if (data) {
-    return data.id;
+  if (data && data.length > 0) {
+    return data[0].id;
   }
   
   // If not found, CREATE IT based on moduleData
@@ -4246,7 +4246,7 @@ async function resolveModuleId(supabase: any, courseId: string, moduleData: any,
 
   if (createError || !newModule) {
       Logger.error(`Failed to auto-create module ${moduleIndex}`, createError);
-      throw new Error(`Could not resolve or create module ID for index ${moduleIndex}`);
+      throw new Error(`Could not resolve or create module ID for index ${moduleIndex} | DB Error: ${JSON.stringify(createError)}`);
   }
   
   return newModule.id;
