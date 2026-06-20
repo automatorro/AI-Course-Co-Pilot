@@ -2809,11 +2809,12 @@ serve(async (req) => {
         courseModules = refetched;
       }
 
-      const parts: string[] = [];
-      for (const m of courseModules) {
-        const part = await handleGoldenStep(supabase, course, m.id, step_type);
-        parts.push(part);
-      }
+      // Ensure Story Arc is pre-generated to avoid race conditions in parallel executions
+      const storyArc = await getOrCreateStoryArc(supabase, course);
+      course.story_arc = storyArc;
+
+      const promises = courseModules.map((m) => handleGoldenStep(supabase, course, m.id, step_type));
+      const parts = await Promise.all(promises);
 
       return new Response(JSON.stringify({ content: parts.join('\n\n---\n\n') }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
