@@ -1,6 +1,6 @@
 
 -- Create a new table for course versioning
-CREATE TABLE course_versions (
+CREATE TABLE IF NOT EXISTS course_versions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   course_id UUID REFERENCES courses(id) ON DELETE CASCADE,
   step_id UUID REFERENCES course_steps(id) ON DELETE CASCADE, -- Optional: if version is step-specific
@@ -13,8 +13,8 @@ CREATE TABLE course_versions (
 );
 
 -- Index for faster history lookups
-CREATE INDEX idx_course_versions_course_id ON course_versions(course_id);
-CREATE INDEX idx_course_versions_step_id ON course_versions(step_id);
+CREATE INDEX IF NOT EXISTS idx_course_versions_course_id ON course_versions(course_id);
+CREATE INDEX IF NOT EXISTS idx_course_versions_step_id ON course_versions(step_id);
 
 -- RLS Policies
 ALTER TABLE course_versions ENABLE ROW LEVEL SECURITY;

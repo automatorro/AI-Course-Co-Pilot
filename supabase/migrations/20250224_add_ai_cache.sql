@@ -10,7 +10,14 @@ create table if not exists ai_cache (
 );
 
 -- Add a unique constraint on prompt_hash to prevent duplicates
-alter table ai_cache add constraint ai_cache_prompt_hash_key unique (prompt_hash);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'ai_cache_prompt_hash_key'
+  ) THEN
+    ALTER TABLE ai_cache ADD CONSTRAINT ai_cache_prompt_hash_key UNIQUE (prompt_hash);
+  END IF;
+END $$;
 
 -- Enable Row Level Security
 alter table ai_cache enable row level security;

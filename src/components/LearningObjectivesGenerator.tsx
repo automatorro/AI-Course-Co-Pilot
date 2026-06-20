@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, Lightbulb, RefreshCw, Check } from 'lucide-react';
-import { Course } from '../types';
+import { Course, GenerationEnvironment } from '../types';
 import { supabase } from '../services/supabaseClient';
 
 interface LearningObjectivesGeneratorProps {
@@ -19,7 +19,7 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
     const [editTitle, setEditTitle] = useState(course.title);
     const [editSubject, setEditSubject] = useState(course.subject || '');
     const [editAudience, setEditAudience] = useState(course.target_audience || '');
-    const [editEnvironment, setEditEnvironment] = useState(course.environment || 'LIVE');
+    const [editEnvironment, setEditEnvironment] = useState<GenerationEnvironment>(course.environment || GenerationEnvironment.LiveWorkshop);
     const [editLanguage, setEditLanguage] = useState(course.language || 'ro');
 
     // Sync state when course prop updates
@@ -27,7 +27,7 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
         setEditTitle(course.title);
         setEditSubject(course.subject || '');
         setEditAudience(course.target_audience || '');
-        setEditEnvironment(course.environment || 'LIVE');
+        setEditEnvironment(course.environment || GenerationEnvironment.LiveWorkshop);
         setEditLanguage(course.language || 'ro');
     }, [course]);
 
@@ -233,11 +233,11 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
                                         <label className="block text-xs font-medium text-ink-600">Format</label>
                                         <select
                                             value={editEnvironment}
-                                            onChange={(e) => setEditEnvironment(e.target.value as any)}
+                                            onChange={(e) => setEditEnvironment(e.target.value as GenerationEnvironment)}
                                             className="w-full input-premium text-sm p-2 bg-white dark:bg-gray-800"
                                         >
-                                            <option value="LIVE">Live Workshop</option>
-                                            <option value="ONLINE">Curs Online</option>
+                                            <option value={GenerationEnvironment.LiveWorkshop}>Live Workshop</option>
+                                            <option value={GenerationEnvironment.OnlineCourse}>Curs Online</option>
                                         </select>
                                     </div>
                                     <div className="flex-1">
