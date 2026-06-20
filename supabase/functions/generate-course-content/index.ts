@@ -2546,6 +2546,14 @@ serve(async (req) => {
         });
     }
 
+    if (action === 'generate_learning_objectives') {
+        const { course } = body;
+        const result = await handleGenerateLearningObjectives(course);
+        return new Response(JSON.stringify({ content: result }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+    }
+
     if (action === 'chat_onboarding') {
         const { chat_history, course } = body;
         const result = await handleChatOnboarding(chat_history, course);
@@ -3824,6 +3832,75 @@ async function handleCompleteSectionsForImport(blueprint: any, environment: stri
   `;
 
   return await callLLM(prompt);
+}
+
+async function handleGenerateLearningObjectives(course: any): Promise<string> {
+    const title = course.title || "Untitled Course";
+    const subject = course.subject || "Not specified";
+    const targetAudience = course.target_audience || "General Audience";
+    const environment = course.environment || "LIVE";
+    const lang = course.language || "ro";
+
+    const prompt = `
+    **ROLE**: Expert Instructional Designer specializing in Bloom's Taxonomy.
+    **TASK**: Generate a set of 3 to 5 clear, specific, and actionable learning objectives for a training course.
+    **CONTEXT**:
+    - Course Title: "${title}"
+    - Subject/Topic: "${subject}"
+    - Target Audience: "${targetAudience}"
+    - Format/Environment: "${environment}" (LIVE workshop or ONLINE course)
+    
+    **BLOOM'S TAXONOMY RULES**:
+    - Focus on what the participants will be able to DO after the course, not just what they will read or understand.
+    - Use active, measurable action verbs (e.g., Analyze, Design, Implement, Construct, Formulate, Evaluate) representing various cognitive levels of Bloom's Taxonomy.
+    
+    **OUTPUT FORMAT (JSON ONLY)**:
+    You MUST return a valid JSON object with the following key:
+    {
+      "objectives": [
+        "First learning objective...",
+        "Second learning objective...",
+        "Third learning objective..."
+      ]
+    }
+    
+    Do NOT include markdown block wrappers (like \`\`\`json). Return ONLY the raw JSON string.
+    Ensure the objectives are written entirely in the target language: **${lang}**.
+    `;
+
+    Logger.info(`[Objectives] Generating learning objectives for course: ${title}`);
+    const rawResponse = await callLLM(prompt, lang);
+    
+    // Clean up any possible markdown wrappers
+    let cleaned = rawResponse.replace(/```json/gi, '').replace(/```/gi, '').trim();
+    
+    // Validate if it's parsable
+    try {
+        const parsed = JSON.parse(cleaned);
+        if (parsed && Array.isArray(parsed.objectives)) {
+            return JSON.stringify(parsed);
+        }
+    } catch (e) {
+        Logger.warn(`[Objectives] Failed to parse generated objectives as JSON: ${e.message}. Raw response: ${rawResponse}`);
+    }
+    
+    // Fallback: If not valid JSON, split by line and clean
+    const lines = cleaned.split('\n')
+        .map(l => l.replace(/^\d+[\.\)]\s*/, '').replace(/^[-*•]\s*/, '').trim())
+        .filter(l => l.length > 5 && !l.startsWith('{') && !l.startsWith('}') && !l.startsWith('"') && !l.startsWith('['));
+    
+    if (lines.length > 0) {
+        return JSON.stringify({ objectives: lines });
+    }
+    
+    // Final fallback
+    return JSON.stringify({
+        objectives: [
+            `Definirea conceptelor de bază din ${title}`,
+            `Aplicarea tehnicilor practice specifice audienței: ${targetAudience}`,
+            `Evaluarea rezultatelor și optimizarea fluxului de lucru`
+        ]
+    });
 }
 
 async function handleChatOnboarding(chat_history: any[], course: any): Promise<string> {

@@ -38,6 +38,8 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
             });
 
             if (functionError) throw functionError;
+            if (data?.error) throw new Error(data.error);
+            if (!data || !data.content) throw new Error('AI-ul nu a returnat conținut valid.');
 
             // Parse JSON response
             let response;
@@ -46,6 +48,10 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
             } catch (e) {
                 console.error('Failed to parse JSON content:', data.content);
                 throw new Error('Invalid response format from AI');
+            }
+
+            if (!response || typeof response !== 'object') {
+                throw new Error('Obiectivele primite de la AI nu sunt în formatul corect.');
             }
 
             const objectivesList = response.objectives || [];
