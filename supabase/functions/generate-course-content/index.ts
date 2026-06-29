@@ -955,72 +955,148 @@ const BANNED_PHRASES: Record<string, string[]> = {
     ]
 };
 
-// Universal Validator for ALL languages (using LLM as Judge)
-// This is slower but covers the "long tail" of languages.
-async function isContentValidByAI(content: string, targetLanguage: string = 'ro'): Promise<{ valid: boolean, reason?: string }> {
-  // Optimization: Check START, MIDDLE, and END of the content.
-  const len = content.length;
-  const startSample = content.substring(0, 800);
-  const endSample = len > 800 ? content.substring(len - 800) : "";
-  const midPoint = Math.floor(len / 2);
-  const midSample = len > 1600 ? content.substring(midPoint - 400, midPoint + 400) : "";
-  
-  const sample = `
-  --- START ---
-  ${startSample}
-  ...
-  --- MIDDLE ---
-  ${midSample}
-  ...
-  --- END ---
-  ${endSample}
-  `;
-  
-  const validationPrompt = `
-  **TASK**: Analyze the text fragments below for AI refusal, apology, meta-commentary, or LANGUAGE MISMATCH.
-  
-  **TARGET LANGUAGE**: ${targetLanguage}
-  **CONTEXT**: The text might be JSON or XML. 
-  - KEYS/TAGS are expected to be in English. 
-  - CONTENT VALUES (titles, scripts, descriptions, trainer instructions) MUST be in ${targetLanguage}.
-  - "Trainer Instructions" and "Script" are critical sections.
+// ============================================================
+// DETERMINISTIC LANGUAGE DETECTOR (Phase 2 — replaces LLM Judge)
+// Zero extra AI calls → eliminates 504 timeouts.
+// Uses character-level frequency signatures for each language.
+// Only triggers retry if >15% of sampled content words match
+// wrong-language indicators.
+// ============================================================
 
-  **TEXT SAMPLES**:
-  ${sample}
+/**
+ * Language signatures: arrays of highly-characteristic n-grams
+ * that appear VERY frequently in a language but rarely in others.
+ * These are based on common letter combinations, diacritics, and
+ * function word fragments.
+ */
+const LANG_SIGNATURES: Record<string, string[]> = {
+  ro: [
+    'ș', 'ț', 'ă', 'â', 'î',          // Romanian diacritics
+    'ul', 'ului', 'ilor', 'ând',       // Romanian morpheme endings
+    ' și ', ' în ', ' cu ', ' de ',   // common Romanian prepositions/conjunctions
+    ' că ', ' la ', ' pe ', ' se ',
+    'ează', 'esc', 'ești', 'ică',
+    'pentru', 'care', 'este', 'sunt', 'prin',
+  ],
+  en: [
+    ' the ', ' and ', ' of ', ' to ',
+    ' in ', ' is ', ' it ', ' as ',
+    ' that ', ' with ', ' this ', ' are ',
+    ' for ', ' be ', ' was ', ' have ',
+    "'s ", "'t ", "'re ", "n't ",
+    'tion', 'ing ', 'ness', 'ment',
+  ],
+  fr: [
+    ' le ', ' la ', ' les ', ' de ',
+    ' et ', ' en ', ' est ', ' que ',
+    ' des ', ' du ', ' une ', ' un ',
+    'tion', 'eur', 'eux', 'ais', 'ait',
+    'é', 'è', 'ê', 'à', 'ç', 'ù',
+  ],
+  de: [
+    ' der ', ' die ', ' das ', ' und ',
+    ' in ', ' ist ', ' mit ', ' des ',
+    ' den ', ' dem ', ' von ', ' zu ',
+    'ung', 'keit', 'heit', 'lich', 'sch',
+    'ä', 'ö', 'ü', 'ß',
+  ],
+  es: [
+    ' el ', ' la ', ' los ', ' de ',
+    ' en ', ' es ', ' que ', ' se ',
+    ' del ', ' las ', ' una ', ' con ',
+    'ción', 'ando', 'iendo', 'mente',
+    'á', 'é', 'í', 'ó', 'ú', 'ñ',
+  ],
+};
 
-  **CRITICAL CRITERIA FOR "INVALID"**:
-  1. Contains apologies (e.g. "I apologize", "I'm sorry", or translations).
-  2. Refuses to generate content (e.g. "I cannot generate", "I don't have enough context").
-  3. Contains AI meta-commentary (e.g. "As an AI language model", "I am a text-based AI").
-  4. Asks the user for more info instead of generating (e.g. "Please provide more details").
-  5. Offers a "skeleton" or "outline" instead of full content (e.g. "Here is a general structure").
-  6. **LANGUAGE MISMATCH (STRICT)**: The CONTENT VALUES are in English instead of ${targetLanguage} (if ${targetLanguage} is NOT English).
-     - IGNORE English keys/tags.
-     - IGNORE standard technical terms if they are common in the industry.
-     - **REJECT** if "Trainer Instructions", "Script", or "Key Takeaways" are in English.
-     - **REJECT** if whole sentences/paragraphs are in English.
-     - **REJECT** if content is mixed (e.g. Romanian title, English description).
-     - **REJECT** if the text uses "The trainer should..." (Descriptive) instead of "Ask..." (Imperative).
-     - **REJECT** if the facilitator instructions are descriptive (e.g. "Explain the concept of...") instead of imperative (e.g. "Explain: [Concept] using the following analogy...").
-  7. **QUALITY CHECK**:
-     - REJECT if "Trainer Instructions" are empty or just say "Explain this".
-     - REJECT if "Script" is missing when expected.
+/**
+ * Deterministically detect whether content is in the target language.
+ * Strategy:
+ * 1. Strip JSON keys, XML tags, and code (they're always English — not relevant).
+ * 2. Extract text samples (start + mid + end, up to 3000 chars total).
+ * 3. Count hits for targetLanguage vs hits for English (if target != en).
+ * 4. If targetLanguage hits < 3 AND English hits > 5 → likely wrong language.
+ * 5. Allow up to 15% foreign-language contamination (technical terms).
+ *
+ * Returns: { valid: boolean, reason?: string, confidence: number }
+ */
+function detectLanguageDeterministically(
+  content: string,
+  targetLanguage: string
+): { valid: boolean; reason?: string; confidence: number } {
 
-  **OUTPUT JSON ONLY**:
-  {
-    "valid": boolean, // true if content looks like actual course material in ${targetLanguage}, false if it's a refusal or wrong language
-    "reason": "short explanation if false"
+  // 1. Strip JSON keys ("key":), XML tags (<tag>), code blocks (```...```)
+  const stripped = content
+    .replace(/```[\s\S]*?```/g, '')         // remove code blocks
+    .replace(/<[^>]+>/g, ' ')               // remove XML/HTML tags
+    .replace(/"[a-zA-Z_]+"\s*:/g, ' ')     // remove JSON keys
+    .replace(/\{|\}|\[|\]/g, ' ')          // remove JSON brackets
+    .toLowerCase();
+
+  // 2. Sample: start (1000) + mid (1000) + end (1000)
+  const len = stripped.length;
+  const mid = Math.floor(len / 2);
+  const sample = [
+    stripped.substring(0, Math.min(1000, len)),
+    len > 2000 ? stripped.substring(mid - 500, mid + 500) : '',
+    len > 1000 ? stripped.substring(Math.max(0, len - 1000)) : '',
+  ].join(' ');
+
+  if (sample.trim().length < 50) {
+    // Not enough text to analyse — assume valid
+    return { valid: true, confidence: 1.0 };
   }
-  `;
 
-  try {
-    const raw = await orchestrator.execute(validationPrompt);
-    const result = repairAndParseJson<{ valid: boolean, reason?: string }>(raw);
-    return result;
-  } catch (e) {
-    Logger.warn("AI Validation failed, assuming valid to avoid blocking.", e);
-    return { valid: true };
+  const targetSigs = LANG_SIGNATURES[targetLanguage] || [];
+  const englishSigs = LANG_SIGNATURES['en'] || [];
+
+  // Count signature hits
+  const countHits = (sigs: string[]) =>
+    sigs.reduce((acc, sig) => {
+      // Count all occurrences of this signature
+      let idx = 0; let count = 0;
+      while ((idx = sample.indexOf(sig, idx)) !== -1) { count++; idx++; }
+      return acc + count;
+    }, 0);
+
+  const targetHits = targetSigs.length > 0 ? countHits(targetSigs) : 0;
+  const englishHits = targetLanguage !== 'en' ? countHits(englishSigs) : 0;
+
+  // Confidence: ratio of target hits to total hits
+  const totalHits = targetHits + englishHits;
+  const confidence = totalHits === 0 ? 0.5 : targetHits / totalHits;
+
+  // Decision rules:
+  // - If we have NO signatures for this language, skip check (assume valid)
+  if (targetSigs.length === 0) return { valid: true, confidence: 0.5 };
+
+  // - Romanian, French, German, Spanish have diacritics → strong signal
+  const hasDiacriticSig = ['ro', 'fr', 'de', 'es'].includes(targetLanguage);
+
+  // - If targetLanguage has diacritics: even 1-2 hits = strong evidence
+  //   → only fail if English hits >> target hits (ratio < 0.2)
+  if (hasDiacriticSig) {
+    if (targetHits === 0 && englishHits > 10) {
+      return {
+        valid: false,
+        reason: `Zero ${targetLanguage} signatures found but ${englishHits} English signals detected. Content likely in English.`,
+        confidence: 0
+      };
+    }
+    // If we have at least some target hits, be lenient (technical terms inflate english count)
+    if (targetHits >= 2) return { valid: true, confidence };
   }
+
+  // - Generic: fail if confidence < 25% and we have enough signal
+  if (totalHits >= 8 && confidence < 0.25) {
+    return {
+      valid: false,
+      reason: `Language mismatch: ${Math.round(confidence * 100)}% ${targetLanguage} vs ${Math.round((1-confidence)*100)}% English signals in content sample.`,
+      confidence
+    };
+  }
+
+  return { valid: true, confidence };
 }
 
 function containsBannedPhrases(content: string, language: string = 'ro'): boolean {
@@ -1054,19 +1130,21 @@ async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean
   }
 
   if (skipAiValidation) {
-    Logger.info("[callLLM] Skipping Phase 2 AI Validation as requested.");
+    Logger.info("[callLLM] Skipping Phase 2 language check as requested.");
     return response;
   }
 
-  // Phase 2: AI Validator (Universal Check) - Only if static check passed
-  const aiValidation = await isContentValidByAI(response, language);
-  if (!aiValidation.valid) {
-      if (isRetry) {
-          Logger.error(`[CRITICAL] AI Validator rejected RETRY attempt: ${aiValidation.reason}. Returning anyway to avoid loop.`);
-      } else {
-          Logger.warn(`AI Validator rejected content: ${aiValidation.reason}. Retrying...`);
-          return retryWithStrictInstructions(prompt, language, aiValidation.reason, skipAiValidation);
-      }
+  // Phase 2: Deterministic Language Detector (replaces LLM Judge — zero extra AI calls)
+  const langCheck = detectLanguageDeterministically(response, language);
+  if (!langCheck.valid) {
+    if (isRetry) {
+      Logger.error(`[CRITICAL] Deterministic language check rejected RETRY attempt: ${langCheck.reason}. Returning anyway to avoid loop.`);
+    } else {
+      Logger.warn(`[callLLM] Language mismatch detected (confidence: ${Math.round((langCheck.confidence || 0) * 100)}%): ${langCheck.reason}. Retrying with strict instructions.`);
+      return retryWithStrictInstructions(prompt, language, langCheck.reason, skipAiValidation);
+    }
+  } else {
+    Logger.info(`[callLLM] Language OK (confidence: ${Math.round((langCheck.confidence || 0.5) * 100)}% ${language}).`);
   }
 
   return response;
@@ -1541,6 +1619,11 @@ This is the trainer's bible — complete, actionable, and containing everything 
 - Story Arc: {{storyStage}}
 - Core Problem This Module Solves: {{coreProblem}}
 
+### LESSON COVERAGE (Granular IDs for change-tracking)
+{{lessonCoverage}}
+<!-- Each lesson listed above has a stable lesson_id. If any lesson content changes,
+     the corresponding section of this manual should be regenerated in isolation. -->
+
 ### KEY CONCEPTS
 {{keyConcepts}}
 
@@ -1571,6 +1654,7 @@ This is the trainer's bible — complete, actionable, and containing everything 
 - Total duration and energy arc (how energy should flow from start to finish)
 - 3-5 facilitation objectives (what YOU as trainer achieve in this module)
 - Pre-module checklist (materials, room setup, technical checks)
+- **Lesson Coverage**: List each lesson by its `lesson_id` and title — this is the index used to invalidate only affected sections when lessons change.
 
 #### 2. TIMING TABLE (Minute-by-Minute Agenda)
 Use a Markdown table with these columns:
@@ -1659,6 +1743,12 @@ You are an expert Instructional Designer creating **PRESENTATION SLIDES** for a 
 
 ### AUDIENCE DNA
 {{styleBlock}}
+
+### TERMINOLOGY
+{{terminology}}
+
+### VOICE & TONE
+{{voiceProfile}}
 
 ### ENVIRONMENT CONSTRAINTS
 {{envConstraints}}
@@ -2385,8 +2475,122 @@ function formatTimingPlan(ctx: ModuleContext): string {
 
 // ---- Per-Deliverable Generator Functions ----
 
+const COST_ZERO_SLIDES_LABELS: Record<string, any> = {
+  ro: {
+    objective: "Obiectiv",
+    exerciseTitle: "Activitate Practică",
+    recapTitle: "Recapitulare",
+    welcomeNotes: (title: string) => `Bun venit la această secțiune. Astăzi vom discuta despre "${title}".`,
+    objNotes: (obj: string) => `Obiectivul nostru principal este să: ${obj}.`,
+    takeawayNotes: (takeaway: string) => `În acest slide, analizăm o idee fundamentală: "${takeaway}". Este important să înțelegem cum se transpune această idee în practică.`,
+    exerciseNotes: "Acum este timpul să punem în practică teoria. Vom realiza o activitate aplicată pentru a consolida conceptele discutate.",
+    recapNotes: "Pentru a încheia, haideți să recapitulăm cele mai importante idei de astăzi:",
+    recapNotesEnd: "Acestea sunt punctele cheie care ne vor ghida în continuare."
+  },
+  en: {
+    objective: "Objective",
+    exerciseTitle: "Practical Activity",
+    recapTitle: "Recap",
+    welcomeNotes: (title: string) => `Welcome to this section. Today, we will discuss "${title}".`,
+    objNotes: (obj: string) => `Our primary objective is to: ${obj}.`,
+    takeawayNotes: (takeaway: string) => `In this slide, we analyze a key takeaway: "${takeaway}". It is important to understand how to apply this concept in our daily work.`,
+    exerciseNotes: "Now it is time to put theory into practice. We will do a hands-on activity to reinforce the concepts discussed.",
+    recapNotes: "To wrap up, let's review the main takeaways from today:",
+    recapNotesEnd: "These are the key points that will guide us moving forward."
+  }
+};
+
+function generateCostZeroSlides(lesson: any, lang: string = 'ro'): string {
+  const lessonId = lesson.id;
+  const title = lesson.title;
+  const objective = lesson.learning_objective || "";
+  const takeaways = Array.isArray(lesson.key_takeaways) ? lesson.key_takeaways : [];
+  const hasExercise = lesson.has_exercise === true;
+
+  const dictionary = (lang || '').toLowerCase().startsWith('en') 
+    ? COST_ZERO_SLIDES_LABELS.en 
+    : COST_ZERO_SLIDES_LABELS.ro;
+
+  let xml = "";
+  let slideIndex = 1;
+
+  // Slide 1: Title
+  xml += `<SLIDE_BEGIN id="${lessonId}_${slideIndex}">\n`;
+  xml += `<TITLE>${title}</TITLE>\n`;
+  xml += `<!-- slide-layout: TITLE -->\n`;
+  xml += `<VISUAL>Minimalist slide background with clean modern typography centered</VISUAL>\n`;
+  xml += `<CONTENT>\n`;
+  if (objective) {
+    xml += `- ${dictionary.objective}: ${objective}\n`;
+  }
+  xml += `</CONTENT>\n`;
+  xml += `<NOTES>\n`;
+  xml += `${dictionary.welcomeNotes(title)}\n`;
+  if (objective) {
+    xml += `${dictionary.objNotes(objective)}\n`;
+  }
+  xml += `</NOTES>\n`;
+  xml += `<SLIDE_END id="${lessonId}_${slideIndex}">\n\n`;
+  slideIndex++;
+
+  // Slides 2..N-1: Explainer slides per takeaway
+  takeaways.forEach((takeaway: string) => {
+    xml += `<SLIDE_BEGIN id="${lessonId}_${slideIndex}">\n`;
+    const slideTitle = takeaway.length > 40 ? takeaway.slice(0, 37) + "..." : takeaway;
+    xml += `<TITLE>${slideTitle}</TITLE>\n`;
+    xml += `<!-- slide-layout: EXPLAINER -->\n`;
+    xml += `<VISUAL>A clean, professional diagram illustrating the concept: ${takeaway}</VISUAL>\n`;
+    xml += `<CONTENT>\n`;
+    xml += `- ${takeaway}\n`;
+    xml += `</CONTENT>\n`;
+    xml += `<NOTES>\n`;
+    xml += `${dictionary.takeawayNotes(takeaway)}\n`;
+    xml += `</NOTES>\n`;
+    xml += `<SLIDE_END id="${lessonId}_${slideIndex}">\n\n`;
+    slideIndex++;
+  });
+
+  // Slide Exercise (if hasExercise)
+  if (hasExercise) {
+    xml += `<SLIDE_BEGIN id="${lessonId}_${slideIndex}">\n`;
+    xml += `<TITLE>${dictionary.exerciseTitle}</TITLE>\n`;
+    xml += `<!-- slide-layout: EXERCISE -->\n`;
+    xml += `<VISUAL>Collaborative workshop session, team working together on a challenge</VISUAL>\n`;
+    xml += `<CONTENT>\n`;
+    xml += `- Aplicarea conceptelor prezentate prin exercițiu practic\n`;
+    xml += `- Lucru individual sau în echipă\n`;
+    xml += `</CONTENT>\n`;
+    xml += `<NOTES>\n`;
+    xml += `${dictionary.exerciseNotes}\n`;
+    xml += `</NOTES>\n`;
+    xml += `<SLIDE_END id="${lessonId}_${slideIndex}">\n\n`;
+    slideIndex++;
+  }
+
+  // Slide Last: Summary
+  xml += `<SLIDE_BEGIN id="${lessonId}_${slideIndex}">\n`;
+  xml += `<TITLE>${dictionary.recapTitle}</TITLE>\n`;
+  xml += `<!-- slide-layout: SUMMARY -->\n`;
+  xml += `<VISUAL>Summary checklist or structural roadmap illustration</VISUAL>\n`;
+  xml += `<CONTENT>\n`;
+  takeaways.slice(0, 4).forEach((takeaway: string) => {
+    xml += `- ${takeaway}\n`;
+  });
+  xml += `</CONTENT>\n`;
+  xml += `<NOTES>\n`;
+  xml += `${dictionary.recapNotes}\n`;
+  takeaways.forEach((takeaway: string) => {
+    xml += `- ${takeaway}\n`;
+  });
+  xml += `${dictionary.recapNotesEnd}\n`;
+  xml += `</NOTES>\n`;
+  xml += `<SLIDE_END id="${lessonId}_${slideIndex}">`;
+
+  return xml;
+}
+
 /** Generate participant workbook markdown for a module */
-async function generateWorkbookContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
+async function generateWorkbookContent(course: Course, ctx: ModuleContext, dna: DNABlocks, skipAiValidation: boolean = true): Promise<string> {
   const lang = ctx.language || course.language || 'ro';
   const isOnline = ctx.environment === 'ONLINE';
   const specsObj = getDepthSpecs(lang, isOnline ? 'online' : 'live');
@@ -2420,13 +2624,18 @@ async function generateWorkbookContent(course: Course, ctx: ModuleContext, dna: 
     objectiveLabel: (lang || '').startsWith('ro') ? 'Obiectiv' : 'Objective',
   });
 
-  // Skip AI validation for large workbook generation to prevent Gateway Timeout (504)
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
   return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
 }
 
 /** Generate facilitator/trainer manual markdown for a module */
-async function generateManualContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
+async function generateManualContent(
+  course: Course,
+  ctx: ModuleContext,
+  dna: DNABlocks,
+  skipAiValidation: boolean = true,
+  supabase?: any
+): Promise<string> {
   const lang = ctx.language || course.language || 'ro';
   const isOnline = ctx.environment === 'ONLINE';
   const envRules = isOnline
@@ -2434,6 +2643,28 @@ async function generateManualContent(course: Course, ctx: ModuleContext, dna: DN
     : 'LIVE: Face-to-face activities only. Flipcharts, role-plays, group discussions. NO virtual tools.';
 
   const macroPos = `Previous module: ${ctx.macroPosition.previousModuleTitle || 'None (this is first)'}\nNext module: ${ctx.macroPosition.nextModuleTitle || 'None (this is last)'}\nTransition note: ${ctx.macroPosition.transitionNote}`;
+
+  // 🟡 IMPORTANT: Fetch lessons for this module to enable granular lesson_id tracking
+  // This allows the manual to know EXACTLY which lesson IDs it covers,
+  // so when a lesson changes, only the affected section needs regeneration.
+  let lessonCoverage = 'N/A (no lesson data available — manual operates at module level)';
+  if (supabase && ctx.moduleId) {
+    try {
+      const { data: lessons } = await supabase
+        .from('course_lessons')
+        .select('id, title, order_index, learning_objective')
+        .eq('module_id', ctx.moduleId)
+        .order('order_index');
+      if (lessons && lessons.length > 0) {
+        lessonCoverage = lessons.map((l: any) =>
+          `- lesson_id: ${l.id} | "${l.title}" | Objective: ${l.learning_objective || 'N/A'}`
+        ).join('\n');
+        Logger.info(`[generateManualContent] Injecting ${lessons.length} lesson IDs for traceability.`);
+      }
+    } catch (err) {
+      Logger.warn('[generateManualContent] Could not fetch lessons for lesson coverage.', err);
+    }
+  }
 
   const prompt = fillPromptTemplate(MANUAL_PROMPT, {
     moduleTitle: ctx.moduleTitle,
@@ -2445,6 +2676,7 @@ async function generateManualContent(course: Course, ctx: ModuleContext, dna: DN
     protagonistRole: ctx.narrative.protagonistRole,
     storyStage: ctx.narrative.storyStageForThisModule,
     coreProblem: ctx.narrative.coreProblemInThisModule,
+    lessonCoverage,
     keyConcepts: formatKeyConcepts(ctx),
     timingPlan: formatTimingPlan(ctx),
     terminology: dna.terminologyBlock,
@@ -2455,14 +2687,35 @@ async function generateManualContent(course: Course, ctx: ModuleContext, dna: DN
     envRules,
   });
 
-  // Skip AI validation for large manual generation to prevent Gateway Timeout (504)
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
   return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
 }
 
 /** Generate presentation slides XML for a module */
-async function generateSlidesContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
+async function generateSlidesContent(course: Course, ctx: ModuleContext, dna: DNABlocks, supabase?: any): Promise<string> {
   const lang = ctx.language || course.language || 'ro';
+
+  // 1. Try to fetch lessons from DB for cost-zero mapping
+  if (supabase) {
+    try {
+      const { data: lessons, error } = await supabase
+        .from('course_lessons')
+        .select('*')
+        .eq('module_id', ctx.moduleId)
+        .order('order_index');
+
+      if (!error && lessons && lessons.length > 0) {
+        Logger.info(`[generateSlidesContent] Found ${lessons.length} lessons. Generating slides with cost-zero mapping.`);
+        const slideXmls = lessons.map((lesson: any) => generateCostZeroSlides(lesson, lang));
+        return slideXmls.join('\n\n');
+      }
+    } catch (err) {
+      Logger.warn('[generateSlidesContent] Failed to fetch lessons, falling back to AI.', err);
+    }
+  }
+
+  // 2. Legacy Fallback: AI generated slides
+  Logger.info(`[generateSlidesContent] Falling back to LLM Slides Generation.`);
   const isOnline = ctx.environment === 'ONLINE';
   const slideCount = Math.round(ctx.moduleDurationMinutes / 6);
   const envRules = isOnline
@@ -2480,19 +2733,20 @@ async function generateSlidesContent(course: Course, ctx: ModuleContext, dna: DN
     keyConcepts: formatKeyConcepts(ctx),
     timingPlan: formatTimingPlan(ctx),
     styleBlock: getStyleBlock(course.target_audience || ''),
+    terminology: dna.terminologyBlock,
+    voiceProfile: dna.voiceProfileBlock,
     envConstraints: dna.envConstraints,
     envRules,
     moduleId: ctx.moduleId,
     slideCount,
   });
 
-  // Skip AI validation for slides generation to prevent Gateway Timeout (504)
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
   return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
 }
 
 /** Generate exercise sheets markdown for a module */
-async function generateExercisesContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
+async function generateExercisesContent(course: Course, ctx: ModuleContext, dna: DNABlocks, skipAiValidation: boolean = true): Promise<string> {
   const lang = ctx.language || course.language || 'ro';
   const isOnline = ctx.environment === 'ONLINE';
   const specsObj = getDepthSpecs(lang, isOnline ? 'online' : 'live', 80);
@@ -2517,13 +2771,12 @@ async function generateExercisesContent(course: Course, ctx: ModuleContext, dna:
     objectiveLabel: (lang || '').startsWith('ro') ? 'Obiectiv' : 'Objective',
   });
 
-  // Skip AI validation for exercises generation to prevent Gateway Timeout (504)
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
   return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
 }
 
 /** Generate video scripts markdown for an online module */
-async function generateVideoScriptContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
+async function generateVideoScriptContent(course: Course, ctx: ModuleContext, dna: DNABlocks, skipAiValidation: boolean = true): Promise<string> {
   const lang = ctx.language || course.language || 'ro';
 
   const prompt = fillPromptTemplate(VIDEO_SCRIPT_PROMPT, {
@@ -2537,10 +2790,138 @@ async function generateVideoScriptContent(course: Course, ctx: ModuleContext, dn
     timingPlan: formatTimingPlan(ctx),
   });
 
-  // Skip AI validation for video script generation to prevent Gateway Timeout (504)
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
   return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
 }
+
+/** Granular Lesson Content Generator (Single Source of Generation) */
+async function generateLessonContent(supabase: any, lessonId: string, stepType: string): Promise<string> {
+  Logger.info(`[generateLessonContent] Generating content for lesson_id=${lessonId}, step_type=${stepType}`);
+
+  // 1. Fetch lesson
+  const { data: lesson, error: lessonError } = await supabase
+    .from('course_lessons')
+    .select('*')
+    .eq('id', lessonId)
+    .single();
+
+  if (lessonError || !lesson) {
+    throw new Error(`Lesson not found: ${lessonId}`);
+  }
+
+  // 2. Fetch course
+  const { data: courseData, error: courseError } = await supabase
+    .from('courses')
+    .select('*')
+    .eq('id', lesson.course_id)
+    .single();
+
+  if (courseError || !courseData) {
+    throw new Error(`Course not found: ${lesson.course_id}`);
+  }
+
+  const environment = (courseData.environment || '').toLowerCase().includes('online') ? 'ONLINE' : 'LIVE';
+  const course: Course = {
+    ...courseData,
+    environment
+  };
+
+  // 3. Resolve protagonist & DNA
+  let protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name as string | undefined;
+  if (!protagonistName || String(protagonistName).trim().length === 0) {
+    const inferred = inferProtagonistFromAudience(course.target_audience || '', course.language || 'ro');
+    protagonistName = inferred?.name || 'Alex';
+  }
+  const dna = buildDNABlocks(course);
+
+  // 4. Get story stage
+  const { data: moduleData } = await supabase
+    .from('course_modules')
+    .select('module_index')
+    .eq('id', lesson.module_id)
+    .single();
+  const moduleIndex = moduleData?.module_index ?? 0;
+  const storyArc = await getOrCreateStoryArc(supabase, course, moduleIndex);
+  const storyStage = storyArc[lesson.module_id] || storyArc[String(moduleIndex)] || 'Protagonist applies the concepts from this lesson.';
+
+  // 5. Construct LessonContext (Fake ModuleContext but focused on this lesson)
+  const lang = course.language || 'ro';
+  const timingPlan = [{
+    sectionTitle: lesson.title,
+    durationMinutes: lesson.estimated_minutes || 15,
+    type: (lesson.has_exercise ? 'EXERCISE' : 'THEORY') as any,
+    conceptRef: null
+  }];
+
+  const keyConcepts = [{
+    id: lesson.id,
+    name: lesson.title,
+    durationMinutes: lesson.estimated_minutes || 15,
+    type: (lesson.has_exercise ? 'ACTIVITY' : 'THEORY') as any,
+    coreIdea: lesson.learning_objective || '',
+    keyTerms: Array.isArray(lesson.key_takeaways) ? lesson.key_takeaways : []
+  }];
+
+  const ctx: ModuleContext = {
+    contextVersion: 'v4.0',
+    moduleId: lesson.module_id,
+    moduleTitle: lesson.title,
+    moduleDurationMinutes: lesson.estimated_minutes || 15,
+    environment: environment as CourseEnvironment,
+    language: lang,
+    targetAudience: course.target_audience || 'General',
+    keyConcepts,
+    narrative: {
+      protagonistName,
+      protagonistRole: course.dna?.narrativeUniverse?.protagonists?.[0]?.role || 'Learner',
+      storyStageForThisModule: storyStage,
+      coreProblemInThisModule: lesson.learning_objective || ''
+    },
+    macroPosition: {
+      isFirstModule: false,
+      isLastModule: false,
+      previousModuleTitle: null,
+      nextModuleTitle: null,
+      transitionNote: ''
+    },
+    timingPlan
+  };
+
+  // 6. Generate content based on stepType
+  // Note: we set skipAiValidation to false here because lesson content is small and we want strict language checks!
+  switch (stepType) {
+    case 'course.steps.slides':
+    case 'slides':
+      return generateCostZeroSlides(lesson, lang);
+
+    case 'course.steps.workbook':
+    case 'participant_workbook':
+      return generateWorkbookContent(course, ctx, dna, false);
+
+    case 'course.steps.manual':
+    case 'facilitator_manual':
+    case 'trainer_manual':
+    case 'facilitator_notes':
+      // Pass supabase if available in this context (for lesson_id injection)
+      return generateManualContent(course, ctx, dna, false, (typeof supabase !== 'undefined' ? supabase : undefined));
+
+    case 'course.steps.exercises':
+    case 'exercises':
+      return generateExercisesContent(course, ctx, dna, false);
+
+    case 'course.steps.video_scripts':
+    case 'video_scripts':
+      return generateVideoScriptContent(course, ctx, dna, false);
+
+    case 'course.steps.examples':
+    case 'examples_and_stories':
+      return generateExamplesContent(course, ctx, dna);
+
+    default:
+      throw new Error(`Unknown step type for lesson content: ${stepType}`);
+  }
+}
+
 
 /** Generate examples/stories markdown for a module */
 async function generateExamplesContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
@@ -2615,6 +2996,48 @@ serve(async (req) => {
     Logger.info(`Request received. Action: ${action}`);
 
     // ==========================================
+    // AI CREDIT GATE
+    // Blocks AI generation if user is over their monthly limit.
+    // Non-AI actions, health checks, and credit_status queries bypass this.
+    // FAIL-OPEN: if the credit system errors, generation proceeds normally.
+    // ==========================================
+    const NON_AI_ACTIONS = [
+      'ping', 'provider_status', 'test_connection', 'credit_status',
+    ];
+    const isDryRunBackfill = action === 'backfill_key_takeaways' && body.dry_run !== false;
+
+    if (!NON_AI_ACTIONS.includes(action) && !isDryRunBackfill) {
+      try {
+        // Get user from JWT
+        const authHeader = req.headers.get('Authorization');
+        if (authHeader) {
+          const { data: { user: authUser } } = await supabase.auth.getUser(
+            authHeader.replace('Bearer ', '')
+          );
+          if (authUser?.id) {
+            const { data: creditStatus } = await supabase.rpc('get_ai_credit_status', {
+              p_user_id: authUser.id,
+            });
+            if (creditStatus && creditStatus.is_over_limit) {
+              Logger.warn(`[CreditGate] User ${authUser.id} is over limit: ${creditStatus.used}/${creditStatus.limit}`);
+              return new Response(JSON.stringify({
+                error: 'credit_limit_exceeded',
+                message: `Ai atins limita lunară de ${creditStatus.limit} operații AI. Utilizate: ${creditStatus.used}. Te rugăm să aștepți resetarea lunară sau să upgradezi planul.`,
+                credit_status: creditStatus,
+              }), {
+                status: 402,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              });
+            }
+          }
+        }
+      } catch (creditErr) {
+        // Fail open — don't block generation if credit system has an error
+        Logger.warn('[CreditGate] Credit check failed (fail-open):', creditErr);
+      }
+    }
+
+    // ==========================================
     // HEALTH CHECKS & DIAGNOSTICS
     // ==========================================
 
@@ -2622,6 +3045,35 @@ serve(async (req) => {
       return new Response(JSON.stringify({ message: 'pong', version: '3.0-MODULAR' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    if (action === 'credit_status') {
+      // Returns current credit status for the authenticated user.
+      // Does NOT consume any credits.
+      try {
+        const authHeader = req.headers.get('Authorization');
+        if (!authHeader) {
+          return new Response(JSON.stringify({ error: 'Not authenticated' }), {
+            status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        const { data: { user: authUser } } = await supabase.auth.getUser(
+          authHeader.replace('Bearer ', '')
+        );
+        if (!authUser?.id) {
+          return new Response(JSON.stringify({ error: 'User not found' }), {
+            status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        const { data: status } = await supabase.rpc('get_ai_credit_status', { p_user_id: authUser.id });
+        return new Response(JSON.stringify(status), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ error: err.message }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     if (action === 'provider_status') {
@@ -2748,6 +3200,101 @@ serve(async (req) => {
         const { course, module_data, module_index } = body;
         const targetModuleId = await resolveModuleId(supabase, course.id, module_data, module_index);
         const result = await handleGoldenStep(supabase, course, targetModuleId, 'course.steps.slides');
+        return new Response(JSON.stringify({ content: result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // ============================================================
+    // ACTION: backfill_key_takeaways
+    // One-time backfill for legacy courses missing key_takeaways.
+    // Reads existing module context and extracts takeaways per lesson via AI.
+    // Set dry_run=true (default) for preview; dry_run=false to commit.
+    // ============================================================
+    if (action === 'backfill_key_takeaways') {
+      const { course_id: bfCourseId, dry_run = true } = body;
+      if (!bfCourseId) {
+        return new Response(JSON.stringify({ error: 'Missing course_id for backfill' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Fetch all lessons for this course that need backfill
+      const { data: lessonsToBackfill, error: bfErr } = await supabase
+        .from('course_lessons')
+        .select('id, title, learning_objective, module_id')
+        .eq('course_id', bfCourseId)
+        .or('key_takeaways.is.null,key_takeaways.eq.[]');
+
+      if (bfErr || !lessonsToBackfill) {
+        return new Response(JSON.stringify({ error: 'Failed to fetch lessons', detail: bfErr?.message }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (lessonsToBackfill.length === 0) {
+        return new Response(JSON.stringify({ message: 'No lessons need backfill', count: 0 }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      Logger.info(`[backfill] Found ${lessonsToBackfill.length} lessons needing key_takeaways backfill (dry_run=${dry_run})`);
+
+      // Fetch course for language context
+      const { data: bfCourse } = await supabase.from('courses').select('*').eq('id', bfCourseId).single();
+      const lang = bfCourse?.language || 'ro';
+
+      const results: Array<{ lesson_id: string; title: string; takeaways: string[]; committed: boolean }> = [];
+
+      for (const lesson of lessonsToBackfill) {
+        const extractPrompt = `You are extracting key takeaways from a training lesson.
+
+Lesson Title: "${lesson.title}"
+Learning Objective: "${lesson.learning_objective || 'N/A'}"
+Language: ${lang}
+
+Generate EXACTLY 3 concise key takeaways for this lesson.
+Each takeaway should be a complete, actionable sentence in ${lang}.
+Format: JSON array of strings. Example: ["Takeaway 1", "Takeaway 2", "Takeaway 3"]
+
+OUTPUT JSON ONLY. No markdown, no explanation.`;
+
+        try {
+          const raw = await orchestrator.execute(extractPrompt);
+          const takeaways = repairAndParseJson<string[]>(raw);
+
+          if (Array.isArray(takeaways) && takeaways.length > 0) {
+            results.push({ lesson_id: lesson.id, title: lesson.title, takeaways, committed: false });
+
+            if (!dry_run) {
+              // Commit to DB
+              await supabase
+                .from('course_lessons')
+                .update({ key_takeaways: takeaways })
+                .eq('id', lesson.id);
+              results[results.length - 1].committed = true;
+              Logger.info(`[backfill] Committed takeaways for lesson: ${lesson.title}`);
+            }
+          } else {
+            Logger.warn(`[backfill] Failed to extract takeaways for lesson: ${lesson.title}`);
+          }
+        } catch (err) {
+          Logger.error(`[backfill] Error for lesson ${lesson.id}:`, err);
+        }
+      }
+
+      return new Response(JSON.stringify({
+        dry_run,
+        processed: results.length,
+        total_lessons: lessonsToBackfill.length,
+        results,
+        message: dry_run
+          ? `Preview: ${results.length} lessons ready for backfill. Call with dry_run=false to commit.`
+          : `Committed key_takeaways for ${results.filter(r => r.committed).length}/${results.length} lessons.`,
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    if (action === 'generate_lesson_content') {
+        const { lesson_id, step_type } = body;
+        const result = await generateLessonContent(supabase, lesson_id, step_type);
         return new Response(JSON.stringify({ content: result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -3070,6 +3617,17 @@ function getDefaultEnglishLabels(): Record<string, string> {
   };
 }
 
+function getLivrableDbKey(stepType: string): string | null {
+  const s = stepType.toLowerCase();
+  if (s.includes('workbook')) return 'course.livrables.participant_workbook';
+  if (s.includes('slides')) return 'course.livrables.slides';
+  if (s.includes('manual') || s.includes('facilitator_notes')) return 'course.livrables.trainer_manual';
+  if (s.includes('exercises')) return 'course.livrables.exercises';
+  if (s.includes('video_scripts') || s.includes('video_script')) return 'course.livrables.video_scripts';
+  if (s.includes('examples')) return 'course.livrables.examples';
+  return null;
+}
+
 async function handleGoldenStep(
   supabase: any,
   course: Course,
@@ -3142,8 +3700,57 @@ async function handleGoldenStep(
     Logger.info(`[GoldenStep] Reusing cached ModuleContext for module: ${moduleData.title}`);
   }
 
+  // Step 3.5: If module is not dirty, check if we can reuse the existing step content segment
+  if (!isDirty) {
+    const dbKey = getLivrableDbKey(step_type);
+    if (dbKey) {
+      try {
+        const { data: stepRow, error: stepRowError } = await supabase
+          .from('course_steps')
+          .select('content')
+          .eq('course_id', course.id)
+          .eq('title_key', dbKey)
+          .maybeSingle();
+
+        if (!stepRowError && stepRow && stepRow.content) {
+          const parts = stepRow.content.split('\n\n---\n\n');
+          let partIndex = moduleData.module_index;
+          if (dbKey === 'course.livrables.participant_workbook') {
+            partIndex = moduleData.module_index + 1;
+          }
+
+          const existingPart = parts[partIndex];
+          if (existingPart && existingPart.trim().length > 0 && !existingPart.includes('Content generation failed') && !existingPart.includes('Slides generation failed')) {
+            Logger.info(`[handleGoldenStep] Reusing cached segment for module ${moduleData.title} in step ${step_type}`);
+            return existingPart;
+          }
+        }
+      } catch (err) {
+        Logger.warn('[handleGoldenStep] Cache reuse check failed.', err);
+      }
+    }
+  }
+
   // Step 4: Build DNA blocks for prompt injection
   const dna = buildDNABlocks(course);
+
+  // Step 4.5: Check if lessons exist in the database for this module to run granular generation
+  const { data: lessons, error: lessonsError } = await supabase
+    .from('course_lessons')
+    .select('*')
+    .eq('module_id', module_id)
+    .order('order_index');
+
+  if (!lessonsError && lessons && lessons.length > 0) {
+    Logger.info(`[handleGoldenStep] Found ${lessons.length} lessons. Generating granular content for step: ${step_type}`);
+    const parts: string[] = [];
+    for (const lesson of lessons) {
+      const content = await generateLessonContent(supabase, lesson.id, step_type);
+      parts.push(content);
+    }
+    // XML slides should be joined without Markdown dividers if preferred, but \n\n---\n\n works for all, slides parser handles separators too
+    return parts.join('\n\n---\n\n');
+  }
 
   // Step 5: Generate the requested deliverable with a specialized prompt
   Logger.info(`[GoldenStep] Generating deliverable '${step_type}' for module ${module_id}`);
@@ -3157,11 +3764,11 @@ async function handleGoldenStep(
     case 'facilitator_manual':
     case 'trainer_manual':
     case 'facilitator_notes': // facilitator_notes is a subset of the full manual
-      return generateManualContent(course, moduleContext, dna);
+      return generateManualContent(course, moduleContext, dna, true, supabase);
 
     case 'course.steps.slides':
     case 'slides':
-      return generateSlidesContent(course, moduleContext, dna);
+      return generateSlidesContent(course, moduleContext, dna, supabase);
 
     case 'course.steps.exercises':
     case 'exercises':

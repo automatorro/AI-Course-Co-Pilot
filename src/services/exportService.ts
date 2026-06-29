@@ -884,8 +884,8 @@ const exportCourseAsPptxV2 = async (course: Course): Promise<void> => {
     const scripts = {}; // Initialize empty scripts since we removed the agenda logic block that used it
 
     // 3. Content Slides
-    // Only process the specific "Slides" step to avoid including Manual, Quiz, etc.
-    // Try explicit keys first, then fallback to partial match
+
+    // 2. Content Slides
     const slidesStep = course.steps?.find(s =>
         s.title_key === 'course.steps.slides' ||
         s.title_key === 'livrables.slides' ||
@@ -893,282 +893,334 @@ const exportCourseAsPptxV2 = async (course: Course): Promise<void> => {
         s.title_key.toLowerCase().includes('.slides')
     ) || null;
 
-    // Hard isolation: export PPTX doar din pasul „Slides”. Dacă lipsește, delegăm către fallback.
     if (!slidesStep) {
         throw new Error('No Slides step found for PPTX export');
     }
-    const stepsToExport = [slidesStep];
-
-    // Parallel Processing Configuration
-    const MAX_CONCURRENCY = 3; // Limit concurrent AI/Image requests to avoid timeouts/rate-limits
 
     let hasSummarySlide = false;
     const blockingErrors: string[] = [];
-    for (const step of stepsToExport) {
-        if (step.content) {
-            // Pre-process content
-            const pre = normalizeExternalImageLinks(step.content);
-            const withPublic = await replaceBlobUrlsWithPublic(pre, course.user_id, course.id);
-            let contentForParsing = withPublic;
-            if (looksLikeHtml(contentForParsing)) {
+
+    if (slidesStep.slides_data && Array.isArray(slidesStep.slides_data) && slidesStep.slides_data.length > 0) {
+        console.log('[Export] Utilizing deterministic PPTX pipeline from stored slides_data');
+        const slidesToExport: SlideState[] = slidesStep.slides_data;
+        
+        for (const slideState of slidesToExport) {
+            // Skip cover/recap slides as they are handled globally or locally
+            if (slideState.layoutId === 'LAYOUT_TITLE' && slideState.metadata.originalIndex === -1) {
+                continue;
+            }
+            if (slideState.layoutId === 'LAYOUT_SUMMARY' && slideState.metadata.originalIndex === 9999) {
+                continue;
+            }
+
+            const slide = pptx.addSlide();
+            
+            const mapLayout = (l: string): SlideDesignJSON['layout'] => {
+                switch (l) {
+                    case 'LAYOUT_TITLE': return 'HERO';
+                    case 'LAYOUT_EXPLAINER': return 'DEFAULT';
+                    case 'LAYOUT_IMAGE_TEXT': return 'DEFAULT';
+                    case 'LAYOUT_IMAGE_LEFT': return 'SPLIT_LEFT';
+                    case 'LAYOUT_IMAGE_RIGHT': return 'SPLIT_RIGHT';
+                    case 'LAYOUT_FULL_IMAGE': return 'FULL_IMAGE';
+                    case 'LAYOUT_QUOTE': return 'QUOTATION';
+                    case 'LAYOUT_BIG_NUMBER': return 'BIG_STAT';
+                    case 'LAYOUT_THREE_COL': return 'THREE_COLUMNS';
+                    case 'LAYOUT_COMPARISON': return 'COMPARISON';
+                    case 'LAYOUT_TIMELINE': return 'TIMELINE';
+                    case 'LAYOUT_GRID_CARDS': return 'GRID_CARDS';
+                    case 'LAYOUT_SECTION_HEADER': return 'SECTION_HEADER';
+                    case 'LAYOUT_CHECKLIST': return 'CHECKLIST';
+                    case 'LAYOUT_DO_DONT': return 'DO_DONT';
+                    case 'LAYOUT_TABLE': return 'TABLE_SIMPLE';
+                    case 'LAYOUT_IMAGE_CENTER': return 'IMAGE_CENTER';
+                    case 'LAYOUT_EXERCISE': return 'PROCESS_STEPS';
+                    case 'LAYOUT_AGENDA': return 'AGENDA_COMPACT';
+                    default: return 'DEFAULT';
+                }
+            };
+
+            const design: SlideDesignJSON = {
+                title: slideState.content.title,
+                layout: mapLayout(slideState.layoutId),
+                content: slideState.content.bullets || [],
+                columns: slideState.content.columns,
+                bigValue: slideState.content.bigValue,
+                bigLabel: slideState.content.bigLabel,
+                quote: slideState.content.quote,
+                table: slideState.content.table,
+                imagePrompt: slideState.media?.caption || ''
+            };
+
+            let imageUrl = slideState.media?.url || '';
+            if (imageUrl && !imageUrl.startsWith('data:')) {
                 try {
-                    const td = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
-                    // CRITICAL: Preserve layout/adapted metadata comments
-                    td.addRule('preserveComments', {
-                        filter: (node: any) => node.nodeType === 8 && (
-                            node.nodeValue?.trim().startsWith('slide-layout:') || 
-                            node.nodeValue?.trim().startsWith('slide-adapted:')
-                        ),
-                        replacement: (_content: string, node: any) => {
-                            return '<!--' + node.nodeValue + '-->';
-                        }
-                    });
-                    contentForParsing = td.turndown(contentForParsing);
-                } catch {
-                    // fallback: simple HTML stripping
-                    contentForParsing = contentForParsing
-                        .replace(/<br\s*\/?>/gi, '\n')
-                        .replace(/<\/(p|div|section|article|li|h[1-6])>/gi, '\n')
-                        .replace(/<[^>]+>/g, '');
+                    const dataUrl = await fetchToDataUrl(imageUrl);
+                    if (dataUrl) imageUrl = dataUrl;
+                } catch (e) {
+                    console.warn('Failed to fetch image for PPTX export:', e);
                 }
             }
-            const sections = parseContentSections(contentForParsing);
 
-            // Process sections in batches to avoid browser hang
-            for (let i = 0; i < sections.length; i += MAX_CONCURRENCY) {
-                const batch = sections.slice(i, i + MAX_CONCURRENCY);
-                
-                await Promise.all(batch.map(async (section) => {
-                    const slide = pptx.addSlide();
-                    
-                    // AI Analysis - BYPASSED FOR DETERMINISTIC PIPELINE
-                    // We use the parsed content directly to avoid hallucinations and timeouts
-                    // We still use getSmartFallbackDesign to rotate through templates
-                    let aiDesign: SlideDesignJSON = getSmartFallbackDesign(section.rawContent);
-                    
-                    if (section.slideLayout === SlideArchetype.Summary || section.title.toLowerCase().includes('summary') || section.title.toLowerCase().includes('rezumat')) {
-                        hasSummarySlide = true;
-                    }
+            switch (design.layout) {
+                case 'HERO': renderHeroSlide(slide, design, imageUrl); break;
+                case 'SPLIT_LEFT': renderSplitLeft(slide, design, imageUrl); break;
+                case 'SPLIT_RIGHT': renderSplitRight(slide, design, imageUrl); break;
+                case 'BIG_STAT': renderBigStat(slide, design, imageUrl); break;
+                case 'COMPARISON': renderComparison(slide, design, imageUrl); break;
+                case 'QUOTATION': renderQuotation(slide, design, imageUrl); break;
+                case 'TIMELINE': renderTimeline(slide, design, imageUrl); break;
+                case 'FULL_IMAGE': renderFullImage(slide, design, imageUrl); break;
+                case 'GRID_CARDS': renderGridCards(slide, design, imageUrl); break;
+                case 'IMAGE_CENTER': renderImageCenter(slide, design, imageUrl); break;
+                case 'THREE_COLUMNS': renderThreeColumns(slide, design, imageUrl); break;
+                case 'SECTION_HEADER': renderSectionHeader(slide, design, imageUrl); break;
+                case 'CHECKLIST': renderChecklist(slide, design, imageUrl); break;
+                case 'DO_DONT': renderDoDont(slide, design, imageUrl); break;
+                case 'TABLE_SIMPLE': renderTableSimple(slide, design, imageUrl); break;
+                case 'PROCESS_STEPS': renderProcessSteps(slide, design, imageUrl); break;
+                case 'AGENDA_COMPACT': renderAgendaCompact(slide, design, imageUrl); break;
+                default: renderDefault(slide, design, imageUrl);
+            }
 
-                    // 1. Apply explicit layout from metadata (<!-- slide-layout: ... -->)
-                    if (section.slideLayout) {
-                        const mapLayout = (a: SlideArchetype): SlideDesignJSON['layout'] => {
-                            switch (a) {
-                                case SlideArchetype.Title: return 'HERO';
-                                case SlideArchetype.ImageLeft: return 'SPLIT_LEFT';
-                                case SlideArchetype.ImageRight: return 'SPLIT_RIGHT';
-                                case SlideArchetype.BigNumber: return 'BIG_STAT';
-                                case SlideArchetype.Comparison: return 'COMPARISON';
-                                case SlideArchetype.Quote: return 'QUOTATION';
-                                case SlideArchetype.Timeline: return 'TIMELINE';
-                                case SlideArchetype.FullImage: return 'FULL_IMAGE';
-                                case SlideArchetype.GridCards: return 'GRID_CARDS';
-                                case SlideArchetype.ImageCenter: return 'IMAGE_CENTER';
-                                case SlideArchetype.ThreeCol: return 'THREE_COLUMNS';
-                                case SlideArchetype.SectionHeader: return 'SECTION_HEADER';
-                                case SlideArchetype.Checklist: return 'CHECKLIST';
-                                case SlideArchetype.DoDont: return 'DO_DONT';
-                                case SlideArchetype.Table: return 'TABLE_SIMPLE';
-                                case SlideArchetype.Exercise: return 'PROCESS_STEPS';
-                                case SlideArchetype.Agenda: return 'AGENDA_COMPACT';
-                                case SlideArchetype.CaseStudy: return 'DEFAULT';
-                                case SlideArchetype.Summary: return 'DEFAULT';
-                                case SlideArchetype.Explainer: return 'DEFAULT';
-                                default: return 'DEFAULT';
+            if (slideState.speakerNotes) {
+                const normalizedNotes = normalizeNotesText(slideState.speakerNotes);
+                if (normalizedNotes) slide.addNotes(normalizedNotes);
+            }
+
+            slide.addText(`${course.title} | ${new Date().toLocaleDateString()}`, {
+                x: 0.5, y: 6.8, w: '90%', h: 0.3,
+                fontSize: 10, color: '9CA3AF', align: 'right'
+            });
+        }
+    } else {
+        const stepsToExport = [slidesStep];
+        const MAX_CONCURRENCY = 3;
+
+        for (const step of stepsToExport) {
+            if (step.content) {
+                const pre = normalizeExternalImageLinks(step.content);
+                const withPublic = await replaceBlobUrlsWithPublic(pre, course.user_id, course.id);
+                let contentForParsing = withPublic;
+                if (looksLikeHtml(contentForParsing)) {
+                    try {
+                        const td = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+                        td.addRule('preserveComments', {
+                            filter: (node: any) => node.nodeType === 8 && (
+                                node.nodeValue?.trim().startsWith('slide-layout:') || 
+                                node.nodeValue?.trim().startsWith('slide-adapted:')
+                            ),
+                            replacement: (_content: string, node: any) => {
+                                return '<!--' + node.nodeValue + '-->';
                             }
-                        };
-                        aiDesign.layout = mapLayout(section.slideLayout);
-                    }
-
-                    // 2. Apply explicit content from metadata (<!-- slide-adapted: ... -->)
-                    // We prioritize content matching the selected layout
-                    let explicitContent = '';
-                    if (aiDesign.layout && section.adaptedContent && section.adaptedContent[aiDesign.layout]) {
-                        explicitContent = section.adaptedContent[aiDesign.layout];
-                    } else if (section.adaptedContent && Object.keys(section.adaptedContent).length > 0) {
-                        // Fallback to the first available adapted content
-                        explicitContent = Object.values(section.adaptedContent)[0];
-                    }
-
-                    if (explicitContent) {
-                        // Explicit content overrides parsed bullets/body
-                        // It might be HTML or Markdown. We need to split it into lines/bullets.
-                        // Remove HTML tags for PPTX text body
-                        const plainText = explicitContent
+                        });
+                        contentForParsing = td.turndown(contentForParsing);
+                    } catch {
+                        contentForParsing = contentForParsing
                             .replace(/<br\s*\/?>/gi, '\n')
-                            .replace(/<\/(p|div|li)>/gi, '\n')
-                            .replace(/<[^>]+>/g, '')
-                            .replace(/&nbsp;/g, ' ');
-                        
-                        aiDesign.content = plainText
-                            .split('\n')
-                            .map(s => s.trim())
-                            .filter(Boolean);
-                    } else {
-                        // Force the parsed title and content (Source of Truth)
-                        if (section.bulletPoints.length > 0) {
-                            aiDesign.content = section.bulletPoints;
-                        } else if (section.bodyText) {
-                            aiDesign.content = section.bodyText
-                            .split('\n')
-                            .map(s => s.trim())
-                            .filter(Boolean);
-                        } else {
-                            // Safety: If parser found no content, do not fallback to raw dump
-                            aiDesign.content = [];
-                        }
+                            .replace(/<\/(p|div|section|article|li|h[1-6])>/gi, '\n')
+                            .replace(/<[^>]+>/g, '');
                     }
+                }
+                const sections = parseContentSections(contentForParsing);
 
-                    aiDesign.title = section.title;
+                for (let i = 0; i < sections.length; i += MAX_CONCURRENCY) {
+                    const batch = sections.slice(i, i + MAX_CONCURRENCY);
+                    
+                    await Promise.all(batch.map(async (section) => {
+                        const slide = pptx.addSlide();
+                        let aiDesign: SlideDesignJSON = getSmartFallbackDesign(section.rawContent);
+                        
+                        if (section.slideLayout === SlideArchetype.Summary || section.title.toLowerCase().includes('summary') || section.title.toLowerCase().includes('rezumat')) {
+                            hasSummarySlide = true;
+                        }
 
-                    // Visualul aparține slide-ului: folosim doar termenul explicit furnizat
+                        if (section.slideLayout) {
+                            const mapLayout = (a: SlideArchetype): SlideDesignJSON['layout'] => {
+                                switch (a) {
+                                    case SlideArchetype.Title: return 'HERO';
+                                    case SlideArchetype.ImageLeft: return 'SPLIT_LEFT';
+                                    case SlideArchetype.ImageRight: return 'SPLIT_RIGHT';
+                                    case SlideArchetype.BigNumber: return 'BIG_STAT';
+                                    case SlideArchetype.Comparison: return 'COMPARISON';
+                                    case SlideArchetype.Quote: return 'QUOTATION';
+                                    case SlideArchetype.Timeline: return 'TIMELINE';
+                                    case SlideArchetype.FullImage: return 'FULL_IMAGE';
+                                    case SlideArchetype.GridCards: return 'GRID_CARDS';
+                                    case SlideArchetype.ImageCenter: return 'IMAGE_CENTER';
+                                    case SlideArchetype.ThreeCol: return 'THREE_COLUMNS';
+                                    case SlideArchetype.SectionHeader: return 'SECTION_HEADER';
+                                    case SlideArchetype.Checklist: return 'CHECKLIST';
+                                    case SlideArchetype.DoDont: return 'DO_DONT';
+                                    case SlideArchetype.Table: return 'TABLE_SIMPLE';
+                                    case SlideArchetype.Exercise: return 'PROCESS_STEPS';
+                                    case SlideArchetype.Agenda: return 'AGENDA_COMPACT';
+                                    case SlideArchetype.CaseStudy: return 'DEFAULT';
+                                    case SlideArchetype.Summary: return 'DEFAULT';
+                                    case SlideArchetype.Explainer: return 'DEFAULT';
+                                    default: return 'DEFAULT';
+                                }
+                            };
+                            aiDesign.layout = mapLayout(section.slideLayout);
+                        }
 
-                    // Visualul aparține slide-ului: folosim doar termenul explicit furnizat
-                    aiDesign.imagePrompt = section.visualSearchTerm || '';
+                        let explicitContent = '';
+                        if (aiDesign.layout && section.adaptedContent && section.adaptedContent[aiDesign.layout]) {
+                            explicitContent = section.adaptedContent[aiDesign.layout];
+                        } else if (section.adaptedContent && Object.keys(section.adaptedContent).length > 0) {
+                            explicitContent = Object.values(section.adaptedContent)[0];
+                        }
 
-                    // Image Search (Deterministic) - skipped in Safe Mode
-                    let imageUrl = '';
-                    if (!isEnabled('pptxTextOnlySafeMode')) {
-                        const finalPrompt = aiDesign.imagePrompt;
-                        if (finalPrompt) {
+                        if (explicitContent) {
+                            const plainText = explicitContent
+                                .replace(/<br\s*\/?>/gi, '\n')
+                                .replace(/<\/(p|div|li)>/gi, '\n')
+                                .replace(/<[^>]+>/g, '')
+                                .replace(/&nbsp;/g, ' ');
+                            
+                            aiDesign.content = plainText
+                                .split('\n')
+                                .map(s => s.trim())
+                                .filter(Boolean);
+                        } else {
+                            if (section.bulletPoints.length > 0) {
+                                aiDesign.content = section.bulletPoints;
+                            } else if (section.bodyText) {
+                                aiDesign.content = section.bodyText
+                                .split('\n')
+                                .map(s => s.trim())
+                                .filter(Boolean);
+                            } else {
+                                aiDesign.content = [];
+                            }
+                        }
+
+                        aiDesign.title = section.title;
+                        aiDesign.imagePrompt = section.visualSearchTerm || '';
+
+                        let imageUrl = '';
+                        if (!isEnabled('pptxTextOnlySafeMode')) {
+                            const finalPrompt = aiDesign.imagePrompt;
+                            if (finalPrompt) {
+                                try {
+                                    const searchKeywords = finalPrompt.replace(/^(Photo of|Image of|Visual of)\s+/i, '').split(/[\s,]+/).slice(0, 4).join(' ');
+                                    const searchPromise = searchImages(searchKeywords, 1);
+                                    const timeoutPromise = new Promise<never>((_, reject) =>
+                                        setTimeout(() => reject(new Error('Image Search Timeout')), 8000)
+                                    );
+                                    const images = await Promise.race([searchPromise, timeoutPromise]) as any[];
+                                    if (images && images.length > 0) {
+                                        imageUrl = images[0].url;
+                                    }
+                                } catch (e) {
+                                    console.warn('Image search failed/timed out for slide:', section.title);
+                                }
+                            }
+                            if (!imageUrl && section.images.length > 0) {
+                                imageUrl = section.images[0].url;
+                            }
+                        }
+
+                        if (imageUrl && !imageUrl.startsWith('data:')) {
                             try {
-                                const searchKeywords = finalPrompt.replace(/^(Photo of|Image of|Visual of)\s+/i, '').split(/[\s,]+/).slice(0, 4).join(' ');
-                                const searchPromise = searchImages(searchKeywords, 1);
-                                const timeoutPromise = new Promise<never>((_, reject) =>
-                                    setTimeout(() => reject(new Error('Image Search Timeout')), 8000)
-                                );
-                                const images = await Promise.race([searchPromise, timeoutPromise]) as any[];
-                                if (images && images.length > 0) {
-                                    imageUrl = images[0].url;
+                                const dataUrl = await fetchToDataUrl(imageUrl);
+                                if (dataUrl) {
+                                    imageUrl = dataUrl;
+                                } else {
+                                    console.warn('Failed to convert image to Base64, removing to prevent corruption:', imageUrl);
+                                    imageUrl = ''; 
                                 }
                             } catch (e) {
-                                console.warn('Image search failed/timed out for slide:', section.title);
-                            }
-                        }
-                        if (!imageUrl && section.images.length > 0) {
-                            imageUrl = section.images[0].url;
-                        }
-                    }
-
-                    // CRITICAL: Convert all external images to Base64 to prevent PowerPoint corruption (Repair Prompt)
-                    // PowerPoint often blocks or errors on external HTTP links (CORS, 403, etc.)
-                    if (imageUrl && !imageUrl.startsWith('data:')) {
-                        try {
-                            const dataUrl = await fetchToDataUrl(imageUrl);
-                            if (dataUrl) {
-                                imageUrl = dataUrl;
-                            } else {
-                                console.warn('Failed to convert image to Base64, removing to prevent corruption:', imageUrl);
-                                imageUrl = ''; 
-                            }
-                        } catch (e) {
-                             console.warn('Exception converting image to Base64:', e);
-                             imageUrl = '';
-                        }
-                    }
-
-                    // aiDesign.layout = 'DEFAULT'; // REMOVED: Overwrites user selection
-                    if (!aiDesign.layout) aiDesign.layout = 'DEFAULT';
-                    const enumerativeLayouts = ['AGENDA_COMPACT','CHECKLIST','PROCESS_STEPS','TIMELINE','KEY_TAKEAWAYS'];
-                    const allowSplit = false;
-                    const splitArray = <T,>(arr: T[], size: number): T[][] => {
-                        const out: T[][] = [];
-                        for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-                        return out;
-                    };
-                    const defaultChunk = [aiDesign.content];
-                    const chunks = (isEnabled('pptxEnhancedPipeline') && allowSplit && enumerativeLayouts.includes(aiDesign.layout))
-                        ? splitArray(aiDesign.content, 6)
-                        : defaultChunk;
-                    
-                    for (let ci = 0; ci < chunks.length; ci++) {
-                        const chunkSlide = ci === 0 ? slide : pptx.addSlide();
-                        // STOP dacă lipsesc câmpurile semantice obligatorii
-                        if (isEnabled('pptxEnhancedPipeline')) {
-                            const missing: string[] = [];
-                            // Relaxed validation: Allow "Slide X" titles to pass through. 
-                            // The user might intentionally use them or the parser failed to promote content.
-                            // We shouldn't block export for this.
-                            if (!section.title || section.title.trim().length === 0) missing.push('title');
-                            
-                            if (missing.length > 0) {
-                                blockingErrors.push(`[BLOCK] ${section.title || '(no title)'}: lipsesc câmpuri obligatorii → ${missing.join(', ')}`);
-                                return;
-                            }
-                        }
-                        let designForChunk = { ...aiDesign, content: chunks[ci] };
-                        const sem = validateSemantic(designForChunk, !!imageUrl);
-                        if (!sem.ok) {
-                            const rotated = pickCompatibleLayout(designForChunk.layout, sem.contentClass);
-                            designForChunk = { ...designForChunk, layout: rotated };
-                            const sem2 = validateSemantic(designForChunk, !!imageUrl);
-                            if (!sem2.ok) {
-                                if (isEnabled('pptxEnhancedPipeline')) {
-                                    // Soft fallback instead of blocking
-                                    console.warn(`[Export Warning] Slide invalid: ${section.title} → ${sem.errors.join('; ')}. Falling back to DEFAULT.`);
-                                    designForChunk = { ...designForChunk, layout: 'DEFAULT' };
-                                }
-                            }
-                        }
-                        try {
-                            // Dispatch to specific renderer based on layout
-                            // This ensures Design Studio layouts are respected in direct export
-                            switch (designForChunk.layout) {
-                                case 'HERO': renderHeroSlide(chunkSlide, designForChunk, imageUrl); break;
-                                case 'SPLIT_LEFT': renderSplitLeft(chunkSlide, designForChunk, imageUrl); break;
-                                case 'SPLIT_RIGHT': renderSplitRight(chunkSlide, designForChunk, imageUrl); break;
-                                case 'BIG_STAT': renderBigStat(chunkSlide, designForChunk, imageUrl); break;
-                                case 'COMPARISON': renderComparison(chunkSlide, designForChunk, imageUrl); break;
-                                case 'QUOTATION': renderQuotation(chunkSlide, designForChunk, imageUrl); break;
-                                case 'TIMELINE': renderTimeline(chunkSlide, designForChunk, imageUrl); break;
-                                case 'FULL_IMAGE': renderFullImage(chunkSlide, designForChunk, imageUrl); break;
-                                case 'GRID_CARDS': renderGridCards(chunkSlide, designForChunk, imageUrl); break;
-                                case 'IMAGE_CENTER': renderImageCenter(chunkSlide, designForChunk, imageUrl); break;
-                                case 'THREE_COLUMNS': renderThreeColumns(chunkSlide, designForChunk, imageUrl); break;
-                                case 'SECTION_HEADER': renderSectionHeader(chunkSlide, designForChunk, imageUrl); break;
-                                case 'CHECKLIST': renderChecklist(chunkSlide, designForChunk, imageUrl); break;
-                                case 'DO_DONT': renderDoDont(chunkSlide, designForChunk, imageUrl); break;
-                                case 'TABLE_SIMPLE': renderTableSimple(chunkSlide, designForChunk, imageUrl); break;
-                                case 'PROCESS_STEPS': renderProcessSteps(chunkSlide, designForChunk, imageUrl); break;
-                                case 'AGENDA_COMPACT': renderAgendaCompact(chunkSlide, designForChunk, imageUrl); break;
-                                default: renderDefault(chunkSlide, designForChunk, imageUrl);
-                            }
-
-                        if (isEnabled('pptxEnhancedPipeline')) {
-                            let notesAdded = false;
-                            const modelNotes = (section.speakerNotes || '').trim();
-                            const candidateNotes = modelNotes.length > 0
-                                ? modelNotes
-                                : (findMatchingScript(scripts, section.title) || '').trim();
-                            if (candidateNotes.length > 0) {
-                                const normalized = normalizeNotesText(candidateNotes);
-                                if (normalized) {
-                                    chunkSlide.addNotes(normalized);
-                                    notesAdded = true;
-                                }
-                            }
-                            if (isEnabled('pptxEnhancedPipeline') && modelNotes.length > 0 && !notesAdded) {
-                                blockingErrors.push(`[BLOCK] ${section.title}: notes există în model dar nu au fost atașate.`);
+                                 console.warn('Exception converting image to Base64:', e);
+                                 imageUrl = '';
                             }
                         }
 
-                            chunkSlide.addText(`${course.title} | ${new Date().toLocaleDateString()}`, {
-                                x: 0.5, y: 6.8, w: '90%', h: 0.3,
-                                fontSize: 10, color: '9CA3AF', align: 'right'
-                            });
-
-                        } catch (renderErr) {
-                            console.error('Error rendering slide:', renderErr);
+                        if (!aiDesign.layout) aiDesign.layout = 'DEFAULT';
+                        const enumerativeLayouts = ['AGENDA_COMPACT','CHECKLIST','PROCESS_STEPS','TIMELINE','KEY_TAKEAWAYS'];
+                        const allowSplit = false;
+                        const splitArray = <T,>(arr: T[], size: number): T[][] => {
+                            const out: T[][] = [];
+                            for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+                            return out;
+                        };
+                        const defaultChunk = [aiDesign.content];
+                        const chunks = (isEnabled('pptxEnhancedPipeline') && allowSplit && enumerativeLayouts.includes(aiDesign.layout))
+                            ? splitArray(aiDesign.content, 6)
+                            : defaultChunk;
+                        
+                        for (let ci = 0; ci < chunks.length; ci++) {
+                            const chunkSlide = ci === 0 ? slide : pptx.addSlide();
                             if (isEnabled('pptxEnhancedPipeline')) {
-                                blockingErrors.push(`[RENDER] ${section.title}: ${String(renderErr)}`);
-                            } else {
-                                renderDefault(chunkSlide, designForChunk, imageUrl);
+                                const missing: string[] = [];
+                                if (!section.title || section.title.trim().length === 0) missing.push('title');
+                                
+                                if (missing.length > 0) {
+                                    blockingErrors.push(`[BLOCK] ${section.title || '(no title)'}: lipsesc câmpuri obligatorii → ${missing.join(', ')}`);
+                                    return;
+                                }
                             }
-                        }
-                    }
-                }));
-        }
-    }
+                            let designForChunk = { ...aiDesign, content: chunks[ci] };
+                            const sem = validateSemantic(designForChunk, !!imageUrl);
+                            if (!sem.ok) {
+                                const rotated = pickCompatibleLayout(designForChunk.layout, sem.contentClass);
+                                designForChunk = { ...designForChunk, layout: rotated };
+                                const sem2 = validateSemantic(designForChunk, !!imageUrl);
+                                if (!sem2.ok) {
+                                    if (isEnabled('pptxEnhancedPipeline')) {
+                                        console.warn(`[Export Warning] Slide invalid: ${section.title} → ${sem.errors.join('; ')}. Falling back to DEFAULT.`);
+                                        designForChunk = { ...designForChunk, layout: 'DEFAULT' };
+                                    }
+                                }
+                            }
+                            try {
+                                switch (designForChunk.layout) {
+                                    case 'HERO': renderHeroSlide(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'SPLIT_LEFT': renderSplitLeft(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'SPLIT_RIGHT': renderSplitRight(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'BIG_STAT': renderBigStat(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'COMPARISON': renderComparison(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'QUOTATION': renderQuotation(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'TIMELINE': renderTimeline(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'FULL_IMAGE': renderFullImage(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'GRID_CARDS': renderGridCards(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'IMAGE_CENTER': renderImageCenter(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'THREE_COLUMNS': renderThreeColumns(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'SECTION_HEADER': renderSectionHeader(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'CHECKLIST': renderChecklist(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'DO_DONT': renderDoDont(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'TABLE_SIMPLE': renderTableSimple(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'PROCESS_STEPS': renderProcessSteps(chunkSlide, designForChunk, imageUrl); break;
+                                    case 'AGENDA_COMPACT': renderAgendaCompact(chunkSlide, designForChunk, imageUrl); break;
+                                    default: renderDefault(chunkSlide, designForChunk, imageUrl);
+                                }
+
+                            if (isEnabled('pptxEnhancedPipeline')) {
+                                let notesAdded = false;
+                                const modelNotes = (section.speakerNotes || '').trim();
+                                const candidateNotes = modelNotes.length > 0
+                                    ? modelNotes
+                                    : (findMatchingScript(scripts, section.title) || '').trim();
+                                if (candidateNotes.length > 0) {
+                                    const normalized = normalizeNotesText(candidateNotes);
+                                    if (normalized) {
+                                        chunkSlide.addNotes(normalized);
+                                        notesAdded = true;
+                                    }
+                                }
+                                if (isEnabled('pptxEnhancedPipeline') && modelNotes.length > 0 && !notesAdded) {
+                                    blockingErrors.push(`[BLOCK] ${section.title}: notes există în model dar nu au fost atașate.`);
+                                }
+                            }
+
+                                chunkSlide.addText(`${course.title} | ${new Date().toLocaleDateString()}`, {
+                                    x: 0.5, y: 6.8, w: '90%', h: 0.3,
+                                    fontSize: 10, color: '9CA3AF', align: 'right'
+                                });
+
+                            } catch (renderErr) {
+                                console.error('Error rendering slide:', renderErr);
+                                if (isEnabled('pptxEnhancedPipeline')) {
     }
 
     // 4. Summary Slide

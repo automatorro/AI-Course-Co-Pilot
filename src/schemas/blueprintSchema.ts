@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// Zod schema for CourseBlueprint validation
 export const CourseSectionSchema = z.object({
     id: z.string().min(1),
     title: z.string().min(1),
@@ -9,11 +8,22 @@ export const CourseSectionSchema = z.object({
     content_outline: z.string().optional(),
 });
 
+export const CourseLessonSchema = z.object({
+    id: z.string().min(1),
+    title: z.string().min(1),
+    learning_objective: z.string().optional(),
+    has_exercise: z.boolean().default(false),
+    estimated_minutes: z.number().int().min(1).default(15),
+    key_takeaways: z.array(z.string()).default([]),
+    order_index: z.number().int().min(0),
+});
+
 export const CourseModuleSchema = z.object({
     id: z.string().min(1),
     title: z.string().min(1),
     learning_objective: z.string().min(1),
     sections: z.array(CourseSectionSchema).min(1),
+    lessons: z.array(CourseLessonSchema).optional(), // NEW: Granular lessons per module
 });
 
 export const CourseBlueprintSchema = z.object({
@@ -27,3 +37,5 @@ export const CourseBlueprintSchema = z.object({
 export type ValidatedCourseBlueprint = z.infer<typeof CourseBlueprintSchema>;
 export type ValidatedCourseModule = z.infer<typeof CourseModuleSchema>;
 export type ValidatedCourseSection = z.infer<typeof CourseSectionSchema>;
+export type ValidatedCourseLesson = z.infer<typeof CourseLessonSchema>;
+

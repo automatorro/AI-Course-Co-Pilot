@@ -1,4 +1,5 @@
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import { SlideState } from './types/slideState';
 
 export enum Plan {
   Trial = 'Trial',
@@ -12,6 +13,10 @@ export interface User extends SupabaseUser {
   role: 'admin' | 'user';
   first_name?: string | null;
   last_name?: string | null;
+  // AI Credit System (added in 20260621_credit_system migration)
+  ai_operations_used?: number;
+  ai_operations_limit?: number;
+  plan_reset_at?: string;
 }
 
 export enum GenerationEnvironment {
@@ -36,6 +41,8 @@ export interface Course {
   learning_objectives?: string; // NEW: User-provided or AI-generated learning outcomes
   steps?: CourseStep[]; // Optional, as we might load them separately
   blueprint?: CourseBlueprint;
+  blueprint_version?: number; // NEW: The current version of the blueprint
+  blueprint_history?: CourseBlueprint[]; // NEW: History of previous blueprints
   ai_refinement_history?: AIMessage[]; // NEW: Optional log of AI suggestions
   dna?: CourseDNA; // NEW: The Single Source of Truth for the course
   macro_plan?: {
@@ -116,6 +123,9 @@ export interface CourseStep {
   content: string;
   is_completed: boolean;
   step_order: number;
+  lesson_id?: string | null; // NEW: Reference to the specific lesson this step belongs to
+  status?: 'draft' | 'generat' | 'editat' | 'aprobat'; // NEW: Lifecycle state of the material
+  slides_data?: SlideState[] | null; // NEW: Structured slide states for deterministic export
 }
 
 export interface ChatMessage {
@@ -145,6 +155,20 @@ export interface CourseModule {
   title: string;
   learning_objective: string; // Links back to course LOs
   sections: CourseSection[];
+  lessons?: CourseLesson[]; // NEW: Granular lessons under this module
+}
+
+export interface CourseLesson {
+  id: string;
+  module_id: string;
+  course_id: string;
+  title: string;
+  learning_objective?: string; // Bloom taxonomy objective
+  has_exercise: boolean; // Flag to generate activities
+  estimated_minutes: number; // Lesson duration
+  key_takeaways: string[]; // 3-5 structured bullets, max 20 words each
+  order_index: number;
+  created_at: string;
 }
 
 export interface CourseSection {

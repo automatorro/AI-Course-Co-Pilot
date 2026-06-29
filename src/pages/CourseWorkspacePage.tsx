@@ -775,8 +775,9 @@ const CourseWorkspacePage: React.FC = () => {
         // Optional: showToast('Warning: Version history snapshot failed.', 'info');
     }
 
-    const stepUpdatePayload: { content: string, is_completed?: boolean } = {
-      content: processedContent
+    const stepUpdatePayload: { content: string, is_completed?: boolean, status?: string } = {
+      content: processedContent,
+      status: 'editat'
     };
     if (isCompletingStep) {
       stepUpdatePayload.is_completed = true;
@@ -816,7 +817,7 @@ const CourseWorkspacePage: React.FC = () => {
     setCourse(prev => {
       if (!prev) return null;
       const updatedSteps = (prev.steps || []).map(s =>
-        s.id === currentStep.id ? { ...s, content: processedContent, is_completed: stepUpdatePayload.is_completed ?? s.is_completed } : s
+        s.id === currentStep.id ? { ...s, content: processedContent, is_completed: stepUpdatePayload.is_completed ?? s.is_completed, status: 'editat' } : s
       );
       return { ...prev, steps: updatedSteps };
     });
@@ -1632,7 +1633,19 @@ const CourseWorkspacePage: React.FC = () => {
                     }`}
                 >
                   {step.is_completed ? <CheckCircle className="text-green-500" size={20} /> : <Circle className="text-gray-400" size={20} />}
-                  <span className="font-medium">{t(step.title_key)}</span>
+                  <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
+                    <span className="font-medium truncate">{t(step.title_key)}</span>
+                    {step.status && (
+                      <span className={`flex-shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider ${
+                        step.status === 'aprobat' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                        step.status === 'editat' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' :
+                        step.status === 'generat' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
+                        'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                      }`}>
+                        {step.status}
+                      </span>
+                    )}
+                  </div>
                 </button>
               </li>
             ))}
@@ -2021,6 +2034,10 @@ const CourseWorkspacePage: React.FC = () => {
                 }
                 return content;
             })()}
+            initialSlides={(() => {
+                const currentStep = (course?.steps || [])[activeStepIndex];
+                return currentStep?.title_key === 'course.steps.slides' ? currentStep.slides_data : null;
+            })()}
             onSave={(slides: SlideState[]) => {
                  let nextMarkdown = editedContent || '';
                  
@@ -2059,14 +2076,14 @@ const CourseWorkspacePage: React.FC = () => {
                      setCourse(prev => {
                          if (!prev) return null;
                          const updatedSteps = (prev.steps || []).map(step => 
-                             step.id === currentStep.id ? { ...step, content: nextMarkdown } : step
+                             step.id === currentStep.id ? { ...step, content: nextMarkdown, slides_data: slides } : step
                          );
                          return { ...prev, steps: updatedSteps };
                      });
 
                      // IMMEDIATE SAVE TO SUPABASE
                      supabase.from('course_steps')
-                         .update({ content: nextMarkdown })
+                         .update({ content: nextMarkdown, slides_data: slides })
                          .eq('id', currentStep.id)
                          .then(({ error }) => {
                              if (error) {
@@ -2254,7 +2271,19 @@ const CourseWorkspacePage: React.FC = () => {
                           }`}
                       >
                         {step.is_completed ? <CheckCircle className="text-green-500" size={20} /> : <Circle className="text-gray-400" size={20} />}
-                        <span className="font-medium">{t(step.title_key)}</span>
+                        <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
+                          <span className="font-medium truncate">{t(step.title_key)}</span>
+                          {step.status && (
+                            <span className={`flex-shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider ${
+                              step.status === 'aprobat' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' :
+                              step.status === 'editat' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' :
+                              step.status === 'generat' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-green-300' :
+                              'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                            }`}>
+                              {step.status}
+                            </span>
+                          )}
+                        </div>
                       </button>
                     </li>
                   ))}

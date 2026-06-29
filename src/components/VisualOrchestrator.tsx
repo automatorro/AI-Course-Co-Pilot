@@ -19,6 +19,7 @@ interface VisualOrchestratorProps {
   course: Course;
   initialMarkdown: string; // The raw content from TinyMCE
   onSave?: (slides: SlideState[]) => void;
+  initialSlides?: SlideState[] | null;
 }
 
 const LAYOUT_CONFIG: Record<string, { icon: React.FC<any>, labelKey: string }> = {
@@ -489,7 +490,8 @@ const VisualOrchestrator: React.FC<VisualOrchestratorProps> = ({
   onClose,
   course,
   initialMarkdown,
-  // onSave - removed to prevent content corruption
+  onSave,
+  initialSlides,
 }) => {
   const { t } = useTranslation();
   const [slides, setSlides] = useState<SlideState[]>([]);
@@ -499,58 +501,65 @@ const VisualOrchestrator: React.FC<VisualOrchestratorProps> = ({
 
   // Ingest content on open
   useEffect(() => {
-    if (isOpen && initialMarkdown) {
-      let parsed = parseSlidesFromMarkdown(initialMarkdown, course.language);
-
-      // --- INJECT COVER SLIDE ---
-      const hasCover = parsed.length > 0 && (parsed[0].layoutId === 'LAYOUT_TITLE' || parsed[0].content.title === course.title);
-      if (!hasCover) {
-        parsed = [{
-          id: `slide-cover-${Date.now()}`,
-          layoutId: 'LAYOUT_TITLE',
-          content: {
-            title: course.title,
-            subtitle: course.subject,
-            bullets: []
-          },
-          speakerNotes: 'Welcome to the course!',
-          metadata: {
-            originalIndex: -1,
-            isManuallyEdited: true,
-            isContentEdited: true
-          }
-        }, ...parsed];
+    if (isOpen) {
+      if (initialSlides && initialSlides.length > 0) {
+        setSlides(initialSlides);
+        setActiveSlideIndex(0);
+        return;
       }
+      if (initialMarkdown) {
+        let parsed = parseSlidesFromMarkdown(initialMarkdown, course.language);
 
-      // --- INJECT RECAP SLIDE ---
-      const hasRecap = parsed.length > 0 && (parsed[parsed.length - 1].layoutId === 'LAYOUT_SUMMARY' || parsed[parsed.length - 1].content.title === 'Recapitulare');
-      if (!hasRecap) {
-        parsed = [...parsed, {
-          id: `slide-recap-${Date.now()}`,
-          layoutId: 'LAYOUT_SUMMARY',
-          content: {
-            title: 'Recapitulare',
-            subtitle: 'Concluzii',
-            bullets: [
-                'Mulțumim pentru participare!',
-                'Continuați cu proiectele practice',
-                'Descărcați cheat sheet-ul',
-                'Succes!'
-            ]
-          },
-          speakerNotes: 'Thank you for participating.',
-          metadata: {
-            originalIndex: 9999,
-            isManuallyEdited: true,
-            isContentEdited: true
-          }
-        }];
+        // --- INJECT COVER SLIDE ---
+        const hasCover = parsed.length > 0 && (parsed[0].layoutId === 'LAYOUT_TITLE' || parsed[0].content.title === course.title);
+        if (!hasCover) {
+          parsed = [{
+            id: `slide-cover-${Date.now()}`,
+            layoutId: 'LAYOUT_TITLE',
+            content: {
+              title: course.title,
+              subtitle: course.subject,
+              bullets: []
+            },
+            speakerNotes: 'Welcome to the course!',
+            metadata: {
+              originalIndex: -1,
+              isManuallyEdited: true,
+              isContentEdited: true
+            }
+          }, ...parsed];
+        }
+
+        // --- INJECT RECAP SLIDE ---
+        const hasRecap = parsed.length > 0 && (parsed[parsed.length - 1].layoutId === 'LAYOUT_SUMMARY' || parsed[parsed.length - 1].content.title === 'Recapitulare');
+        if (!hasRecap) {
+          parsed = [...parsed, {
+            id: `slide-recap-${Date.now()}`,
+            layoutId: 'LAYOUT_SUMMARY',
+            content: {
+              title: 'Recapitulare',
+              subtitle: 'Concluzii',
+              bullets: [
+                  'Mulțumim pentru participare!',
+                  'Continuați cu proiectele practice',
+                  'Descărcați cheat sheet-ul',
+                  'Succes!'
+              ]
+            },
+            speakerNotes: 'Thank you for participating.',
+            metadata: {
+              originalIndex: 9999,
+              isManuallyEdited: true,
+              isContentEdited: true
+            }
+          }];
+        }
+
+        setSlides(parsed);
+        setActiveSlideIndex(0);
       }
-
-      setSlides(parsed);
-      setActiveSlideIndex(0);
     }
-  }, [isOpen, initialMarkdown, course.language, course.title, course.subject]);
+  }, [isOpen, initialMarkdown, initialSlides, course.language, course.title, course.subject]);
 
   if (!isOpen) return null;
 
@@ -635,7 +644,14 @@ const VisualOrchestrator: React.FC<VisualOrchestratorProps> = ({
             {t('common.cancel') || 'Cancel'}
           </button>
           
-          {/* Save button removed to prevent content corruption - Design Studio is now layout-only for export */}
+          {onSave && (
+            <button 
+              onClick={() => onSave(slides)}
+              className="px-2.5 py-1 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-1.5 text-xs font-bold transition-all shadow-sm hover:shadow active:scale-95"
+            >
+              {t('common.save') || 'Save'}
+            </button>
+          )}
           
           <button 
             onClick={handleExport}

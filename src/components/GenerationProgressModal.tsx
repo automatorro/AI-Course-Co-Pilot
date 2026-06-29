@@ -1122,7 +1122,8 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                         title_key: livrable.key,
                         content: aggregatedContent,
                         step_order: orderCounter++,
-                        is_completed: true
+                        is_completed: true,
+                        status: 'generat'
                     });
                 } else {
                     console.log(`[GenerationProgressModal] No chunks found for ${livrable.key}`);
@@ -1194,28 +1195,49 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                 // return; 
             }
 
-            // 5. Delete existing and insert if validation ok
-            console.log('[GenerationProgressModal] Deleting existing steps for course:', course.id);
-            const { error: deleteError } = await supabase
+            // 5. Preserving Step IDs: Fetch existing steps and upsert/insert granularly
+            console.log('[GenerationProgressModal] Syncing steps for course:', course.id);
+            const { data: existingSteps, error: fetchStepsError } = await supabase
                 .from('course_steps')
-                .delete()
+                .select('id, title_key')
                 .eq('course_id', course.id);
 
-            if (deleteError) throw deleteError;
+            if (fetchStepsError) {
+                console.error('[GenerationProgressModal] Failed to fetch existing steps:', fetchStepsError);
+            }
 
-            if (stepsToInsert.length > 0) {
+            const toUpdate = [];
+            const toInsert = [];
+
+            for (const step of stepsToInsert) {
+                const existing = existingSteps?.find((es: any) => es.title_key === step.title_key);
+                if (existing) {
+                    toUpdate.push({
+                        id: existing.id,
+                        ...step
+                    });
+                } else {
+                    toInsert.push(step);
+                }
+            }
+
+            if (toUpdate.length > 0) {
+                const { error: updateError } = await supabase
+                    .from('course_steps')
+                    .upsert(toUpdate);
+                if (updateError) throw updateError;
+                console.log(`[GenerationProgressModal] Updated ${toUpdate.length} steps.`);
+            }
+
+            if (toInsert.length > 0) {
                 const { error: insertError } = await supabase
                     .from('course_steps')
-                    .insert(stepsToInsert);
-
-                if (insertError) {
-                    console.error('[GenerationProgressModal] Insert error:', insertError);
-                    throw insertError;
-                }
-                console.log('[GenerationProgressModal] Insert successful');
-            } else {
-                console.warn('[GenerationProgressModal] No steps to insert!');
+                    .insert(toInsert);
+                if (insertError) throw insertError;
+                console.log(`[GenerationProgressModal] Inserted ${toInsert.length} new steps.`);
             }
+
+            console.log('[GenerationProgressModal] Sync successful');
 
             setIsGenerating(false);
             onComplete();
@@ -1229,24 +1251,56 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
 
     const handleSaveDraft = async () => {
         try {
-            const steps = pendingStepsRef.current || [];
-            if (steps.length === 0) {
+            const rawSteps = pendingStepsRef.current || [];
+            if (rawSteps.length === 0) {
                 setValidationReport(null);
                 return;
             }
+            const steps = rawSteps.map(s => ({
+                ...s,
+                status: 'draft',
+                is_completed: false
+            }));
             setIsGenerating(true);
 
-            console.log('[GenerationProgressModal] Saving draft despite warnings...');
-            const { error: deleteError } = await supabase
+            // Preserving Step IDs: Fetch existing steps and upsert/insert draft steps
+            const { data: existingSteps, error: fetchStepsError } = await supabase
                 .from('course_steps')
-                .delete()
+                .select('id, title_key')
                 .eq('course_id', course.id);
-            if (deleteError) throw deleteError;
 
-            const { error: insertError } = await supabase
-                .from('course_steps')
-                .insert(steps);
-            if (insertError) throw insertError;
+            if (fetchStepsError) {
+                console.error('[GenerationProgressModal] Failed to fetch existing steps:', fetchStepsError);
+            }
+
+            const toUpdate = [];
+            const toInsert = [];
+
+            for (const step of steps) {
+                const existing = existingSteps?.find((es: any) => es.title_key === step.title_key);
+                if (existing) {
+                    toUpdate.push({
+                        id: existing.id,
+                        ...step
+                    });
+                } else {
+                    toInsert.push(step);
+                }
+            }
+
+            if (toUpdate.length > 0) {
+                const { error: updateError } = await supabase
+                    .from('course_steps')
+                    .upsert(toUpdate);
+                if (updateError) throw updateError;
+            }
+
+            if (toInsert.length > 0) {
+                const { error: insertError } = await supabase
+                    .from('course_steps')
+                    .insert(toInsert);
+                if (insertError) throw insertError;
+            }
 
             setValidationReport(null);
             setIsGenerating(false);

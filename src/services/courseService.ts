@@ -197,6 +197,7 @@ function generateStructureMarkdown(blueprint: CourseBlueprint): string {
  * Synchronizes the course_modules table with the blueprint.
  * 1. Deletes modules that no longer exist in the blueprint (based on index).
  * 2. Marks remaining modules as dirty to force regeneration.
+ * 3. Synchronizes course_lessons.
  */
 export async function syncCourseModulesWithBlueprint(courseId: string, blueprint: CourseBlueprint): Promise<void> {
     const moduleCount = blueprint.modules.length;
@@ -214,14 +215,217 @@ export async function syncCourseModulesWithBlueprint(courseId: string, blueprint
         console.log(`[syncCourseModulesWithBlueprint] Cleaned up modules >= ${moduleCount}`);
     }
 
-    // 2. Mark remaining modules as dirty
-    const { error: dirtyError } = await supabase
+    // 2. Check if any module's metadata (title or learning_objective) changed
+    const { data: dbModules } = await supabase
         .from('course_modules')
-        .update({ is_dirty: true })
-        .eq('course_id', courseId)
-        .lt('module_index', moduleCount); // Optimization: only update valid ones
+        .select('id, module_index, title, learning_objective')
+        .eq('course_id', courseId);
 
-    if (dirtyError) {
-        console.warn('[syncCourseModulesWithBlueprint] Failed to mark modules as dirty:', dirtyError);
+    const dirtyModuleIds = new Set<string>();
+
+    if (dbModules) {
+        blueprint.modules.forEach((mod, modIdx) => {
+            const dbMod = dbModules.find(m => m.module_index === modIdx);
+            if (!dbMod) {
+                // New module
+            } else {
+                const isModified = dbMod.title !== mod.title || (dbMod.learning_objective || '') !== (mod.learning_objective || '');
+                if (isModified) {
+                    dirtyModuleIds.add(dbMod.id);
+                }
+            }
+        });
     }
+
+    if (dirtyModuleIds.size > 0) {
+        const { error: dirtyError } = await supabase
+            .from('course_modules')
+            .update({ is_dirty: true })
+            .in('id', Array.from(dirtyModuleIds));
+        if (dirtyError) {
+            console.warn('[syncCourseModulesWithBlueprint] Failed to mark modules as dirty:', dirtyError);
+        } else {
+            console.log('[syncCourseModulesWithBlueprint] Marked modules as dirty due to metadata change:', Array.from(dirtyModuleIds));
+        }
+    }
+
+    // 3. Sync lessons
+    await syncCourseLessonsWithBlueprint(courseId, blueprint);
 }
+
+/**
+ * Synchronizes the course_lessons table with the blueprint.
+ * Handles both modern lessons list and legacy sections backward compatibility.
+ */
+export async function syncCourseLessonsWithBlueprint(courseId: string, blueprint: CourseBlueprint): Promise<void> {
+  console.log('[syncCourseLessonsWithBlueprint] Syncing lessons for course:', courseId);
+
+  // 1. Fetch existing modules in DB to map indices to module UUIDs
+  const { data: dbModules, error: modulesError } = await supabase
+    .from('course_modules')
+    .select('id, module_index')
+    .eq('course_id', courseId);
+
+  if (modulesError || !dbModules) {
+    console.error('[syncCourseLessonsWithBlueprint] Failed to fetch modules:', modulesError);
+    return;
+  }
+
+  const moduleMap = new Map<number, string>();
+  dbModules.forEach(m => {
+    moduleMap.set(m.module_index, m.id);
+  });
+
+  // 2. Fetch existing lessons to match and update them without duplicates
+  const { data: dbLessons, error: lessonsError } = await supabase
+    .from('course_lessons')
+    .select('id, module_id, order_index, title, learning_objective, has_exercise, estimated_minutes, key_takeaways')
+    .eq('course_id', courseId);
+
+  if (lessonsError) {
+    console.error('[syncCourseLessonsWithBlueprint] Failed to fetch existing lessons:', lessonsError);
+    return;
+  }
+
+  const lessonsToUpsert: any[] = [];
+  const activeLessonIds: string[] = [];
+
+  for (let modIdx = 0; modIdx < blueprint.modules.length; modIdx++) {
+    const mod = blueprint.modules[modIdx];
+    const moduleId = moduleMap.get(modIdx);
+    if (!moduleId) continue;
+
+    const moduleLessons = dbLessons?.filter(l => l.module_id === moduleId) || [];
+
+    if (mod.lessons && Array.isArray(mod.lessons) && mod.lessons.length > 0) {
+      // Modern Blueprint: Use the explicit lessons list
+      mod.lessons.forEach((les, lesIdx) => {
+        lessonsToUpsert.push({
+          id: les.id,
+          course_id: courseId,
+          module_id: moduleId,
+          title: les.title,
+          learning_objective: les.learning_objective || '',
+          has_exercise: les.has_exercise || false,
+          estimated_minutes: les.estimated_minutes || 15,
+          key_takeaways: les.key_takeaways || [],
+          order_index: les.order_index ?? lesIdx
+        });
+        activeLessonIds.push(les.id);
+      });
+    } else {
+      // Legacy Blueprint: Map sections to lessons
+      mod.sections.forEach((sec, secIdx) => {
+        const orderIndex = sec.order ?? secIdx;
+        // Find if we already mapped this section to a lesson by index or title
+        const existingLesson = moduleLessons.find(l => l.order_index === orderIndex || l.title === sec.title);
+        const lessonId = existingLesson?.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `lesson-${modIdx}-${secIdx}-${Math.random().toString(36).substring(2, 7)}`);
+
+        lessonsToUpsert.push({
+          id: lessonId,
+          course_id: courseId,
+          module_id: moduleId,
+          title: sec.title,
+          learning_objective: mod.learning_objective || '',
+          has_exercise: sec.content_type === 'exercise',
+          estimated_minutes: 15,
+          key_takeaways: sec.content_outline ? [sec.content_outline] : [],
+          order_index: orderIndex
+        });
+        activeLessonIds.push(lessonId);
+      });
+    }
+  }
+
+  // Comparison logic to find changed or new lessons
+  const dirtyModuleIds = new Set<string>();
+  const dirtyLessonIds = new Set<string>();
+
+  const arraysEqual = (a?: string[], b?: string[]) => {
+    const arrA = a || [];
+    const arrB = b || [];
+    if (arrA.length !== arrB.length) return false;
+    return arrA.every((v, i) => v === arrB[i]);
+  };
+
+  lessonsToUpsert.forEach(newLes => {
+    const dbLes = dbLessons?.find(l => l.id === newLes.id);
+    if (!dbLes) {
+      // New lesson
+      dirtyModuleIds.add(newLes.module_id);
+      dirtyLessonIds.add(newLes.id);
+    } else {
+      // Existing lesson, check if modified
+      const isModified =
+        newLes.title !== dbLes.title ||
+        (newLes.learning_objective || '') !== (dbLes.learning_objective || '') ||
+        !!newLes.has_exercise !== !!dbLes.has_exercise ||
+        newLes.estimated_minutes !== dbLes.estimated_minutes ||
+        !arraysEqual(newLes.key_takeaways, dbLes.key_takeaways) ||
+        newLes.order_index !== dbLes.order_index;
+
+      if (isModified) {
+        dirtyModuleIds.add(newLes.module_id);
+        dirtyLessonIds.add(newLes.id);
+      }
+    }
+  });
+
+  // Check for deleted lessons
+  dbLessons?.forEach(dbLes => {
+    const stillExists = activeLessonIds.includes(dbLes.id);
+    if (!stillExists) {
+      dirtyModuleIds.add(dbLes.module_id);
+    }
+  });
+
+  // Mark modified modules as dirty
+  if (dirtyModuleIds.size > 0) {
+    console.log('[syncCourseLessonsWithBlueprint] Marking dirty modules:', Array.from(dirtyModuleIds));
+    const { error: dirtyUpdateError } = await supabase
+      .from('course_modules')
+      .update({ is_dirty: true })
+      .in('id', Array.from(dirtyModuleIds));
+    if (dirtyUpdateError) {
+      console.error('[syncCourseLessonsWithBlueprint] Failed to mark modules as dirty:', dirtyUpdateError);
+    }
+  }
+
+  // Mark associated steps as draft so they are regenerated
+  if (dirtyLessonIds.size > 0) {
+    console.log('[syncCourseLessonsWithBlueprint] Invalidation: resetting status of steps for dirty lessons:', Array.from(dirtyLessonIds));
+    const { error: stepsUpdateError } = await supabase
+      .from('course_steps')
+      .update({ status: 'draft', is_completed: false })
+      .in('lesson_id', Array.from(dirtyLessonIds));
+    if (stepsUpdateError) {
+      console.warn('[syncCourseLessonsWithBlueprint] Failed to mark course steps as draft:', stepsUpdateError);
+    }
+  }
+
+  // 3. Upsert lessons
+  if (lessonsToUpsert.length > 0) {
+    const { error: upsertError } = await supabase
+      .from('course_lessons')
+      .upsert(lessonsToUpsert, { onConflict: 'id' });
+
+    if (upsertError) {
+      console.error('[syncCourseLessonsWithBlueprint] Failed to upsert lessons:', upsertError);
+    } else {
+      console.log(`[syncCourseLessonsWithBlueprint] Successfully synced ${lessonsToUpsert.length} lessons`);
+    }
+  }
+
+  // 4. Delete orphaned lessons (lessons that are in the database but no longer in the blueprint)
+  if (activeLessonIds.length > 0) {
+    const { error: deleteError } = await supabase
+      .from('course_lessons')
+      .delete()
+      .eq('course_id', courseId)
+      .not('id', 'in', `(${activeLessonIds.map(id => `'${id}'`).join(',')})`);
+
+    if (deleteError) {
+      console.warn('[syncCourseLessonsWithBlueprint] Failed to clean up orphaned lessons:', deleteError);
+    }
+  }
+}
