@@ -45,12 +45,16 @@ const STEPS_ORDER = [
     { type: TrainerStepType.Structure, key: 'generation.steps.structure' },
     { type: TrainerStepType.LearningMethods, key: 'generation.steps.learningMethods' },
     { type: TrainerStepType.TimingAndFlow, key: 'generation.steps.timingFlow' },
+    { type: TrainerStepType.AgendaTable, key: 'generation.steps.agendaTable' },
     { type: TrainerStepType.Exercises, key: 'generation.steps.exercises' },
+    { type: TrainerStepType.DiagnosticQuestionnaire, key: 'generation.steps.diagnosticQuestionnaire' },
     { type: TrainerStepType.ExamplesAndStories, key: 'generation.steps.examplesStories' },
     { type: TrainerStepType.FacilitatorNotes, key: 'generation.steps.facilitatorNotes' },
     { type: TrainerStepType.FacilitatorManual, key: 'generation.steps.facilitatorManual' },
+    { type: TrainerStepType.DiscussionGuide, key: 'generation.steps.discussionGuide' },
     { type: TrainerStepType.Slides, key: 'generation.steps.slides' },
     { type: TrainerStepType.ParticipantWorkbook, key: 'generation.steps.participantWorkbook' },
+    { type: TrainerStepType.ActionPlan, key: 'generation.steps.actionPlan' },
     { type: TrainerStepType.VideoScripts, key: 'generation.steps.videoScripts' },
 ];
 
@@ -368,12 +372,16 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                     [TrainerStepType.Structure]: [TrainerStepType.CourseDNA, TrainerStepType.PerformanceObjectives, TrainerStepType.CourseObjectives],
                     [TrainerStepType.LearningMethods]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
                     [TrainerStepType.TimingAndFlow]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.LearningMethods],
+                    [TrainerStepType.AgendaTable]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.TimingAndFlow],
                     [TrainerStepType.Exercises]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
+                    [TrainerStepType.DiagnosticQuestionnaire]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.CourseObjectives],
                     [TrainerStepType.ExamplesAndStories]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
                     [TrainerStepType.FacilitatorNotes]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
             [TrainerStepType.FacilitatorManual]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.TimingAndFlow, TrainerStepType.FacilitatorNotes, TrainerStepType.Exercises],
+            [TrainerStepType.DiscussionGuide]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.FacilitatorManual],
             [TrainerStepType.Slides]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ExamplesAndStories, TrainerStepType.FacilitatorManual],
             [TrainerStepType.ParticipantWorkbook]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
+                    [TrainerStepType.ActionPlan]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.CourseObjectives],
                     [TrainerStepType.VideoScripts]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
                     [TrainerStepType.CheatSheets]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ParticipantWorkbook],
                     [TrainerStepType.Projects]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
@@ -807,12 +815,16 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                 [TrainerStepType.Structure]: [TrainerStepType.CourseDNA, TrainerStepType.PerformanceObjectives, TrainerStepType.CourseObjectives],
                 [TrainerStepType.LearningMethods]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
                 [TrainerStepType.TimingAndFlow]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.LearningMethods],
+                [TrainerStepType.AgendaTable]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.TimingAndFlow],
                 [TrainerStepType.Exercises]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
+                [TrainerStepType.DiagnosticQuestionnaire]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.CourseObjectives],
                 [TrainerStepType.ExamplesAndStories]: [TrainerStepType.CourseDNA, TrainerStepType.Structure],
                 [TrainerStepType.FacilitatorNotes]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
-                [TrainerStepType.Slides]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ExamplesAndStories],
+                [TrainerStepType.Slides]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ExamplesAndStories, TrainerStepType.FacilitatorManual],
                 [TrainerStepType.FacilitatorManual]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.TimingAndFlow, TrainerStepType.FacilitatorNotes, TrainerStepType.Exercises],
+                [TrainerStepType.DiscussionGuide]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.FacilitatorManual],
                 [TrainerStepType.ParticipantWorkbook]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises, TrainerStepType.ExamplesAndStories],
+                [TrainerStepType.ActionPlan]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.CourseObjectives],
                 [TrainerStepType.VideoScripts]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ExamplesAndStories, TrainerStepType.ParticipantWorkbook],
                 [TrainerStepType.CheatSheets]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.ParticipantWorkbook],
                 [TrainerStepType.Projects]: [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.Exercises],
@@ -1030,7 +1042,6 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             // Clear progress on success
             clearProgress();
 
-            // 1. Define Mapping (8 Livrables - Fixed to separate incompatible types)
             const LIVRABLE_MAPPING = [
                 // NOTE: Course DNA (Step 0) is internal and stored in course.dna column. 
                 // We do not create a standalone user-facing step for it here to avoid confusion.
@@ -1056,7 +1067,8 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                     label: 'Participant Workbook',
                     sources: [
                         TrainerStepType.ParticipantWorkbook,
-                        TrainerStepType.CheatSheets
+                        TrainerStepType.CheatSheets,
+                        TrainerStepType.ActionPlan  // Post-course action plan appended to workbook
                     ]
                 },
                 {
@@ -1065,13 +1077,16 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                     sources: [
                         TrainerStepType.LearningMethods,
                         TrainerStepType.FacilitatorNotes,
-                        TrainerStepType.FacilitatorManual
+                        TrainerStepType.FacilitatorManual,
+                        TrainerStepType.DiscussionGuide,  // Hook + Takeaway per module
+                        TrainerStepType.AgendaTable       // Chronometric agenda with materials
                     ]
                 },
                 {
                     key: 'course.livrables.exercises',
                     label: 'Exercises & Activities',
                     sources: [
+                        TrainerStepType.DiagnosticQuestionnaire, // Pre-course self-assessment
                         TrainerStepType.Exercises,
                         TrainerStepType.Projects
                     ]

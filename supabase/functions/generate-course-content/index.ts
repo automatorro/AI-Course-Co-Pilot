@@ -1654,7 +1654,7 @@ This is the trainer's bible — complete, actionable, and containing everything 
 - Total duration and energy arc (how energy should flow from start to finish)
 - 3-5 facilitation objectives (what YOU as trainer achieve in this module)
 - Pre-module checklist (materials, room setup, technical checks)
-- **Lesson Coverage**: List each lesson by its `lesson_id` and title — this is the index used to invalidate only affected sections when lessons change.
+- **Lesson Coverage**: List each lesson by its \`lesson_id\` and title — this is the index used to invalidate only affected sections when lessons change.
 
 #### 2. TIMING TABLE (Minute-by-Minute Agenda)
 Use a Markdown table with these columns:
@@ -4400,6 +4400,189 @@ async function handleLegacyStep(
       3. **FORMAT**: Markdown. Use bolding and lists for readability.
       `;
 
+      return await callLLM(prompt, course.language || 'ro');
+  }
+
+  // ============================================================
+  // NEW MATERIALS — Inspired by real-world course reference
+  // ============================================================
+
+  if (step_type === 'discussion_guide') {
+      const mandatoryContext = buildMandatoryContext(course);
+      const modules = (course.blueprint && Array.isArray(course.blueprint.modules)) ? course.blueprint.modules : [];
+      const moduleList = modules.map((m: any, i: number) => `${i + 1}. ${m.title}`).join('\n');
+      const dna = course.dna || {};
+      const voice = dna.voiceProfile || {};
+
+      const prompt = `
+      **TASK**: Create a "Discussion Guide" — a facilitation cheat sheet with one Hook Question and one Key Takeaway for each course module.
+      **COURSE**: "${course.title}"
+      **TARGET AUDIENCE**: "${course.target_audience}"
+      **LANGUAGE**: ${course.language || 'Romanian'} (STRICT — every word)
+      **VOICE**: ${voice.formality || 'Professional'}, humor: ${voice.humorLevel || 'light'}
+
+      ${mandatoryContext}
+
+      **MODULES**:
+      ${moduleList}
+
+      **GOAL**:
+      For each module, generate:
+      1. A **Hook Question** ("Întrebare de Agățare") — an open, provocative question that GRABS attention before explaining the theory. NOT "What is X?", but "When was the last time you felt misunderstood at work?"
+      2. A **Key Takeaway** ("Concluzie Cheie") — 1-2 sentences that summarize the core insight participants should leave with.
+
+      **PEDAGOGICAL RULES**:
+      - Hook questions must be experiential — they refer to real situations the audience has lived through.
+      - Key takeaways must be actionable — not "we learned about X", but "next time Y happens, do Z".
+      - Avoid generic statements. Be SPECIFIC to the course topic and audience context.
+      - Use simple, non-academic language appropriate for the audience.
+
+      **OUTPUT FORMAT**:
+      A markdown table with 3 columns: | Modul | Întrebare de Agățare | Concluzie Cheie |
+      One row per module. Then below the table, for each module, also provide a short 2-3 bullet "Debrief Script" — what to say right after the activity.
+
+      **CRITICAL**: Output ONLY in ${course.language || 'Romanian'}. No English words.
+      `;
+      return await callLLM(prompt, course.language || 'ro');
+  }
+
+  if (step_type === 'action_plan') {
+      const mandatoryContext = buildMandatoryContext(course);
+      const objectives = (context || '').slice(0, 500);
+      const dna = course.dna || {};
+      const terminology = dna.terminology || {};
+
+      const prompt = `
+      **TASK**: Create a personal "Action Plan" template — a take-home sheet that participants fill in at the end of the course.
+      **COURSE**: "${course.title}"
+      **TARGET AUDIENCE**: "${course.target_audience}"
+      **LANGUAGE**: ${course.language || 'Romanian'} (STRICT)
+      **PARTICIPANT TERM**: ${terminology.participant || 'Participant'}
+
+      ${mandatoryContext}
+
+      **CONTEXT** (Course Objectives): ${objectives || 'See course title.'}
+
+      **GOAL**:
+      Create a structured, printable action plan that each participant completes individually at the end of the session.
+      This document will be taken home and discussed with their manager.
+
+      **REQUIRED SECTIONS**:
+      1. **Header**: Course title, participant name (blank field), date.
+      2. **Top 3 Insights**: 3 blank lines for the most valuable ideas from the course.
+      3. **Skills to Improve**: A table with columns: Skill | Current Level (1-5) | Target Level (1-5) | First Step
+      4. **30-Day Commitment**: 1 specific, measurable action to take in the next 30 days.
+         - Format: "I will [action] by [date] and I will measure success by [metric]."
+      5. **Support Needed**: What help or resources do I need from my manager/team?
+      6. **Manager Discussion Box**: A dedicated box for the manager to sign and comment after reviewing.
+
+      **FORMATTING RULES**:
+      - Use clear markdown. Headers, tables, blank lines for writing.
+      - Keep language simple and direct. This is a PRACTICAL document, not a test.
+      - Tone should be encouraging, not bureaucratic.
+      - Output ONLY in ${course.language || 'Romanian'}.
+      `;
+      return await callLLM(prompt, course.language || 'ro');
+  }
+
+  if (step_type === 'diagnostic_questionnaire') {
+      const mandatoryContext = buildMandatoryContext(course);
+      const dna = course.dna || {};
+      const terminology = dna.terminology || {};
+
+      const prompt = `
+      **TASK**: Create a pre-course "Diagnostic Questionnaire" — a self-assessment tool given to participants BEFORE the training starts.
+      **COURSE**: "${course.title}"
+      **TARGET AUDIENCE**: "${course.target_audience}"
+      **LANGUAGE**: ${course.language || 'Romanian'} (STRICT)
+      **PARTICIPANT TERM**: ${terminology.participant || 'Participant'}
+
+      ${mandatoryContext}
+
+      **PURPOSE**:
+      - Help participants reflect on their current skill level before training.
+      - Provide the trainer with a quick read of the room.
+      - Serve as a baseline for comparison at the end of the course.
+      - The questionnaire is CONFIDENTIAL — no names required.
+
+      **REQUIRED STRUCTURE**:
+      1. **Instructions block**: Brief explanation (2-3 sentences) of how to complete it.
+         - "Rate each statement from 1 (Never) to 5 (Always)."
+         - "There are no wrong answers. Be honest."
+         - "This is confidential and will not be shared."
+
+      2. **15 Statements**: Each statement should directly probe a skill or behavior related to the course topic.
+         - Format: A number, then a statement in first person. E.g. "1. I clearly express my ideas in team meetings."
+         - IMPORTANT: Mix positively and negatively worded statements (5 should be inverted for scoring).
+         - Mark inverted items with "(R)" at the end.
+         - Statements must be concrete and behavioral, not vague.
+
+      3. **Scoring Grid**: A simple calculation table.
+         - Column A: Sum of normal items.
+         - Column B: Sum of inverted items (subtract from 30).
+         - Total Score = A + B.
+
+      4. **Score Interpretation**: Three ranges with descriptions.
+         - Low range (15-40): Description of what this means and what to focus on.
+         - Medium range (41-60): Description.
+         - High range (61-75): Description.
+
+      5. **Footer note**: "At the end of the course, you will complete this again. Compare your scores!"
+
+      **CRITICAL RULES**:
+      - All 15 statements MUST be directly relevant to "${course.title}".
+      - Language: simple, clear, first person.
+      - Output ONLY in ${course.language || 'Romanian'}. No English.
+      - Format: clean Markdown, printable.
+      `;
+      return await callLLM(prompt, course.language || 'ro');
+  }
+
+  if (step_type === 'agenda_table') {
+      const mandatoryContext = buildMandatoryContext(course);
+      const modules = (course.blueprint && Array.isArray(course.blueprint.modules)) ? course.blueprint.modules : [];
+      const moduleList = modules.map((m: any, i: number) => {
+          const sectionTitles = Array.isArray(m.sections) ? m.sections.map((s: any) => s.title).join(', ') : 'Activities';
+          return `Module ${i + 1}: ${m.title} | Sections: ${sectionTitles}`;
+      }).join('\n');
+      const dna = course.dna || {};
+      const timeline = dna.masterTimeline || {};
+      const totalDuration = timeline.totalDuration || 0;
+
+      const prompt = `
+      **TASK**: Create a detailed "Training Agenda" — a structured, chronometric agenda table for the trainer to manage the session.
+      **COURSE**: "${course.title}"
+      **TARGET AUDIENCE**: "${course.target_audience}"
+      **LANGUAGE**: ${course.language || 'Romanian'} (STRICT)
+      **TOTAL DURATION**: ${totalDuration > 0 ? totalDuration + ' minutes' : 'To be determined based on modules'}
+
+      ${mandatoryContext}
+
+      **MODULES & SECTIONS**:
+      ${moduleList || 'See course structure.'}
+
+      **GOAL**:
+      Produce a professional, print-ready training agenda table that the trainer can use as a reference during the session.
+
+      **REQUIRED TABLE COLUMNS**:
+      | Time | Module / Activity | Duration (min) | Key Message | Materials Needed | Notes for Trainer |
+
+      **CONTENT RULES**:
+      1. Start with a "Welcome & Introductions" block.
+      2. For each module: include theory, activities, and debrief as separate rows.
+      3. Include coffee breaks and lunch breaks where appropriate.
+      4. End with a "Closing & Action Plans" block.
+      5. Time column: use HH:MM format starting from 09:00 (or adjust if total duration suggests otherwise).
+      6. "Key Message" = the ONE sentence that captures what participants should learn in this block.
+      7. "Materials Needed" = list physical/digital materials: handouts, flip chart, markers, slides, etc.
+      8. "Notes for Trainer" = brief tips: "Wait for silence", "Ask for volunteers", "Check energy level".
+
+      **FORMATTING**:
+      - Full markdown table.
+      - Use bold for module headers.
+      - Add a summary row at the bottom: Total Time, Total Breaks, Total Activities.
+      - Output ONLY in ${course.language || 'Romanian'}.
+      `;
       return await callLLM(prompt, course.language || 'ro');
   }
 

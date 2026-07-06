@@ -210,6 +210,11 @@ export enum TrainerStepType {
   CheatSheets = 'cheat_sheets',
   Projects = 'projects',
   Tests = 'tests',
+  // NEW: Additional facilitator materials (inspired by real-world course reference)
+  DiscussionGuide = 'discussion_guide',       // Per-module Hook + Takeaway table for trainer
+  ActionPlan = 'action_plan',                  // Post-course individual action plan sheet
+  DiagnosticQuestionnaire = 'diagnostic_questionnaire', // Pre-course self-assessment
+  AgendaTable = 'agenda_table',               // Chronometric agenda with materials per module
 }
 
 export interface CourseGenerationStatus {

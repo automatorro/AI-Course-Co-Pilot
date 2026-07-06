@@ -55,6 +55,7 @@ export const LIVE_WORKSHOP_STEPS = [
   'course.steps.slides',
   'course.steps.exercises',
   'course.steps.manual',
+  'course.steps.cheat_sheets',
   'course.steps.tests',
 ];
 
