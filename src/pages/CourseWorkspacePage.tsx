@@ -187,6 +187,11 @@ const CourseWorkspacePage: React.FC = () => {
   // Phase 1.4: Routing states for intelligent onboarding
   const [showLOGenerator, setShowLOGenerator] = useState(false);
   const [showBlueprintReview, setShowBlueprintReview] = useState(false);
+  // Tracks which course.id the routing decision above was computed for. Until it
+  // matches the loaded course, the routing effect hasn't run yet for this course —
+  // rendering any onboarding branch would use stale showLOGenerator/showBlueprintReview
+  // defaults and can mis-mount OnboardingChat before objectives exist (see IMPLEMENTATION_STATUS.md D-007).
+  const [routedCourseId, setRoutedCourseId] = useState<string | null>(null);
   const [showBlueprintEdit, setShowBlueprintEdit] = useState(false);
   const [showDNAEdit, setShowDNAEdit] = useState(false);
   const [showBlueprintRefine, setShowBlueprintRefine] = useState(false);
@@ -484,6 +489,7 @@ const CourseWorkspacePage: React.FC = () => {
     if (!course) {
       setShowLOGenerator(false);
       setShowBlueprintReview(false);
+      setRoutedCourseId(null);
       return;
     }
 
@@ -505,6 +511,7 @@ const CourseWorkspacePage: React.FC = () => {
       setShowLOGenerator(false);
       setShowBlueprintReview(!hasGeneratedSteps);
     }
+    setRoutedCourseId(course.id);
   }, [course]);
 
   const originalContentForStep = course?.steps?.[activeStepIndex]?.content ?? '';
@@ -1159,7 +1166,12 @@ const CourseWorkspacePage: React.FC = () => {
     showToast('Blueprint created! Welcome to the editor.', 'success');
   };
 
-  if (isLoading || !course) {
+  // routedCourseId !== course.id: the routing effect above hasn't run for this course
+  // yet, so showLOGenerator/showBlueprintReview still hold stale defaults from the
+  // previous course (or their initial `false`). Keep showing the spinner until routing
+  // has actually decided — otherwise the branches below can flash-mount OnboardingChat
+  // with an empty learning_objectives before the LO-generator branch takes over.
+  if (isLoading || !course || routedCourseId !== course.id) {
     return <div className="flex items-center justify-center h-screen"><Loader2 className="animate-spin text-gold" size={32} /></div>;
   }
 
