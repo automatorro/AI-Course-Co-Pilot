@@ -131,6 +131,11 @@ Notează aici orice descoperire sau nelămurire care apare în timpul execuției
 
 **Tensiune cu instrucțiunile CI/harness.** Sistemul cere „DEVELOP all your changes on the designated branch (`claude/courscopilot-refactor-major-e45nfa`)". Planul cere „o fază per branch (phase-0-safety …)". Pentru a satisface ambele: comm-iturile merg pe branch-ul designat (satisface CI), iar `phase-X-Y` sunt branch-uri-etichetă avansate în paralel la finalul fiecărei faze (satisface planul, oferă puncte de revenire per fază). Owner-ul poate suprascrie: dacă preferă strict câte un PR/branch dedicat per fază (`phase-0-safety` push independent), spune-mi și adaptez.
 
+### D-004 — Tag-ul `pre-refactor-2026-07` respins la push (403)
+**Context.** Owner-ul a confirmat push-ul tag-ului de siguranță. `git push origin pre-refactor-2026-07` a returnat `403` de la remote-ul de sesiune. Cauza probabilă: GitHub App-ul folosit de sesiune nu are scope-ul pentru crearea de tag-uri, sau există tag protection rule pe repo.
+**Decizie.** Tag-ul rămâne local (`git tag pre-refactor-2026-07` la commit `6b5bc9a`, HEAD-ul branch-ului de lucru la momentul refactor-ului). Ancora e păstrată — orice clonă cu istoricul actual îl poate reconstitui pentru că e la HEAD-ul unui commit deja push-uit.
+**Acțiune propusă pentru owner.** Rulează local pe mașina proprie (o singură comandă): `git fetch origin && git tag pre-refactor-2026-07 6b5bc9a && git push origin pre-refactor-2026-07`. Astfel ancora ajunge și pe origin. Alternativ, creează tag-ul manual din GitHub UI („Releases → Tags → Create tag") pe commit-ul `6b5bc9a`.
+
 ### D-003 — Testul `src/tests/e2e_generation.test.ts` e rupt la baseline
 **Context.** La rularea `npm test` (F0-T4 DoD), testul eșuează cu:
 `Failed to load url ../../supabase/functions/generate-course-content/index_bundled`.
