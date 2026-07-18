@@ -16,6 +16,30 @@
                         radial-gradient(800px 400px at 90% 0%, rgba(var(--accent-700-rgb),0.06) 0%, rgba(255,255,255,0) 60%);
     --premium-bg-dark: radial-gradient(1000px 500px at 10% 10%, rgba(var(--accent-600-rgb),0.14) 0%, rgba(0,0,0,0) 60%),
                        radial-gradient(800px 400px at 90% 0%, rgba(var(--accent-700-rgb),0.12) 0%, rgba(0,0,0,0) 60%);
+
+    /* Architect of Mastery — light theme tokens.
+       Accent luminosity darkened from spec (#A6821F 3.39:1) to #8a6c1a (4.67:1)
+       so it passes WCAG AA for text. Same hue. */
+    --bg-primary:     #FAF8F3;
+    --bg-primary-alt: #F0EBDF;
+    --text-primary:   #1A1815;
+    --text-secondary: #6b6659;
+    --accent:         #8a6c1a;
+    --accent-dim:     #7a5f16;
+    --border:         rgba(26,24,21,0.14);
+    --grid-line:      rgba(26,24,21,0.06);
+  }
+
+  html.dark {
+    /* Architect of Mastery — dark theme tokens (matches reference image). */
+    --bg-primary:     #161513;
+    --bg-primary-alt: #1c1a17;
+    --text-primary:   #F2EDE1;
+    --text-secondary: #93897C;
+    --accent:         #D4A72C;
+    --accent-dim:     #9c8228;
+    --border:         rgba(212,167,44,0.18);
+    --grid-line:      rgba(212,167,44,0.06);
   }
 
   html { font-feature-settings: "kern" 1, "liga" 1; }

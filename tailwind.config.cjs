@@ -44,10 +44,31 @@ module.exports = {
           '600': '#0d9488', '700': '#0f766e', '800': '#115e59',
           '900': '#134e4a',
         },
+        // Architect of Mastery — semantic, token-driven palette.
+        // Prefer these on new UI; existing palettes above stay for compatibility.
+        paper:       'var(--bg-primary)',
+        'paper-alt': 'var(--bg-primary-alt)',
+        graphite:    'var(--text-primary)',
+        stone:       'var(--text-secondary)',
+        gold:        'var(--accent)',
+        'gold-dim':  'var(--accent-dim)',
+        hairline:    'var(--border)',
       },
       fontFamily: {
         sans: ["Plus Jakarta Sans", "Inter", "system-ui", "Arial", "sans-serif"],
         display: ["Playfair Display", "Georgia", "serif"],
+        mono: ["JetBrains Mono", "ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"],
+      },
+      letterSpacing: {
+        'eyebrow': '0.14em',
+        'eyebrow-tight': '0.12em',
+        'eyebrow-wide': '0.18em',
+      },
+      backgroundImage: {
+        'mastery-grid': "linear-gradient(to right, var(--grid-line) 1px, transparent 1px), linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px)",
+      },
+      backgroundSize: {
+        'grid-64': '64px 64px',
       },
       boxShadow: {
         premium: '0 12px 40px rgba(16, 24, 40, 0.10), 0 2px 6px rgba(16, 24, 40, 0.06)'
