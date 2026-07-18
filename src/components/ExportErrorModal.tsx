@@ -18,7 +18,7 @@ const ExportErrorModal: React.FC<{ isOpen: boolean; onClose: () => void; report:
           ))}
         </div>
         <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-b-xl flex justify-end">
-          <button onClick={onClose} className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700">Închide</button>
+          <button onClick={onClose} className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-gold hover:bg-gold-dim">Închide</button>
         </div>
       </div>
     </div>

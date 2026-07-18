@@ -60,26 +60,26 @@ const ReviewChangesModal: React.FC<ReviewChangesModalProps> = ({
         {/* Header */}
         <div className="flex justify-between items-center p-4 border-b dark:border-gray-700 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <GitPullRequestArrow className="text-primary-600 dark:text-primary-400" size={24} />
+            <GitPullRequestArrow className="text-gold" size={24} />
             <h2 className="text-xl font-bold">{t('course.reviewModal.title')}</h2>
           </div>
           <div className="flex items-center gap-2">
             <div className="rounded-md border dark:border-gray-700 overflow-hidden">
               <button
                 onClick={() => setView('render')}
-                className={`px-3 py-1 text-sm ${view === 'render' ? 'bg-primary-600 text-white' : 'bg-transparent'} hover:bg-primary-600 hover:text-white`}
+                className={`px-3 py-1 text-sm ${view === 'render' ? 'bg-gold text-gold-fg' : 'bg-transparent'} hover:bg-gold hover:text-white`}
               >
                 {t('course.reviewModal.tab.preview')}
               </button>
               <button
                 onClick={() => setView('text')}
-                className={`px-3 py-1 text-sm ${view === 'text' ? 'bg-primary-600 text-white' : 'bg-transparent'} hover:bg-primary-600 hover:text-white`}
+                className={`px-3 py-1 text-sm ${view === 'text' ? 'bg-gold text-gold-fg' : 'bg-transparent'} hover:bg-gold hover:text-white`}
               >
                 {t('course.reviewModal.tab.text')}
               </button>
               <button
                 onClick={() => setView('diff')}
-                className={`px-3 py-1 text-sm ${view === 'diff' ? 'bg-primary-600 text-white' : 'bg-transparent'} hover:bg-primary-600 hover:text-white`}
+                className={`px-3 py-1 text-sm ${view === 'diff' ? 'bg-gold text-gold-fg' : 'bg-transparent'} hover:bg-gold hover:text-white`}
               >
                 {t('course.reviewModal.tab.diff')}
               </button>
@@ -115,9 +115,9 @@ const ReviewChangesModal: React.FC<ReviewChangesModalProps> = ({
           </div>
 
           {/* Proposed Content */}
-          <div className="flex flex-col border border-primary-300 dark:border-primary-700 rounded-lg overflow-hidden ring-1 ring-primary-500">
-            <div className="p-3 bg-primary-50 dark:bg-primary-900/50 border-b border-primary-200 dark:border-primary-800">
-              <h3 className="font-semibold text-primary-800 dark:text-primary-200">{t('course.reviewModal.proposed')}</h3>
+          <div className="flex flex-col border border-gold-dim rounded-lg overflow-hidden ring-1 ring-primary-500">
+            <div className="p-3 bg-paper-alt dark:bg-paper-alt border-b border-hairline dark:border-hairline">
+              <h3 className="font-semibold text-gold dark:text-gold">{t('course.reviewModal.proposed')}</h3>
             </div>
             {view === 'render' ? (
               <div className="flex-1 overflow-auto p-4 prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: proposedContent }} />
@@ -149,7 +149,7 @@ const ReviewChangesModal: React.FC<ReviewChangesModalProps> = ({
           </button>
           <button
             onClick={onAccept}
-            className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 flex items-center gap-2"
+            className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-gold hover:bg-gold-dim flex items-center gap-2"
           >
             <Check size={18} />
             {t('course.reviewModal.accept')}

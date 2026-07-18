@@ -18,11 +18,11 @@ const ModulePreview: React.FC<{ bp: CourseBlueprint; t: (k: string, v?: any) => 
     {(bp.modules || []).map((m: CourseModule, mi: number) => (
       <div key={m.id} className="border rounded-lg p-3 dark:border-gray-700">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-primary-600 dark:text-primary-400">{t('blueprint.moduleN', { n: mi + 1 })}</span>
-          <h4 className="font-bold text-ink-900 dark:text-white">{m.title}</h4>
+          <span className="text-xs font-semibold text-gold">{t('blueprint.moduleN', { n: mi + 1 })}</span>
+          <h4 className="font-bold text-graphite">{m.title}</h4>
         </div>
-        <p className="text-sm text-ink-600 dark:text-ink-400 mt-1">{m.learning_objective}</p>
-        <ul className="mt-2 text-sm text-ink-700 dark:text-ink-300 list-disc ml-5">
+        <p className="text-sm text-stone mt-1">{m.learning_objective}</p>
+        <ul className="mt-2 text-sm text-graphite list-disc ml-5">
           {(m.sections || []).map(s => (
             <li key={s.id}>{s.title}</li>
           ))}
@@ -102,7 +102,7 @@ const BlueprintRefineModal: React.FC<Props> = ({ isOpen, course, original, onClo
 
           {!loading && refined && (
             <div className="space-y-4">
-              <div className="p-3 rounded-lg bg-ink-50 dark:bg-ink-800/30">
+              <div className="p-3 rounded-lg bg-paper-alt/30">
                 <div className="flex items-center gap-2 mb-2">
                   <Diff size={16} />
                   <span className="text-sm font-semibold">{t('blueprint.refine.changes')}</span>

@@ -10,16 +10,34 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
+const SUPPORTED_LANGS = ['en', 'ro', 'es', 'fr', 'de', 'it'];
+
+const detectBrowserLanguage = (): string => {
+  if (typeof navigator === 'undefined') return 'en';
+  const candidates = [navigator.language, ...(navigator.languages ?? [])];
+  for (const raw of candidates) {
+    if (!raw) continue;
+    const base = raw.toLowerCase().split('-')[0];
+    if (SUPPORTED_LANGS.includes(base)) return base;
+  }
+  return 'en';
+};
+
 export const I18nProvider: React.FC<{ children: React.ReactNode; initialTranslations?: { [key: string]: Translations } }> = ({ children, initialTranslations }) => {
   const [language, setLanguage] = useState('en');
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('language');
-        if (saved && saved !== 'en') {
-            setLanguage(saved);
-        }
+    if (typeof window === 'undefined') return;
+    const saved = localStorage.getItem('language');
+    if (saved) {
+      // Existing users keep whatever they picked before, even 'en' explicitly.
+      if (saved !== 'en') setLanguage(saved);
+      return;
     }
+    // First visit: sniff from the browser once, then persist so future loads
+    // hit the branch above (no re-detection on every mount).
+    const detected = detectBrowserLanguage();
+    if (detected !== 'en') setLanguage(detected);
   }, []);
 
   const [translations, setTranslations] = useState<{ [key: string]: Translations } | null>(initialTranslations || null);

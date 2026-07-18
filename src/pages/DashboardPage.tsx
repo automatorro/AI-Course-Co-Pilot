@@ -17,13 +17,13 @@ const GettingStartedGuide: React.FC = () => {
   const { t } = useTranslation();
   return (
     <div className="text-center py-16 px-6 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
-      <Rocket className="mx-auto h-12 w-12 text-primary-500" />
+      <Rocket className="mx-auto h-12 w-12 text-gold" />
       <h2 className="mt-6 text-2xl font-bold">{t('dashboard.gettingStarted.title')}</h2>
       <p className="mt-2 text-gray-500 dark:text-gray-400">{t('dashboard.gettingStarted.subtitle')}</p>
       <div className="mt-8 text-left max-w-md mx-auto space-y-3">
-        <p className="flex items-center gap-3"><span className="flex-shrink-0 bg-primary-600 text-white rounded-full h-6 w-6 flex items-center justify-center font-bold text-sm">1</span> <span>{t('dashboard.gettingStarted.step1')}</span></p>
-        <p className="flex items-center gap-3"><span className="flex-shrink-0 bg-primary-600 text-white rounded-full h-6 w-6 flex items-center justify-center font-bold text-sm">2</span> <span>{t('dashboard.gettingStarted.step2')}</span></p>
-        <p className="flex items-center gap-3"><span className="flex-shrink-0 bg-primary-600 text-white rounded-full h-6 w-6 flex items-center justify-center font-bold text-sm">3</span> <span>{t('dashboard.gettingStarted.step3')}</span></p>
+        <p className="flex items-center gap-3"><span className="flex-shrink-0 bg-gold text-gold-fg rounded-full h-6 w-6 flex items-center justify-center font-bold text-sm">1</span> <span>{t('dashboard.gettingStarted.step1')}</span></p>
+        <p className="flex items-center gap-3"><span className="flex-shrink-0 bg-gold text-gold-fg rounded-full h-6 w-6 flex items-center justify-center font-bold text-sm">2</span> <span>{t('dashboard.gettingStarted.step2')}</span></p>
+        <p className="flex items-center gap-3"><span className="flex-shrink-0 bg-gold text-gold-fg rounded-full h-6 w-6 flex items-center justify-center font-bold text-sm">3</span> <span>{t('dashboard.gettingStarted.step3')}</span></p>
       </div>
     </div>
   );
@@ -281,7 +281,7 @@ const DashboardPage: React.FC = () => {
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-[calc(100vh-8rem)]"><Loader2 className="animate-spin text-primary-500" size={48} /></div>;
+    return <div className="flex items-center justify-center h-[calc(100vh-8rem)]"><Loader2 className="animate-spin text-gold" size={48} /></div>;
   }
 
   return (
@@ -337,10 +337,10 @@ const DashboardPage: React.FC = () => {
                 <div className="mt-4">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('dashboard.progress')}</span>
-                    <span className="text-sm font-medium text-primary-600 dark:text-primary-400">{course.progress}%</span>
+                    <span className="text-sm font-medium text-gold">{course.progress}%</span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-                    <div className="bg-primary-600 h-2.5 rounded-full" style={{ width: `${course.progress}%` }}></div>
+                    <div className="bg-gold h-2.5 rounded-full" style={{ width: `${course.progress}%` }}></div>
                   </div>
                 </div>
               </div>
@@ -369,23 +369,23 @@ const DashboardPage: React.FC = () => {
         console.log('[Dashboard] Choice modal open'),
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="card-premium w-full max-w-lg transform transition-all">
-            <div className="flex justify-between items-center p-6 border-b dark:border-ink-700">
+            <div className="flex justify-between items-center p-6 border-b dark:border-hairline">
               <h2 className="text-2xl font-bold font-display tracking-tight">{t('modal.courseEntry.title')}</h2>
-              <button onClick={() => setIsChoiceOpen(false)} className="p-1 rounded-full hover:bg-ink-100 dark:hover:bg-ink-800 interactive-soft">
+              <button onClick={() => setIsChoiceOpen(false)} className="p-1 rounded-full hover:bg-paper-alt interactive-soft">
                 <X size={24} />
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <p className="text-sm text-ink-600 dark:text-ink-300">{t('modal.courseEntry.subtitle')}</p>
+              <p className="text-sm text-graphite">{t('modal.courseEntry.subtitle')}</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
-                  className="p-4 rounded-xl border-2 transition-all text-left hover:border-primary-300"
+                  className="p-4 rounded-xl border-2 transition-all text-left hover:border-hairline"
                   onClick={() => { setIsChoiceOpen(false); setIsModalOpen(true); }}
                 >
                   {t('modal.courseEntry.createScratch')}
                 </button>
                 <button
-                  className="p-4 rounded-xl border-2 transition-all text-left hover:border-primary-300"
+                  className="p-4 rounded-xl border-2 transition-all text-left hover:border-hairline"
                   onClick={() => { setIsChoiceOpen(false); setIsUploadOpen(true); }}
                 >
                   {t('modal.courseEntry.import')}

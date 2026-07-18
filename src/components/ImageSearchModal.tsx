@@ -80,7 +80,7 @@ const ImageSearchModal: React.FC<Props> = ({ onClose, onInsert, initialQuery }) 
               placeholder="Ex: architecture diagram"
               className="flex-1 px-3 py-2 text-sm rounded border dark:border-gray-700 bg-white dark:bg-gray-900"
             />
-            <button onClick={doSearch} disabled={loading || !q.trim()} className="px-3 py-2 rounded bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 flex items-center gap-2">
+            <button onClick={doSearch} disabled={loading || !q.trim()} className="px-3 py-2 rounded bg-gold text-gold-fg hover:bg-gold-dim disabled:opacity-50 flex items-center gap-2">
               {loading ? <Loader2 className="animate-spin" size={16}/> : <Search size={16}/>} Caută
             </button>
           </div>
@@ -103,7 +103,7 @@ const ImageSearchModal: React.FC<Props> = ({ onClose, onInsert, initialQuery }) 
                 <img src={it.thumb || it.url} alt="" className="w-full h-32 object-cover" />
                 <div className="p-2 flex items-center justify-between gap-2">
                   <span className="text-[11px] text-gray-500 truncate">{it.author || it.source || ''}</span>
-                  <button onClick={() => handleInsert(it)} className="px-2 py-1 rounded bg-primary-600 text-white text-xs hover:bg-primary-700">Inserează</button>
+                  <button onClick={() => handleInsert(it)} className="px-2 py-1 rounded bg-gold text-gold-fg text-xs hover:bg-gold-dim">Inserează</button>
                 </div>
               </div>
             ))}
@@ -111,7 +111,7 @@ const ImageSearchModal: React.FC<Props> = ({ onClose, onInsert, initialQuery }) 
               <div className="col-span-full text-center text-sm text-gray-500">Introduce un termen și apasă Caută.</div>
             )}
             {loading && (
-              <div className="col-span-full flex items-center justify-center py-6"><Loader2 className="animate-spin text-primary-500" size={24}/></div>
+              <div className="col-span-full flex items-center justify-center py-6"><Loader2 className="animate-spin text-gold" size={24}/></div>
             )}
           </div>
           {results.length > 0 && (

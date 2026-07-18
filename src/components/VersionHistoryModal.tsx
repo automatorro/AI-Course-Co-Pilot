@@ -63,7 +63,7 @@ const VersionHistoryModal: React.FC<Props> = ({ isOpen, onClose, stepId, courseI
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg flex flex-col max-h-[80vh]">
         <div className="p-4 border-b dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <History className="text-primary-600" />
+            <History className="text-gold" />
             <h3 className="font-bold text-lg">Istoric Versiuni</h3>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
@@ -73,7 +73,7 @@ const VersionHistoryModal: React.FC<Props> = ({ isOpen, onClose, stepId, courseI
         
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           {loading ? (
-            <div className="flex justify-center p-8"><Loader2 className="animate-spin text-primary-500" /></div>
+            <div className="flex justify-center p-8"><Loader2 className="animate-spin text-gold" /></div>
           ) : versions.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
               <p>Nu există versiuni anterioare salvate.</p>
@@ -84,7 +84,7 @@ const VersionHistoryModal: React.FC<Props> = ({ isOpen, onClose, stepId, courseI
                 <div key={v.id} className="border dark:border-gray-700 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex items-center justify-between group">
                    <div>
                      <div className="flex items-center gap-2 mb-1">
-                       <span className="font-bold text-sm bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 px-2 py-0.5 rounded text-xs">v{v.version_number}</span>
+                       <span className="font-bold text-sm bg-paper-alt text-gold dark:text-gold px-2 py-0.5 rounded text-xs">v{v.version_number}</span>
                        <span className="text-xs text-gray-500 flex items-center gap-1">
                          <Calendar size={12} />
                          {new Date(v.created_at).toLocaleString()}
@@ -97,7 +97,7 @@ const VersionHistoryModal: React.FC<Props> = ({ isOpen, onClose, stepId, courseI
                    <button 
                      onClick={() => handleRestore(v)}
                      disabled={restoringId !== null}
-                     className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg"
+                     className="opacity-0 group-hover:opacity-100 transition-opacity p-2 text-gold hover:bg-paper-alt rounded-lg"
                      title="Restaurează această versiune"
                    >
                      {restoringId === v.id ? <Loader2 className="animate-spin" size={18} /> : <RotateCcw size={18} />}

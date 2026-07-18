@@ -100,7 +100,7 @@ const AuthPage: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gold focus:ring-gold dark:bg-gray-700 dark:border-gray-600"
               />
             </div>
              <div>
@@ -113,7 +113,7 @@ const AuthPage: React.FC = () => {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gold focus:ring-gold dark:bg-gray-700 dark:border-gray-600"
               />
             </div>
           </div>
@@ -154,7 +154,7 @@ const AuthPage: React.FC = () => {
         </div>
 
         <div className="text-sm text-center">
-          <button onClick={() => { setIsLogin(!isLogin); setError(null); }} className="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">
+          <button onClick={() => { setIsLogin(!isLogin); setError(null); }} className="font-medium text-gold hover:text-gold dark:text-gold dark:hover:text-gold">
             {isLogin ? t('auth.noAccount') : t('auth.hasAccount')}
           </button>
         </div>

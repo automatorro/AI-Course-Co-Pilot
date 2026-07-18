@@ -7,6 +7,12 @@ export interface SlideDesignJSON {
   content: string[];
   imagePrompt: string;
   accentColor?: string;
+  // Optional structured fields carried through from SlideState.content — same shapes.
+  columns?: { header?: string; content: string[]; type?: 'positive' | 'negative' | 'neutral' }[];
+  bigValue?: string;
+  bigLabel?: string;
+  quote?: { text: string; author: string };
+  table?: { headers: string[]; rows: string[][] };
 }
 
 export const analyzeSlideContent = async (content: string): Promise<SlideDesignJSON> => {

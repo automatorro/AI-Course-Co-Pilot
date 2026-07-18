@@ -106,14 +106,14 @@ const ProfilePage: React.FC = () => {
             <form onSubmit={handleDetailsSubmit} className="space-y-4">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium">{t('profile.details.firstName')}</label>
-                <input type="text" id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600" />
+                <input type="text" id="firstName" value={firstName} onChange={e => setFirstName(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gold focus:ring-gold dark:bg-gray-700 dark:border-gray-600" />
               </div>
               <div>
                 <label htmlFor="lastName" className="block text-sm font-medium">{t('profile.details.lastName')}</label>
-                <input type="text" id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600" />
+                <input type="text" id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gold focus:ring-gold dark:bg-gray-700 dark:border-gray-600" />
               </div>
               <div className="pt-2">
-                <button type="submit" disabled={isSavingDetails} className="w-full px-4 py-2 rounded-md font-semibold text-white bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 flex justify-center items-center">
+                <button type="submit" disabled={isSavingDetails} className="w-full px-4 py-2 rounded-md font-semibold text-white bg-gold hover:bg-gold-dim disabled:bg-gray-400 flex justify-center items-center">
                   {isSavingDetails ? <><Loader2 className="animate-spin mr-2" size={16}/>{t('profile.details.saving')}</> : t('profile.details.save')}
                 </button>
               </div>
@@ -125,14 +125,14 @@ const ProfilePage: React.FC = () => {
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div>
                 <label htmlFor="password">{t('profile.password.new')}</label>
-                <input type="password" id="password" value={password} onChange={e => setPassword(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600" />
+                <input type="password" id="password" value={password} onChange={e => setPassword(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gold focus:ring-gold dark:bg-gray-700 dark:border-gray-600" />
               </div>
               <div>
                 <label htmlFor="confirmPassword">{t('profile.password.confirm')}</label>
-                <input type="password" id="confirmPassword" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600" />
+                <input type="password" id="confirmPassword" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gold focus:ring-gold dark:bg-gray-700 dark:border-gray-600" />
               </div>
               <div className="pt-2">
-                <button type="submit" disabled={isSavingPassword || !password} className="w-full px-4 py-2 rounded-md font-semibold text-white bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 flex justify-center items-center">
+                <button type="submit" disabled={isSavingPassword || !password} className="w-full px-4 py-2 rounded-md font-semibold text-white bg-gold hover:bg-gold-dim disabled:bg-gray-400 flex justify-center items-center">
                   {isSavingPassword ? <><Loader2 className="animate-spin mr-2" size={16}/>{t('profile.password.changing')}</> : t('profile.password.change')}
                 </button>
               </div>
@@ -145,7 +145,7 @@ const ProfilePage: React.FC = () => {
            <div className="space-y-5">
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.subscription.currentPlan')}</p>
-                <p className="text-xl font-semibold text-primary-600 dark:text-primary-400">{user.role === 'admin' ? 'Admin' : planDetails.name}</p>
+                <p className="text-xl font-semibold text-gold">{user.role === 'admin' ? 'Admin' : planDetails.name}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.subscription.usage')}</p>
@@ -158,7 +158,7 @@ const ProfilePage: React.FC = () => {
                             }
                         </p>
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mt-2">
-                            <div className="bg-primary-600 h-2.5 rounded-full" style={{ width: user.role === 'admin' ? '100%' : `${(courseCount / planDetails.courseLimit) * 100}%` }}></div>
+                            <div className="bg-gold h-2.5 rounded-full" style={{ width: user.role === 'admin' ? '100%' : `${(courseCount / planDetails.courseLimit) * 100}%` }}></div>
                         </div>
                     </>
                  )}

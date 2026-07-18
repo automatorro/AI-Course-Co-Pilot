@@ -155,7 +155,7 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
                         </div>
                         <h2 className="text-2xl font-bold">Define Learning Objectives</h2>
                     </div>
-                    <p className="text-primary-100">
+                    <p className="text-gold-fg">
                         What should participants be able to do after completing this course?
                     </p>
                 </div>
@@ -174,35 +174,35 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
                                     setEditLanguage(course.language || 'ro');
                                     setIsEditingDetails(true);
                                 }}
-                                className="absolute top-2 right-2 text-xs text-primary-600 hover:text-primary-700 font-semibold transition-colors"
+                                className="absolute top-2 right-2 text-xs text-gold hover:text-gold font-semibold transition-colors"
                             >
                                 Modifică detalii curs
                             </button>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-sm font-medium text-ink-600 dark:text-ink-400">Course:</span>
-                                <span className="font-semibold text-ink-900 dark:text-white">{course.title}</span>
+                                <span className="text-sm font-medium text-stone">Course:</span>
+                                <span className="font-semibold text-graphite">{course.title}</span>
                             </div>
                             {course.subject && (
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-sm font-medium text-ink-600 dark:text-ink-400">Subject:</span>
-                                    <span className="text-ink-800 dark:text-ink-200">{course.subject}</span>
+                                    <span className="text-sm font-medium text-stone">Subject:</span>
+                                    <span className="text-graphite">{course.subject}</span>
                                 </div>
                             )}
                             <div className="flex items-baseline gap-2">
-                                <span className="text-sm font-medium text-ink-600 dark:text-ink-400">Audience:</span>
-                                <span className="text-ink-800 dark:text-ink-200">{course.target_audience}</span>
+                                <span className="text-sm font-medium text-stone">Audience:</span>
+                                <span className="text-graphite">{course.target_audience}</span>
                             </div>
                             <div className="flex items-baseline gap-2">
-                                <span className="text-sm font-medium text-ink-600 dark:text-ink-400">Format:</span>
-                                <span className="text-ink-800 dark:text-ink-200">{course.environment}</span>
+                                <span className="text-sm font-medium text-stone">Format:</span>
+                                <span className="text-graphite">{course.environment}</span>
                             </div>
                         </div>
                     ) : (
                         <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 space-y-3">
-                            <h3 className="font-bold text-sm text-ink-900 dark:text-white">Editează Detaliile Cursului</h3>
+                            <h3 className="font-bold text-sm text-graphite">Editează Detaliile Cursului</h3>
                             <div className="space-y-2">
                                 <div>
-                                    <label className="block text-xs font-medium text-ink-600">Titlu Curs</label>
+                                    <label className="block text-xs font-medium text-stone">Titlu Curs</label>
                                     <input
                                         type="text"
                                         value={editTitle}
@@ -211,7 +211,7 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-ink-600">Subiect</label>
+                                    <label className="block text-xs font-medium text-stone">Subiect</label>
                                     <input
                                         type="text"
                                         value={editSubject}
@@ -220,7 +220,7 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-ink-600">Public Țintă</label>
+                                    <label className="block text-xs font-medium text-stone">Public Țintă</label>
                                     <input
                                         type="text"
                                         value={editAudience}
@@ -230,7 +230,7 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
                                 </div>
                                 <div className="flex gap-2">
                                     <div className="flex-1">
-                                        <label className="block text-xs font-medium text-ink-600">Format</label>
+                                        <label className="block text-xs font-medium text-stone">Format</label>
                                         <select
                                             value={editEnvironment}
                                             onChange={(e) => setEditEnvironment(e.target.value as GenerationEnvironment)}
@@ -241,7 +241,7 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
                                         </select>
                                     </div>
                                     <div className="flex-1">
-                                        <label className="block text-xs font-medium text-ink-600">Limbă</label>
+                                        <label className="block text-xs font-medium text-stone">Limbă</label>
                                         <input
                                             type="text"
                                             value={editLanguage}
@@ -261,7 +261,7 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
                                 </button>
                                 <button
                                     onClick={handleSaveDetails}
-                                    className="px-3 py-1 text-xs bg-primary-600 text-white hover:bg-primary-700 rounded-md transition-colors font-semibold"
+                                    className="px-3 py-1 text-xs bg-gold text-gold-fg hover:bg-gold-dim rounded-md transition-colors font-semibold"
                                 >
                                     Salvează detalii
                                 </button>
@@ -272,8 +272,8 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
                     {/* AI-Generated Objectives */}
                     {isGenerating && (
                         <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                            <Loader2 className="animate-spin text-primary-600" size={48} />
-                            <p className="text-ink-600 dark:text-ink-400">
+                            <Loader2 className="animate-spin text-gold" size={48} />
+                            <p className="text-stone">
                                 AI is analyzing your course and generating learning objectives...
                             </p>
                         </div>
@@ -283,7 +283,7 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
                         <>
                             <div>
                                 <div className="flex items-center justify-between mb-2">
-                                    <label className="block text-sm font-medium text-ink-700 dark:text-ink-200">
+                                    <label className="block text-sm font-medium text-graphite">
                                         Learning Objectives
                                         {hasGenerated && (
                                             <span className="ml-2 text-xs text-green-600 dark:text-green-400 font-normal">
@@ -294,7 +294,7 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
                                     </label>
                                     <button
                                         onClick={generateObjectives}
-                                        className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300"
+                                        className="flex items-center gap-2 text-sm text-gold hover:text-gold dark:text-gold dark:hover:text-gold"
                                         disabled={isGenerating}
                                     >
                                         <RefreshCw size={16} />
@@ -311,7 +311,7 @@ const LearningObjectivesGenerator: React.FC<LearningObjectivesGeneratorProps> = 
 2. Implement state management using Context API
 3. Debug React applications using Developer Tools"
                                 />
-                                <p className="text-xs text-ink-500 dark:text-ink-400 mt-2">
+                                <p className="text-xs text-stone mt-2">
                                     💡 You can edit these objectives or add your own. Be specific about what participants will be able to DO.
                                 </p>
                             </div>

@@ -88,7 +88,7 @@ const UploadCourseModal: React.FC<UploadCourseModalProps> = ({ onClose, onUpload
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Upload File
                         </label>
-                        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-primary-500 transition-colors">
+                        <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-gold transition-colors">
                             <input
                                 type="file"
                                 accept=".docx,.txt"
@@ -136,11 +136,11 @@ const UploadCourseModal: React.FC<UploadCourseModalProps> = ({ onClose, onUpload
                                 onClick={() => setEnvironment('LiveWorkshop')}
                                 disabled={uploading}
                                 className={`p-4 border-2 rounded-lg transition-all ${environment === 'LiveWorkshop'
-                                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                                        : 'border-gray-300 dark:border-gray-600 hover:border-primary-300'
+                                        ? 'border-gold bg-paper-alt dark:bg-paper-alt'
+                                        : 'border-gray-300 dark:border-gray-600 hover:border-hairline'
                                     }`}
                             >
-                                <FileText className={environment === 'LiveWorkshop' ? 'text-primary-600' : 'text-gray-400'} size={24} />
+                                <FileText className={environment === 'LiveWorkshop' ? 'text-gold' : 'text-gray-400'} size={24} />
                                 <p className="text-sm font-medium mt-2">Live Workshop</p>
                                 <p className="text-xs text-gray-500 mt-1">Slides & Exercises</p>
                             </button>
@@ -148,11 +148,11 @@ const UploadCourseModal: React.FC<UploadCourseModalProps> = ({ onClose, onUpload
                                 onClick={() => setEnvironment('OnlineCourse')}
                                 disabled={uploading}
                                 className={`p-4 border-2 rounded-lg transition-all ${environment === 'OnlineCourse'
-                                        ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
-                                        : 'border-gray-300 dark:border-gray-600 hover:border-primary-300'
+                                        ? 'border-gold bg-paper-alt dark:bg-paper-alt'
+                                        : 'border-gray-300 dark:border-gray-600 hover:border-hairline'
                                     }`}
                             >
-                                <FileText className={environment === 'OnlineCourse' ? 'text-primary-600' : 'text-gray-400'} size={24} />
+                                <FileText className={environment === 'OnlineCourse' ? 'text-gold' : 'text-gray-400'} size={24} />
                                 <p className="text-sm font-medium mt-2">Online Course</p>
                                 <p className="text-xs text-gray-500 mt-1">Videos & Quizzes</p>
                             </button>
@@ -166,13 +166,13 @@ const UploadCourseModal: React.FC<UploadCourseModalProps> = ({ onClose, onUpload
                                 <span className="text-sm text-gray-600 dark:text-gray-400">
                                     Analyzing content...
                                 </span>
-                                <span className="text-sm font-medium text-primary-600">
+                                <span className="text-sm font-medium text-gold">
                                     {uploadProgress}%
                                 </span>
                             </div>
                             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                 <div
-                                    className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                                    className="bg-gold h-2 rounded-full transition-all duration-300"
                                     style={{ width: `${uploadProgress}%` }}
                                 />
                             </div>
@@ -192,7 +192,7 @@ const UploadCourseModal: React.FC<UploadCourseModalProps> = ({ onClose, onUpload
                     <button
                         onClick={handleUpload}
                         disabled={!file || uploading}
-                        className="px-6 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="px-6 py-2 text-sm font-medium text-white bg-gold hover:bg-gold-dim rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                         {uploading ? (
                             <>

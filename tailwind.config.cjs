@@ -52,6 +52,7 @@ module.exports = {
         stone:       'var(--text-secondary)',
         gold:        'var(--accent)',
         'gold-dim':  'var(--accent-dim)',
+        'gold-fg':   'var(--accent-fg)',
         hairline:    'var(--border)',
       },
       fontFamily: {

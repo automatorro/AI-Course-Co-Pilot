@@ -90,7 +90,7 @@ const PricingTable: React.FC<PricingTableProps> = ({ user, setError }) => {
           <div
             key={plan.name}
             className={`rounded-2xl p-8 shadow-lg border transform transition-transform hover:scale-105 ${
-              user?.plan === plan.name ? 'border-primary-500 ring-2 ring-primary-500' : 'border-gray-200 dark:border-gray-700'
+              user?.plan === plan.name ? 'border-gold ring-2 ring-primary-500' : 'border-gray-200 dark:border-gray-700'
             } bg-white dark:bg-gray-800`}
           >
             <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">{plan.name}</h3>
@@ -104,7 +104,7 @@ const PricingTable: React.FC<PricingTableProps> = ({ user, setError }) => {
             <ul role="list" className="mt-8 space-y-4 text-sm leading-6 text-gray-600 dark:text-gray-300">
               {Array.isArray(t(`homepage.pricing.${plan.featuresKey}`)) ? (t(`homepage.pricing.${plan.featuresKey}`) as string[]).map((feature, index) => (
                 <li key={index} className="flex gap-x-3">
-                  <Check className="h-6 w-5 flex-none text-primary-600" aria-hidden="true" />
+                  <Check className="h-6 w-5 flex-none text-gold" aria-hidden="true" />
                   {feature}
                 </li>
               )) : null}

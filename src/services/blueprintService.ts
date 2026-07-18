@@ -78,7 +78,10 @@ export async function generateBlueprintWithRetry(
                 console.warn('Failed to mark modules as dirty after blueprint generation:', dirtyError);
             }
 
-            return { success: true, blueprint: validationResult.data };
+            // Zod schema validates only the AI-generated shape; DB-only fields
+            // (module_id, course_id, created_at) get added when courses.blueprint
+            // is later loaded joined with course_modules/course_lessons rows.
+            return { success: true, blueprint: validationResult.data as unknown as CourseBlueprint };
 
         } catch (error: unknown) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';

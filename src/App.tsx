@@ -30,7 +30,7 @@ export const AppContent: React.FC = () => {
   const location = useLocation();
   const isWorkspaceRoute = location.pathname.startsWith('/course/');
   return (
-    <div className="min-h-screen flex flex-col premium-texture bg-ink-50 dark:bg-ink-900 text-ink-900 dark:text-ink-100 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col bg-paper text-graphite transition-colors duration-200">
       {!isWorkspaceRoute && <Header />}
       <main className={isWorkspaceRoute ? 'flex-grow' : 'pt-16 flex-grow'}>
         <Routes>
