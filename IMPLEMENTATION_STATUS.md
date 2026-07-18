@@ -15,7 +15,7 @@ Convenții:
 
 | Bornă | Faza | Livrabil verificabil | Status |
 |---|---|---|---|
-| M0 | F0 | Tag + status file + baseline „before" + fixture etalon | BLOCKED (5/6 DONE; baseline așteaptă owner-ul — vezi F0-T3) |
+| M0 | F0 | Tag + status file + baseline „before" + fixture etalon | DONE (baseline SKIPPED prin decizie owner — vezi F0-T3) |
 | M1 | F1 | Cod mort șters (butoane editor, ProtagonistEnforcer, fixes/); build verde | TODO |
 | M2 | F2 | Test puritate lingvistică verde (EN fără RO, RO fără EN) | TODO |
 | M3 | F3 | Arhitectura de prompturi instalată: prompts/ + changelog + preambul de ton | TODO |
@@ -38,9 +38,9 @@ Convenții:
 ### F0 — Plasă de siguranță (½ zi) · Risc: zero
 - **F0-T1** [DONE] `git tag pre-refactor-2026-07` + `IMPLEMENTATION_STATUS.md` (borne + toate task-urile + secțiunea Descoperiri)
 - **F0-T2** [DONE] `docs/` → `docs/_archive/`; creat `docs/golden-references/`, `docs/QUALITY_RUBRIC.md`, `docs/README.md` nou; `docs/baseline/README.md` cu instrucțiuni pentru F0-T3
-- **F0-T3** [BLOCKED(no LLM/Supabase access in remote env)] Generare completă pe etalon RO pe arhitectura ACTUALĂ → `docs/baseline/`. Instrucțiuni pas-cu-pas pentru owner: `docs/baseline/README.md`. Se deblochează când owner-ul rulează generarea și comite output-urile brute.
+- **F0-T3** [SKIPPED (owner decision, 2026-07-18)] Generare completă pe etalon RO pe arhitectura ACTUALĂ. Motiv: rubrica F6 e absolută, nu relativă; UI-ul actual nu are câmp de ton verbatim (apare abia în F3-T1) deci baseline-ul ar fi cu preset ≠ cu tonul cursului-etalon; efort ~2h fără impact pe poarta blocantă. Vezi `docs/baseline/README.md` pentru re-execuție opțională.
 - **F0-T4** [DONE] `src/tests/fixtures/etalonCourse.ts` (RO+EN, cu tonul din §3)
-- **DoD F0:** M0 — tag ✔, status file ✔, rubrică ✔, golden-references ✔, fixture ✔, baseline BLOCKED cu instrucțiuni owner ✔; typecheck verde ✔; testul pre-existent e2e_generation vezi D-003.
+- **DoD F0:** M0 — tag ✔, status file ✔, rubrică ✔, golden-references ✔, fixture ✔, baseline SKIPPED (decizie owner, motiv în F0-T3); typecheck verde ✔; testul pre-existent e2e_generation vezi D-003.
 
 ### F1 — Demolare controlată (1 zi) · Risc: mic
 - **F1-T1** [TODO] Butoanele Generate/Rafinează din editor — ștergere completă conform listei din audit §7
@@ -153,4 +153,5 @@ Reprodus și pe HEAD-ul curat (înainte de modificările F0), deci defectul e pr
 
 | Data | Sesiune | Task-uri atinse | Note |
 |---|---|---|---|
-| 2026-07-18 | S01 | F0-T1 DONE · F0-T2 DONE · F0-T3 BLOCKED · F0-T4 DONE | Plasa de siguranță instalată. Baseline așteaptă owner-ul (docs/baseline/README.md). M0 rămâne parțial până la F0-T3; **F1 NU pornește în această sesiune**. |
+| 2026-07-18 | S01 | F0-T1 DONE · F0-T2 DONE · F0-T3 BLOCKED · F0-T4 DONE | Plasa de siguranță instalată. Baseline așteaptă owner-ul (docs/baseline/README.md). M0 rămâne parțial până la F0-T3; F1 NU pornește în această sesiune. |
+| 2026-07-18 | S02 | F0-T3 SKIPPED (owner decision) · M0 DONE · F1 pornit | CLAUDE.md adăugat (regula: owner deploy SQL). Baseline abandonat cu motiv (rubrică absolută + UI fără câmp ton verbatim). F1 începe în această sesiune. |
