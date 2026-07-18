@@ -132,7 +132,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, onExport, is
                 {isExporting && (
                     <div className="absolute inset-0 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center backdrop-blur-sm">
                         <div className="flex flex-col items-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
                             <p className="mt-4 font-medium text-gray-900 dark:text-white">Generating files...</p>
                         </div>
                     </div>

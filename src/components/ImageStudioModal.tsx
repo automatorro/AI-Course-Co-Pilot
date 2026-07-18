@@ -75,7 +75,7 @@ const ImageStudioModal: React.FC<ImageStudioModalProps> = ({ onClose, onInsert }
             </div>
             {error && <p className="text-xs text-red-600">{error}</p>}
             <div className="flex gap-2">
-              <button onClick={handleGenerate} disabled={!prompt || isGenerating} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50">
+              <button onClick={handleGenerate} disabled={!prompt || isGenerating} className="px-3 py-1.5 text-sm rounded bg-gold text-gold-fg hover:bg-gold-dim disabled:opacity-50">
                 {isGenerating ? (<span className="inline-flex items-center gap-1"><Loader2 className="animate-spin" size={16}/> Generare...</span>) : 'Generează'}
               </button>
               <button onClick={onClose} className="px-3 py-1.5 text-sm rounded border dark:border-gray-700">Închide</button>
@@ -87,7 +87,7 @@ const ImageStudioModal: React.FC<ImageStudioModalProps> = ({ onClose, onInsert }
               <div className="w-full">
                 <img src={previewUrl} alt="Preview" className="max-w-full h-auto rounded" />
                 <div className="flex justify-end gap-2 mt-2">
-                  <button onClick={handleInsert} className="px-3 py-1.5 text-sm rounded bg-primary-600 text-white hover:bg-primary-700">Inserează în editor</button>
+                  <button onClick={handleInsert} className="px-3 py-1.5 text-sm rounded bg-gold text-gold-fg hover:bg-gold-dim">Inserează în editor</button>
                 </div>
               </div>
             ) : (

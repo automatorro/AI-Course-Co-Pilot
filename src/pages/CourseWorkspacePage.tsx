@@ -92,7 +92,7 @@ const HelpModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <div className="p-6 sm:p-8 space-y-6">
           {helpItems.map((item, index) => (
             <div key={index} className="flex items-start gap-4">
-              <div className="flex-shrink-0 bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-300 rounded-full h-10 w-10 flex items-center justify-center">
+              <div className="flex-shrink-0 bg-paper-alt text-gold dark:text-gold rounded-full h-10 w-10 flex items-center justify-center">
                 <item.icon size={20} />
               </div>
               <div>
@@ -107,14 +107,14 @@ const HelpModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <p className="text-sm text-gray-600 dark:text-gray-400">{t('course.helpModal.userSteps.intro')}</p>
               <div className="space-y-2">
                 {userSteps.map((s, idx) => (
-                  <p key={idx} className="flex items-center gap-3"><span className="flex-shrink-0 bg-primary-600 text-white rounded-full h-6 w-6 flex items-center justify-center font-bold text-sm">{idx + 1}</span> <span>{s}</span></p>
+                  <p key={idx} className="flex items-center gap-3"><span className="flex-shrink-0 bg-gold text-gold-fg rounded-full h-6 w-6 flex items-center justify-center font-bold text-sm">{idx + 1}</span> <span>{s}</span></p>
                 ))}
               </div>
             </div>
           </div>
         </div>
         <div className="p-4 sm:p-6 bg-gray-50 dark:bg-gray-800/50 rounded-b-xl flex justify-end">
-          <button onClick={onClose} className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 flex items-center gap-2">
+          <button onClick={onClose} className="px-6 py-2.5 rounded-lg text-sm font-semibold text-white bg-gold hover:bg-gold-dim flex items-center gap-2">
             {t('course.helpModal.button')} <ChevronRight size={16} />
           </button>
         </div>
@@ -1295,7 +1295,7 @@ const CourseWorkspacePage: React.FC = () => {
   };
 
   if (isLoading || !course) {
-    return <div className="flex items-center justify-center h-screen"><Loader2 className="animate-spin text-primary-500" size={32} /></div>;
+    return <div className="flex items-center justify-center h-screen"><Loader2 className="animate-spin text-gold" size={32} /></div>;
   }
 
   // Phase 1.4: Conditional rendering based on  course state
@@ -1448,11 +1448,11 @@ const CourseWorkspacePage: React.FC = () => {
           <div className="p-4 flex items-center gap-2">
             <button
               onClick={() => setShowUploadBlueprint(false)}
-              className={`px-3 py-2 rounded-md text-sm font-medium border ${!showUploadBlueprint ? 'bg-primary-50 border-primary-300 text-primary-700 dark:bg-primary-900/20 dark:border-primary-700' : 'border-gray-200 dark:border-gray-700'}`}
+              className={`px-3 py-2 rounded-md text-sm font-medium border ${!showUploadBlueprint ? 'bg-paper-alt border-hairline text-gold dark:bg-paper-alt dark:border-hairline' : 'border-gray-200 dark:border-gray-700'}`}
             >Chat Onboarding</button>
             <button
               onClick={() => setShowUploadBlueprint(true)}
-              className={`px-3 py-2 rounded-md text-sm font-medium border ${showUploadBlueprint ? 'bg-primary-50 border-primary-300 text-primary-700 dark:bg-primary-900/20 dark:border-primary-700' : 'border-gray-200 dark:border-gray-700'}`}
+              className={`px-3 py-2 rounded-md text-sm font-medium border ${showUploadBlueprint ? 'bg-paper-alt border-hairline text-gold dark:bg-paper-alt dark:border-hairline' : 'border-gray-200 dark:border-gray-700'}`}
             >Analizează material</button>
           </div>
           {!showUploadBlueprint ? (
@@ -1474,7 +1474,7 @@ const CourseWorkspacePage: React.FC = () => {
     return (
       <div className="relative h-screen bg-gray-50 dark:bg-gray-900">
         <div className="flex items-center justify-center h-full">
-          <Loader2 className="animate-spin text-primary-500" size={32} />
+          <Loader2 className="animate-spin text-gold" size={32} />
           <span className="ml-2 text-gray-500">Generating course content...</span>
         </div>
         <GenerationProgressModal
@@ -1531,7 +1531,7 @@ const CourseWorkspacePage: React.FC = () => {
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="animate-spin text-primary-500" size={32} />
+          <Loader2 className="animate-spin text-gold" size={32} />
           <span className="ml-2 text-gray-700 dark:text-gray-200">Preparing workspace...</span>
         </div>
       </div>
@@ -1570,7 +1570,7 @@ const CourseWorkspacePage: React.FC = () => {
           <h2 className="text-xl font-bold truncate">{course.title}</h2>
           <button
             onClick={() => setIsHelpModalOpen(true)}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-gold hover:bg-gold-dim"
             title={t('course.helpModal.open')}
           >
             {t('course.helpModal.open')}
@@ -1628,7 +1628,7 @@ const CourseWorkspacePage: React.FC = () => {
                 <button
                   onClick={() => { setActiveStepIndex(index); userHasInteractedRef.current = true; }}
                   className={`w-full text-left p-3 my-1 rounded-lg flex items-center gap-3 transition-colors ${activeStepIndex === index
-                    ? 'bg-primary-50 dark:bg-primary-900/20 border border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+                    ? 'bg-paper-alt dark:bg-paper-alt border border-gold-dim text-gold dark:text-gold'
                     : 'border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/20'
                     }`}
                 >
@@ -1667,7 +1667,7 @@ const CourseWorkspacePage: React.FC = () => {
                 <ArrowLeft size={18} className="sm:w-5 sm:h-5" />
               </button>
               <button className="lg:hidden p-1.5 sm:p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 mr-1 sm:mr-2" onClick={() => setIsSidebarOpen(true)} aria-label="Deschide pașii">
-                <PanelLeft size={18} className="text-primary-600 dark:text-primary-400 sm:w-5 sm:h-5" />
+                <PanelLeft size={18} className="text-gold sm:w-5 sm:h-5" />
               </button>
               <div className="flex-1 flex items-center justify-between gap-1 sm:gap-4 min-w-0">
                 <div className="flex-1 flex justify-center px-1 sm:px-4 overflow-hidden min-w-0">
@@ -1703,8 +1703,8 @@ const CourseWorkspacePage: React.FC = () => {
 
             <div className="editor-tabs-sticky px-4 bg-white dark:bg-gray-800 h-[48px] flex items-center border-b border-gray-200 dark:border-gray-700 mb-0 !mb-0 pb-0 !pb-0 sticky z-20">
               <nav className="flex space-x-6 h-full" aria-label="Tabs">
-                <button onClick={() => setActiveTab('editor')} className={`whitespace-nowrap px-1 border-b-2 font-medium text-sm h-full flex items-center transition-colors ${activeTab === 'editor' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'}`}>{t('course.editor.tab.editor')}</button>
-                <button onClick={() => setActiveTab('preview')} className={`whitespace-nowrap px-1 border-b-2 font-medium text-sm h-full flex items-center transition-colors ${activeTab === 'preview' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'}`}>{t('course.editor.tab.preview')}</button>
+                <button onClick={() => setActiveTab('editor')} className={`whitespace-nowrap px-1 border-b-2 font-medium text-sm h-full flex items-center transition-colors ${activeTab === 'editor' ? 'border-gold text-gold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'}`}>{t('course.editor.tab.editor')}</button>
+                <button onClick={() => setActiveTab('preview')} className={`whitespace-nowrap px-1 border-b-2 font-medium text-sm h-full flex items-center transition-colors ${activeTab === 'preview' ? 'border-gold text-gold' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:border-gray-600'}`}>{t('course.editor.tab.preview')}</button>
               </nav>
             </div>
 
@@ -1712,7 +1712,7 @@ const CourseWorkspacePage: React.FC = () => {
               {isBusy && (
                 <div className="absolute inset-1 bg-gray-100/50 dark:bg-gray-900/50 flex items-center justify-center z-20 rounded-2xl shadow-lg">
                   <div className="text-center p-6 bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg backdrop-blur-sm">
-                    <Loader2 className="animate-spin text-primary-500 mx-auto" size={40} />
+                    <Loader2 className="animate-spin text-gold mx-auto" size={40} />
                     <p className="mt-3 text-lg font-semibold">{isGenerating ? t('course.generating') : t('course.refine.button')}</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">{t('course.generating.waitMessage')}</p>
                   </div>
@@ -1770,7 +1770,7 @@ const CourseWorkspacePage: React.FC = () => {
                 <button
                   onClick={handleGenerate}
                   disabled={!canGenerate}
-                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-primary-500 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 disabled:opacity-50"
+                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-gold text-gold hover:bg-paper-alt disabled:opacity-50"
                 >
                   <Sparkles size={16} />
                   {t('course.generate')}
@@ -1818,14 +1818,14 @@ const CourseWorkspacePage: React.FC = () => {
               )}
               <button
                   onClick={() => setShowImportModal(true)}
-                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-ink-700 dark:text-white bg-white dark:bg-gray-700 border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-graphite dark:text-white bg-white dark:bg-gray-700 border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
                   title="Importă document în acest pas"
                 >
                   <Upload size={16} /> Importă
                 </button>
                 <button
                   onClick={() => setShowHistoryModal(true)}
-                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-ink-700 dark:text-white bg-white dark:bg-gray-700 border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
+                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-graphite dark:text-white bg-white dark:bg-gray-700 border dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
                   title="Istoric Versiuni"
                 >
                   <History size={16} />
@@ -1863,7 +1863,7 @@ const CourseWorkspacePage: React.FC = () => {
                   disabled={isBusy || isSaving}
                   className={`flex-1 sm:flex-none justify-center px-6 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${
                     hasUnsavedChanges 
-                      ? 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm' 
+                      ? 'bg-gold text-gold-fg hover:bg-gold-dim shadow-sm' 
                       : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
                   } disabled:opacity-50`}
                 >
@@ -1905,7 +1905,7 @@ const CourseWorkspacePage: React.FC = () => {
                 <button
                   onClick={() => handleSaveChanges(true)}
                   disabled={isBusy || isSaving || !editedContent}
-                  className="flex-1 sm:flex-none justify-center px-6 py-2 rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400"
+                  className="flex-1 sm:flex-none justify-center px-6 py-2 rounded-md text-sm font-medium text-white bg-gold hover:bg-gold-dim disabled:bg-gray-400"
                 >
                   {isSaving && <Loader2 className="animate-spin inline-block mr-2" size={16} />}
                   {isLastStep ? t('course.saveAndContinue').replace(' & Continue', '') : t('course.saveAndContinue')}
@@ -2109,7 +2109,7 @@ const CourseWorkspacePage: React.FC = () => {
               <button
                 onClick={handleGenerate}
                 disabled={!canGenerate}
-                className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border border-primary-500 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 disabled:opacity-50"
+                className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border border-gold text-gold hover:bg-paper-alt disabled:opacity-50"
               >
                 <Sparkles size={16} />
                 {t('course.generate')}
@@ -2159,7 +2159,7 @@ const CourseWorkspacePage: React.FC = () => {
                 disabled={isBusy || isSaving}
                 className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${
                   hasUnsavedChanges 
-                    ? 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm' 
+                    ? 'bg-gold text-gold-fg hover:bg-gold-dim shadow-sm' 
                     : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
                 } disabled:opacity-50`}
               >
@@ -2170,7 +2170,7 @@ const CourseWorkspacePage: React.FC = () => {
               <button
                 onClick={() => handleSaveChanges(true)}
                 disabled={isBusy || isSaving || !editedContent}
-                className="px-4 py-2 rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400"
+                className="px-4 py-2 rounded-md text-sm font-medium text-white bg-gold hover:bg-gold-dim disabled:bg-gray-400"
               >
                 {isSaving && <Loader2 className="animate-spin inline-block mr-2" size={16} />}
                 <span className="hide-tiny">{isLastStep ? t('course.save') : t('course.saveAndContinue')}</span>
@@ -2231,7 +2231,7 @@ const CourseWorkspacePage: React.FC = () => {
                   <h3 className="text-sm font-semibold">Resurse</h3>
                   <button
                     onClick={() => setIsHelpModalOpen(true)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700"
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-gold hover:bg-gold-dim"
                     title={t('course.helpModal.open')}
                   >
                     {t('course.helpModal.open')}
@@ -2266,7 +2266,7 @@ const CourseWorkspacePage: React.FC = () => {
                       <button
                         onClick={() => { setActiveStepIndex(index); setIsSidebarOpen(false); }}
                         className={`w-full text-left p-4 my-1 rounded-lg flex items-center gap-3 transition-colors ${activeStepIndex === index
-                          ? 'bg-primary-50 dark:bg-primary-900/20 border border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+                          ? 'bg-paper-alt dark:bg-paper-alt border border-gold-dim text-gold dark:text-gold'
                           : 'border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/20'
                           }`}
                       >

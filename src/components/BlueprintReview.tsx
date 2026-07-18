@@ -69,8 +69,8 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                             <span className="ml-2 font-semibold text-gray-900 dark:text-white">{blueprint.modules?.length || 0}</span>
                         </div>
                         <div>
-                            <span className="text-sm font-medium text-ink-600 dark:text-ink-400">{t('blueprint.estimatedDuration')}</span>
-                            <span className="ml-2 font-semibold text-ink-900 dark:text-white">
+                            <span className="text-sm font-medium text-stone">{t('blueprint.estimatedDuration')}</span>
+                            <span className="ml-2 font-semibold text-graphite">
                                 {blueprint.estimated_duration || t('blueprint.notSpecified')}
                             </span>
                         </div>
@@ -97,18 +97,18 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                                         className="w-full flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
                                     >
                                         {isExpanded ? (
-                                            <ChevronDown size={20} className="text-primary-600 dark:text-primary-400" />
+                                            <ChevronDown size={20} className="text-gold" />
                                         ) : (
                                             <ChevronRight size={20} className="text-gray-400" />
                                         )}
                                         <div className="flex-1 text-left">
                                             <div className="flex items-center gap-2">
-                                                <span className="text-sm font-semibold text-primary-600 dark:text-primary-400">
+                                                <span className="text-sm font-semibold text-gold">
                                                     {t('blueprint.moduleN', { n: moduleIndex + 1 })}
                                                 </span>
-                                                <h3 className="font-bold text-ink-900 dark:text-white">{module.title}</h3>
+                                                <h3 className="font-bold text-graphite">{module.title}</h3>
                                             </div>
-                                            <p className="text-sm text-ink-600 dark:text-ink-400 mt-1">
+                                            <p className="text-sm text-stone mt-1">
                                                 <strong>{t('blueprint.learningObjective')}:</strong> {module.learning_objective}
                                             </p>
                                         </div>
@@ -132,7 +132,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                                                     </div>
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-2 mb-1">
-                                                            <h4 className="font-semibold text-ink-900 dark:text-white">
+                                                            <h4 className="font-semibold text-graphite">
                                                                 {section.title}
                                                             </h4>
                                                             <span
@@ -144,7 +144,7 @@ const BlueprintReview: React.FC<BlueprintReviewProps> = ({
                                                             </span>
                                                         </div>
                                                         {section.content_outline && (
-                                                            <p className="text-sm text-ink-600 dark:text-ink-400">
+                                                            <p className="text-sm text-stone">
                                                                 {section.content_outline}
                                                             </p>
                                                         )}

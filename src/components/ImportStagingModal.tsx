@@ -123,7 +123,7 @@ const ImportStagingModal: React.FC<Props> = ({ isOpen, onClose, step, onApplied,
       <div className="bg-white dark:bg-gray-800 md:rounded-xl shadow-2xl w-full max-w-6xl flex flex-col h-full md:h-[90vh] md:max-h-[90vh] overflow-hidden">
         <div className="p-4 border-b dark:border-gray-700 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-2">
-            <FileText size={20} className="text-primary-600" />
+            <FileText size={20} className="text-gold" />
             <h2 className="text-lg font-bold">Import Staging</h2>
             <ChevronRight className="text-gray-400 mx-2" size={20} />
             <span className="text-sm text-gray-500 font-medium">Scope: {t(step.title_key)}</span>
@@ -148,19 +148,19 @@ const ImportStagingModal: React.FC<Props> = ({ isOpen, onClose, step, onApplied,
                       </div>
                    </div>
                    <div className="flex items-center gap-2 ml-2">
-                     <label htmlFor="import-file" className="cursor-pointer p-1.5 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-md transition-colors" title="Schimbă fișierul">
+                     <label htmlFor="import-file" className="cursor-pointer p-1.5 text-gold hover:bg-paper-alt rounded-md transition-colors" title="Schimbă fișierul">
                        <Replace size={16} />
                      </label>
                      <input type="file" accept={accept} onChange={onFileChange} id="import-file" className="hidden" />
                    </div>
                 </div>
               ) : (
-                <div className="border-2 border-dashed rounded-lg p-4 text-center bg-white dark:bg-gray-800 hover:border-primary-500 transition-colors">
+                <div className="border-2 border-dashed rounded-lg p-4 text-center bg-white dark:bg-gray-800 hover:border-gold transition-colors">
                   <input type="file" accept={accept} onChange={onFileChange} id="import-file" className="hidden" />
                   <label htmlFor="import-file" className="cursor-pointer flex flex-col items-center">
                     {importing ? (
                       <>
-                        <Loader2 className="animate-spin text-primary-600 mb-2" size={24} />
+                        <Loader2 className="animate-spin text-gold mb-2" size={24} />
                         <p className="text-sm">Procesare...</p>
                       </>
                     ) : (
@@ -179,7 +179,7 @@ const ImportStagingModal: React.FC<Props> = ({ isOpen, onClose, step, onApplied,
               <div className="mb-6 animate-in fade-in slide-in-from-left-4 duration-300">
                 <label className="block text-sm font-bold mb-2">2. Mod de Aplicare</label>
                 <div className="space-y-2">
-                  <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${mode === 'append' ? 'bg-primary-50 border-primary-500 ring-1 ring-primary-500' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
+                  <label className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-all ${mode === 'append' ? 'bg-paper-alt border-gold ring-1 ring-primary-500' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'}`}>
                     <input type="radio" name="mode" className="mt-1" checked={mode === 'append'} onChange={() => setMode('append')} />
                     <div>
                       <span className="block text-sm font-medium">Append (Adaugă la final)</span>
@@ -220,13 +220,13 @@ const ImportStagingModal: React.FC<Props> = ({ isOpen, onClose, step, onApplied,
                <div className="flex bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
                  <button
                    onClick={() => setViewMode('preview')}
-                   className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 transition-all ${viewMode === 'preview' ? 'bg-white dark:bg-gray-600 shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                   className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 transition-all ${viewMode === 'preview' ? 'bg-white dark:bg-gray-600 shadow-sm text-gold' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                  >
                    <GitCompare size={14} /> Diff View
                  </button>
                  <button
                    onClick={() => setViewMode('diff')}
-                   className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 transition-all ${viewMode === 'diff' ? 'bg-white dark:bg-gray-600 shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                   className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 transition-all ${viewMode === 'diff' ? 'bg-white dark:bg-gray-600 shadow-sm text-gold' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                  >
                    <FileText size={14} /> Full Preview
                  </button>
@@ -279,7 +279,7 @@ const ImportStagingModal: React.FC<Props> = ({ isOpen, onClose, step, onApplied,
           <button 
             onClick={onApply} 
             disabled={importing || !markdown} 
-            className="px-6 py-2 rounded-md bg-primary-600 hover:bg-primary-700 text-white flex items-center gap-2 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2 rounded-md bg-gold hover:bg-gold-dim text-gold-fg flex items-center gap-2 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {importing ? <Loader2 className="animate-spin" size={18} /> : <Replace size={18} />}
             <span className="font-medium">Aplică Importul</span>

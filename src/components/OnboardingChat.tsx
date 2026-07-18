@@ -177,14 +177,14 @@ const OnboardingChat: React.FC<OnboardingChatProps> = ({ course, onBlueprintRead
     return (
         <div className="flex flex-col h-[600px] w-full max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700">
             {/* Header */}
-            <div className="bg-primary-600 p-4 flex items-center justify-between">
+            <div className="bg-gold p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="bg-white/20 p-2 rounded-full">
                         <Sparkles className="text-white" size={20} />
                     </div>
                     <div>
                         <h3 className="text-white font-bold text-lg">AI Course Architect</h3>
-                        <p className="text-primary-100 text-xs">Designing: {course.title}</p>
+                        <p className="text-gold-fg text-xs">Designing: {course.title}</p>
                     </div>
                 </div>
             </div>
@@ -196,12 +196,12 @@ const OnboardingChat: React.FC<OnboardingChatProps> = ({ course, onBlueprintRead
                         key={idx}
                         className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
                     >
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${msg.role === 'user' ? 'bg-primary-100 text-primary-600' : 'bg-indigo-100 text-indigo-600'
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${msg.role === 'user' ? 'bg-paper-alt text-gold' : 'bg-indigo-100 text-indigo-600'
                             }`}>
                             {msg.role === 'user' ? <User size={20} /> : <Bot size={20} />}
                         </div>
                         <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${msg.role === 'user'
-                            ? 'bg-primary-600 text-white rounded-tr-none'
+                            ? 'bg-gold text-gold-fg rounded-tr-none'
                             : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-700'
                             }`}>
                             <div className="whitespace-pre-wrap text-sm leading-relaxed">

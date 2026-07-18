@@ -57,7 +57,7 @@ const BillingPage: React.FC = () => {
       <h1 className="text-3xl font-bold text-center mb-4">{t('billing.title')}</h1>
       <p className="text-center text-gray-600 dark:text-gray-400 mb-12">
         {t('billing.currentPlan')}{' '}
-        <span className="font-semibold text-primary-600 dark:text-primary-400">{user.plan}</span>.
+        <span className="font-semibold text-gold">{user.plan}</span>.
       </p>
 
       <div className="max-w-5xl mx-auto">
@@ -73,7 +73,7 @@ const BillingPage: React.FC = () => {
         <button 
           onClick={handleManageSubscription}
           disabled={isRedirecting}
-          className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-md text-base font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
+          className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-md text-base font-medium text-white bg-gold hover:bg-gold-dim disabled:opacity-50"
         >
           {isRedirecting ? (
             <>

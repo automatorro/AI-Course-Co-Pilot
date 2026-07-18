@@ -82,21 +82,21 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
         {(parsed.modules || []).map((m, mi) => (
           <div key={m.id || mi} className="border rounded-lg p-3 dark:border-gray-700 bg-white dark:bg-gray-800">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-primary-600 dark:text-primary-400">{t('blueprint.moduleN', { n: mi + 1 })}</span>
-              <h4 className="font-bold text-ink-900 dark:text-white">{m.title}</h4>
+              <span className="text-xs font-semibold text-gold">{t('blueprint.moduleN', { n: mi + 1 })}</span>
+              <h4 className="font-bold text-graphite">{m.title}</h4>
             </div>
-            <p className="text-sm text-ink-600 dark:text-ink-400 mt-1 italic">{m.learning_objective}</p>
+            <p className="text-sm text-stone mt-1 italic">{m.learning_objective}</p>
             {m.lessons && Array.isArray(m.lessons) && m.lessons.length > 0 ? (
-              <div className="mt-3 space-y-2 pl-4 border-l-2 border-primary-500/30">
+              <div className="mt-3 space-y-2 pl-4 border-l-2 border-gold/30">
                 {m.lessons.map((l, li) => (
                   <div key={l.id || li} className="text-sm">
-                    <div className="font-semibold text-ink-800 dark:text-ink-200">
+                    <div className="font-semibold text-graphite">
                       Lecția {li + 1}: {l.title} 
-                      <span className="text-xs font-normal text-ink-500 ml-2">({l.estimated_minutes} min{l.has_exercise ? ', cu exercițiu' : ''})</span>
+                      <span className="text-xs font-normal text-stone ml-2">({l.estimated_minutes} min{l.has_exercise ? ', cu exercițiu' : ''})</span>
                     </div>
-                    {l.learning_objective && <p className="text-xs text-ink-500 ml-2 mt-0.5">{l.learning_objective}</p>}
+                    {l.learning_objective && <p className="text-xs text-stone ml-2 mt-0.5">{l.learning_objective}</p>}
                     {l.key_takeaways && l.key_takeaways.length > 0 && (
-                      <ul className="list-disc pl-6 text-xs text-ink-600 dark:text-ink-400 mt-1 space-y-0.5">
+                      <ul className="list-disc pl-6 text-xs text-stone mt-1 space-y-0.5">
                         {l.key_takeaways.map((t, ti) => (
                           <li key={ti}>{t}</li>
                         ))}
@@ -106,7 +106,7 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
                 ))}
               </div>
             ) : (
-              <ul className="mt-2 text-sm text-ink-700 dark:text-ink-300 list-disc ml-5">
+              <ul className="mt-2 text-sm text-graphite list-disc ml-5">
                 {(m.sections || []).map((s, si) => (
                   <li key={s.id || si}>{s.title} — <span className="uppercase text-xs">{(s.content_type || 'slides').replace('_',' ')}</span></li>
                 ))}
@@ -318,10 +318,10 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
           <h3 className="text-lg font-bold">{t('blueprint.edit.title')}</h3>
           <div className="flex items-center gap-2">
             <nav className="hidden lg:flex gap-2 mr-2" aria-label="Tabs">
-              <button onClick={() => setMode('form')} className={`px-3 py-1 rounded-md text-sm font-medium transition ${mode === 'form' ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>{t('blueprint.edit.tab.form')}</button>
-              <button onClick={() => setMode('json')} className={`px-3 py-1 rounded-md text-sm font-medium transition ${mode === 'json' ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>{t('blueprint.edit.tab.json')}</button>
+              <button onClick={() => setMode('form')} className={`px-3 py-1 rounded-md text-sm font-medium transition ${mode === 'form' ? 'bg-gold text-gold-fg' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>{t('blueprint.edit.tab.form')}</button>
+              <button onClick={() => setMode('json')} className={`px-3 py-1 rounded-md text-sm font-medium transition ${mode === 'json' ? 'bg-gold text-gold-fg' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>{t('blueprint.edit.tab.json')}</button>
             </nav>
-            <button onClick={onClose} className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-ink-500 hover:text-ink-800 transition" aria-label="Close"><X size={18} /></button>
+            <button onClick={onClose} className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 text-stone hover:text-graphite transition" aria-label="Close"><X size={18} /></button>
           </div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 overflow-y-auto">
@@ -330,7 +330,7 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
               <div className="space-y-2">
                 <label className="block text-sm font-medium mb-2">{t('blueprint.edit.jsonLabel')}</label>
                 <textarea
-                  className="w-full h-[50vh] font-mono text-sm rounded-lg border dark:border-gray-700 p-3 focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white dark:bg-gray-900"
+                  className="w-full h-[50vh] font-mono text-sm rounded-lg border dark:border-gray-700 p-3 focus:outline-none focus:ring-2 focus:ring-gold bg-white dark:bg-gray-900"
                   value={text}
                   onChange={e => handleTextChange(e.target.value)}
                 />
@@ -357,7 +357,7 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
                   {(parsed?.modules || []).map((m, mi) => (
                     <div key={m.id} className="mb-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-800/30 space-y-3">
                       <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
-                        <span className="text-sm font-bold text-ink-900 dark:text-white">Modulul {mi + 1}</span>
+                        <span className="text-sm font-bold text-graphite">Modulul {mi + 1}</span>
                         <button
                           type="button"
                           className="text-red-600 dark:text-red-400 text-xs underline"
@@ -383,11 +383,11 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
                       
                       {m.lessons && Array.isArray(m.lessons) ? (
                         <div className="mt-3 space-y-3">
-                          <label className="block text-xs font-bold uppercase tracking-wider text-ink-500">Lecții Granulare</label>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-stone">Lecții Granulare</label>
                           {m.lessons.map((l, li) => (
                             <div key={l.id || li} className="p-3 bg-gray-100/50 dark:bg-gray-900/50 rounded-lg border border-gray-200/80 dark:border-gray-700/80 space-y-3">
                               <div className="flex items-center justify-between border-b border-gray-200/50 dark:border-gray-700/50 pb-1">
-                                <span className="text-xs font-bold text-primary-600 dark:text-primary-400">Lecția {li + 1}</span>
+                                <span className="text-xs font-bold text-gold">Lecția {li + 1}</span>
                                 <button
                                   type="button"
                                   className="text-red-600 dark:text-red-400 text-xs hover:underline"
@@ -399,7 +399,7 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
                               
                               <div className="grid grid-cols-1 gap-2">
                                 <div>
-                                  <label className="block text-[10px] font-semibold text-ink-500 mb-0.5 uppercase">Titlu Lecție</label>
+                                  <label className="block text-[10px] font-semibold text-stone mb-0.5 uppercase">Titlu Lecție</label>
                                   <input 
                                     className="w-full rounded-md border dark:border-gray-700 p-1.5 bg-white dark:bg-gray-900 text-xs" 
                                     value={l.title || ''} 
@@ -407,7 +407,7 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
                                   />
                                 </div>
                                 <div>
-                                  <label className="block text-[10px] font-semibold text-ink-500 mb-0.5 uppercase">Obiectiv de Învățare</label>
+                                  <label className="block text-[10px] font-semibold text-stone mb-0.5 uppercase">Obiectiv de Învățare</label>
                                   <textarea 
                                     className="w-full rounded-md border dark:border-gray-700 p-1.5 bg-white dark:bg-gray-900 text-xs" 
                                     value={l.learning_objective || ''} 
@@ -420,7 +420,7 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
                                   <label className="flex items-center gap-1.5 text-xs font-medium cursor-pointer">
                                     <input 
                                       type="checkbox" 
-                                      className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" 
+                                      className="rounded border-gray-300 text-gold focus:ring-gold" 
                                       checked={!!l.has_exercise} 
                                       onChange={e => onLessonFieldChange(mi, li, 'has_exercise', e.target.checked)} 
                                     />
@@ -439,7 +439,7 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
                                 </div>
 
                                 <div className="space-y-1">
-                                  <label className="block text-[10px] font-semibold text-ink-500 uppercase">Key Takeaways (Slide Bullet Points)</label>
+                                  <label className="block text-[10px] font-semibold text-stone uppercase">Key Takeaways (Slide Bullet Points)</label>
                                   {(l.key_takeaways || []).map((t, ti) => (
                                     <div key={ti} className="flex items-center gap-2">
                                       <input 
@@ -458,7 +458,7 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
                                   ))}
                                   <button 
                                     type="button" 
-                                    className="text-xs text-primary-600 dark:text-primary-400 hover:underline pt-1 font-medium" 
+                                    className="text-xs text-gold hover:underline pt-1 font-medium" 
                                     onClick={() => addTakeaway(mi, li)}
                                   >
                                     + Adaugă Takeaway
@@ -512,7 +512,7 @@ const BlueprintEditModal: React.FC<BlueprintEditModalProps> = ({ isOpen, bluepri
              </button>
           </div>
           <div className="p-4 bg-gray-50/50 dark:bg-gray-900/20 max-h-[70vh] overflow-y-auto">
-            <label className="block text-sm font-semibold mb-2 text-ink-500 uppercase tracking-wider">{t('blueprint.edit.previewLabel')}</label>
+            <label className="block text-sm font-semibold mb-2 text-stone uppercase tracking-wider">{t('blueprint.edit.previewLabel')}</label>
             <div className="space-y-4">{preview}</div>
           </div>
         </div>

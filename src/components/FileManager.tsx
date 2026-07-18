@@ -127,19 +127,19 @@ const FileManager: React.FC<FileManagerProps> = ({ courseId, onUseFile }) => {
                     htmlFor="file-upload-input"
                     className={`flex items-center justify-center gap-2 w-full px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${uploading
                         ? 'border-gray-300 bg-gray-50 cursor-not-allowed'
-                        : 'border-primary-300 hover:border-primary-500 hover:bg-primary-50 dark:border-primary-700 dark:hover:bg-primary-900/20'
+                        : 'border-hairline hover:border-gold hover:bg-paper-alt dark:border-hairline dark:hover:bg-paper-alt'
                         }`}
                 >
                     {uploading ? (
                         <>
-                            <Loader2 className="animate-spin text-primary-600" size={20} />
+                            <Loader2 className="animate-spin text-gold" size={20} />
                             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                                 {t('fileManager.uploading')}
                             </span>
                         </>
                     ) : (
                         <>
-                            <Upload className="text-primary-600" size={20} />
+                            <Upload className="text-gold" size={20} />
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 {t('fileManager.uploadButton')}
                             </span>
@@ -179,7 +179,7 @@ const FileManager: React.FC<FileManagerProps> = ({ courseId, onUseFile }) => {
                                 {onUseFile && (
                                     <button
                                         onClick={() => onUseFile(file)}
-                                        className="p-2 text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+                                        className="p-2 text-gold hover:bg-paper-alt rounded-lg transition-colors"
                                         title={t('fileManager.useInEditor')}
                                     >
                                         <ArrowRight size={16} />
