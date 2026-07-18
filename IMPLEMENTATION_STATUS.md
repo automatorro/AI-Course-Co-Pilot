@@ -16,7 +16,7 @@ Convenții:
 | Bornă | Faza | Livrabil verificabil | Status |
 |---|---|---|---|
 | M0 | F0 | Tag + status file + baseline „before" + fixture etalon | DONE (baseline SKIPPED prin decizie owner — vezi F0-T3) |
-| M1 | F1 | Cod mort șters (butoane editor, ProtagonistEnforcer, fixes/); build verde | TODO |
+| M1 | F1 | Cod mort șters (butoane editor, ProtagonistEnforcer, fixes/); build verde | ALMOST (cod șters + typecheck verde; F1-T4 smoke live așteaptă owner-ul) |
 | M2 | F2 | Test puritate lingvistică verde (EN fără RO, RO fără EN) | TODO |
 | M3 | F3 | Arhitectura de prompturi instalată: prompts/ + changelog + preambul de ton | TODO |
 | M4 | F4 | Contracte de modul valide pe etalon; **aprobate de owner** (poarta umană 1) | TODO |
@@ -43,11 +43,11 @@ Convenții:
 - **DoD F0:** M0 — tag ✔, status file ✔, rubrică ✔, golden-references ✔, fixture ✔, baseline SKIPPED (decizie owner, motiv în F0-T3); typecheck verde ✔; testul pre-existent e2e_generation vezi D-003.
 
 ### F1 — Demolare controlată (1 zi) · Risc: mic
-- **F1-T1** [TODO] Butoanele Generate/Rafinează din editor — ștergere completă conform listei din audit §7
-- **F1-T2** [TODO] `ProtagonistEnforcer` + folderul `fixes/` — șters integral; cele 5 apeluri `.enforce(...)` eliminate din `index.ts`
-- **F1-T3** [TODO] Conceptul de protagonist global — șterse: `inferProtagonistFromAudience`, `getOrCreateStoryArc`, citirile/scrierile `story_arc`, blocul `narrative` din `ModuleContext`, placeholder-ele `{{protagonist*}}`/`{{storyStage}}`. Regula P4 (personaje locale) intră în promptul de exerciții
-- **F1-T4** [TODO] Smoke: generare etalon RO; verificări: personaje distincte per exercițiu; `grep -E '[a-zăîâșț]Alex' output` → 0
-- **DoD F1:** M1 — typecheck+test verzi; grep `ProtagonistEnforcer|refineCourseContent|editorRefineButton` în src/ și supabase/ → 0
+- **F1-T1** [DONE] Butoanele Generate/Rafinează din editor — ștergere completă (commit `ecac06b`)
+- **F1-T2** [DONE] `ProtagonistEnforcer` + folderul `fixes/` — șters integral (commit `bbab569`)
+- **F1-T3** [DONE] Conceptul de protagonist global — șters: `inferProtagonistFromAudience`, `getOrCreateStoryArc`, `story_arc`, blocul `narrative` din `ModuleContext`, toate placeholder-ele; P4 (personaje locale) în EXERCISES_PROMPT (commit `85b548b`)
+- **F1-T4** [BLOCKED(owner runs smoke)] Smoke test pe etalon RO după deploy edge function; instrucțiuni în §Smoke F1 mai jos
+- **DoD F1:** M1 parțial — typecheck ✔, 12/12 teste (D-003), grep `ProtagonistEnforcer|refineCourseContent|editorRefineButton|inferProtagonistFromAudience|getOrCreateStoryArc|story_arc` în src/+supabase/ → 0 ✔. Rămâne smoke-ul live la owner.
 
 ### F2 — Fundația de localizare (2 zile) · Risc: mediu
 - **F2-T1** [TODO] `localizedLabels`: inventar complet + promptul A.4.1 + migrație `courses.localized_labels jsonb` + fallback EN static + generare la crearea cursului
@@ -120,6 +120,27 @@ Convenții:
 
 ---
 
+## Smoke F1 (instrucțiuni owner pentru F1-T4)
+
+Ștergerile F1 ating edge function-ul `generate-course-content`. Ele sunt pe branch, dar nu pe Supabase live decât după deploy. Aplicația live rulează încă versiunea veche (cu ProtagonistEnforcer + protagonist global) până când:
+
+1. **Deploy edge function.** Fie repari CI-ul din `deploy-supabase-functions.yml` (secret expirat — vezi D-005), fie faci deploy manual din clona ta locală:
+   ```
+   npx supabase functions deploy generate-course-content --project-ref <PROJECT_REF>
+   ```
+2. **Loghează-te în UI, creează cursul-etalon** cu parametrii din `src/tests/fixtures/etalonCourse.ts` (RO). Tonul rămâne un preset (Mentor/Coach/Buddy) — asta nu se schimbă până la F3-T1.
+3. **Generează complet.** Toate step-urile din STEPS_ORDER (17).
+4. **Verifică rapid:**
+   - **Personaje distincte per exercițiu.** Fiecare exercițiu ar trebui să conțină nume distincte (Maria, Andrei, Elena…), NU aceeași persoană peste tot. Deschide 2-3 exerciții și verifică.
+   - **Zero cuvinte sparte.** Caută în output-ul brut al oricărui pas expresii de tip `pozițAlexând`, `ionAlex`, `mariAlexj`. Concret: caută pattern-ul `[a-zăîâșț]Alex` — 0 apariții.
+   - **Zero „Alex" repetat 3+ ori pe același material** decât dacă utilizatorul l-a definit explicit ca protagonist în DNA.
+5. **Dacă smoke-ul trece:** îmi zici „F1 smoke OK", marchez M1 DONE, pornim F2 în sesiunea următoare.
+6. **Dacă apare regresie:** îmi zici ce vezi (paste cu output-ul problematic); rollback la commit-ul `pre-refactor-2026-07` e trivial (`git revert 85b548b bbab569 ecac06b` sau, extrem, `git reset pre-refactor-2026-07`).
+
+Notă: CI-ul `Deploy Supabase Functions` va încerca automat deploy-ul la primul push care atinge `supabase/functions/**` — F1-T3 e prima modificare de acest fel. Dacă failure-ul din 6 iulie (D-005) se repetă, e semnalul că trebuie reparat token-ul de acces înainte de F2.
+
+---
+
 ## Descoperiri
 
 Notează aici orice descoperire sau nelămurire care apare în timpul execuției, cu propunere. Owner-ul decide.
@@ -155,3 +176,4 @@ Reprodus și pe HEAD-ul curat (înainte de modificările F0), deci defectul e pr
 |---|---|---|---|
 | 2026-07-18 | S01 | F0-T1 DONE · F0-T2 DONE · F0-T3 BLOCKED · F0-T4 DONE | Plasa de siguranță instalată. Baseline așteaptă owner-ul (docs/baseline/README.md). M0 rămâne parțial până la F0-T3; F1 NU pornește în această sesiune. |
 | 2026-07-18 | S02 | F0-T3 SKIPPED (owner decision) · M0 DONE · F1 pornit | CLAUDE.md adăugat (regula: owner deploy SQL). Baseline abandonat cu motiv (rubrică absolută + UI fără câmp ton verbatim). F1 începe în această sesiune. |
+| 2026-07-18 | S02 | F1-T1 · F1-T2 · F1-T3 DONE · F1-T4 BLOCKED(owner smoke live) | Editor Generate/Refine + ProtagonistEnforcer + fixes/ + protagonist global toate șterse (commits ecac06b, bbab569, 85b548b). ~1.000 linii cod mort eliminate. Placeholder-ele `{{protagonist*}}`/`{{storyStage}}` sterilizate din toate prompturile. Regula P4 (personaje locale) intră în EXERCISES_PROMPT. Typecheck verde; teste 12/12 (D-003 pre-existent). Așteaptă deploy edge function + smoke owner. |
