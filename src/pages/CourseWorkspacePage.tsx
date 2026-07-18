@@ -817,7 +817,7 @@ const CourseWorkspacePage: React.FC = () => {
     setCourse(prev => {
       if (!prev) return null;
       const updatedSteps = (prev.steps || []).map(s =>
-        s.id === currentStep.id ? { ...s, content: processedContent, is_completed: stepUpdatePayload.is_completed ?? s.is_completed, status: 'editat' } : s
+        s.id === currentStep.id ? { ...s, content: processedContent, is_completed: stepUpdatePayload.is_completed ?? s.is_completed, status: 'editat' as const } : s
       );
       return { ...prev, steps: updatedSteps };
     });
