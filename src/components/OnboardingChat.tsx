@@ -32,14 +32,15 @@ const OnboardingChat: React.FC<OnboardingChatProps> = ({ course, onBlueprintRead
             const losRaw = (course.learning_objectives || '').trim();
             const losLines = losRaw ? losRaw.split('\n').map(s => s.trim()).filter(s => s.length > 0).slice(0, 6) : [];
             const losFormatted = losLines.length > 0 ? losLines.map(l => (l.startsWith('-') ? l : `- ${l}`)).join('\n') : '';
+            const envLabel = t(`modal.newCourse.environment.${(course.environment || '').toLowerCase()}`, { defaultValue: course.environment });
             const content = (() => {
                 if (!isEnabled('localizedChat')) {
-                    return `Hello! I'm your CourseCopilot. I see you want to create a **${course.environment}** course on **"${course.title}"**.\n\nTo build the perfect structure for you, I need to know a bit more.\n\n**What is the main goal you want your participants to achieve by the end of this course?**`;
+                    return `Hello! I'm your CourseCopilot. I see you want to create a **${envLabel}** course on **"${course.title}"**.\n\nTo build the perfect structure for you, I need to know a bit more.\n\n**What is the main goal you want your participants to achieve by the end of this course?**`;
                 }
                 if (losFormatted && isEnabled('adaptiveGreeting')) {
-                    return t('chat.onboarding.greetWithObj', { env: course.environment, title: course.title, los: losFormatted });
+                    return t('chat.onboarding.greetWithObj', { env: envLabel, title: course.title, los: losFormatted });
                 }
-                return t('chat.onboarding.greetNoObj', { env: course.environment, title: course.title });
+                return t('chat.onboarding.greetNoObj', { env: envLabel, title: course.title });
             })();
             const initialMessage: AIMessage = {
                 role: 'assistant',
