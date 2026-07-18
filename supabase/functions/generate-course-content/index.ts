@@ -1199,12 +1199,6 @@ interface ModuleContext {
     coreIdea: string;
     keyTerms: string[];
   }>;
-  narrative: {
-    protagonistName: string;
-    protagonistRole: string;
-    storyStageForThisModule: string;
-    coreProblemInThisModule: string;
-  };
   macroPosition: {
     isFirstModule: boolean;
     isLastModule: boolean;
@@ -1328,7 +1322,6 @@ function isValidModuleContext(data: any): data is ModuleContext {
   if (data.contextVersion !== 'v4.0') return false;
   if (!data.moduleId || !data.moduleTitle) return false;
   if (!Array.isArray(data.keyConcepts) || data.keyConcepts.length === 0) return false;
-  if (!data.narrative || !data.narrative.protagonistName) return false;
   if (!data.macroPosition) return false;
   if (!Array.isArray(data.timingPlan) || data.timingPlan.length === 0) return false;
   return true;
@@ -1434,9 +1427,6 @@ The ModuleContext is a STRUCTURAL BLUEPRINT — it defines *what* the module cov
 ### KNOWLEDGE BASE
 {{knowledgeBase}}
 
-### STORY ARC FOR THIS MODULE
-{{storyStage}}
-
 ---
 ### TASK
 Generate a ModuleContext JSON with this EXACT schema (output ONLY valid JSON, no markdown fences, no explanation):
@@ -1458,12 +1448,6 @@ Generate a ModuleContext JSON with this EXACT schema (output ONLY valid JSON, no
       "keyTerms": ["term1", "term2"]
     }
   ],
-  "narrative": {
-    "protagonistName": "{{protagonistName}}",
-    "protagonistRole": "[role in {{language}}]",
-    "storyStageForThisModule": "[emotional/professional state of protagonist in this module, in {{language}}]",
-    "coreProblemInThisModule": "[specific concrete challenge this module solves, in {{language}}]"
-  },
   "macroPosition": {
     "isFirstModule": false,
     "isLastModule": false,
@@ -1484,8 +1468,7 @@ Generate a ModuleContext JSON with this EXACT schema (output ONLY valid JSON, no
 2. ALL string content MUST be in **{{language}}**.
 3. timingPlan durations MUST sum to exactly {{durationMinutes}} minutes.
 4. keyConcepts must cover the most important skills/knowledge for this specific module.
-5. narrative.coreProblemInThisModule must be concrete and specific (e.g. "Sales reps lose deals because they present features before understanding client pain points" not "participants need to learn sales").
-6. Include 3-6 keyConcepts covering all key topics of the module.
+5. Include 3-6 keyConcepts covering all key topics of the module.
 `;
 
 /**
@@ -1501,9 +1484,6 @@ This document is used directly by participants during the training. Make it comp
 - Environment: {{environment}}
 - Language: {{language}}
 - Audience: {{targetAudience}}
-- Protagonist: {{protagonistName}} ({{protagonistRole}})
-- Story Arc: {{storyStage}}
-- Core Problem This Module Solves: {{coreProblem}}
 
 ### KEY CONCEPTS
 {{keyConcepts}}
@@ -1545,13 +1525,13 @@ Format: \`## [Section Type Icon] [Section Title] ([Duration] min)\`
 #### 3. Core Theory (600-800 words per concept, ACTION-FIRST)
 - Start with WHAT TO DO, not what to know
 - Present a named model or framework (e.g., "The 3-Step ANCHOR Method")
-- Use {{protagonistName}} in at least one inline example
+- Anchor every key point with one worked example drawn from the audience's world
 - Avoid passive voice and pure definitions
 - Structure: concept → how it works → why it matters → what happens without it
 
 #### 4. Real Story / Case Study (200+ words)
-Feature {{protagonistName}} as the protagonist. Use this structure:
-> **Povestea lui/ei {{protagonistName}}:** [Context: who, where, what challenge]
+Invent a character with a realistic name for the {{language}} culture (they exist only in this story — no shared protagonist across the workbook). Use this structure:
+> **Context:** [who they are, where, what challenge]
 > [The mistake or wrong approach they tried first and why it failed]
 > [The moment they applied the concept from this section]
 > **Rezultat:** [Specific, concrete positive outcome with numbers/dialogue if possible]
@@ -1581,7 +1561,7 @@ Format:
 - [ ] [Criterion 3]
 ---
 \`\`\`
-IMPORTANT: Use realistic SCENARIO-BASED exercises. Never ask "What is X?". Ask "{{protagonistName}} is facing Y. What do you do?"
+IMPORTANT: Use realistic SCENARIO-BASED exercises. Never ask "What is X?". Frame the prompt around a locally-named character facing a concrete situation, and ask "What do you do?"
 
 #### 6. Key Takeaways (3-5 items)
 Format as blockquotes:
@@ -1615,9 +1595,6 @@ This is the trainer's bible — complete, actionable, and containing everything 
 - Environment: {{environment}}
 - Language: {{language}}
 - Audience: {{targetAudience}}
-- Protagonist: {{protagonistName}} ({{protagonistRole}})
-- Story Arc: {{storyStage}}
-- Core Problem This Module Solves: {{coreProblem}}
 
 ### LESSON COVERAGE (Granular IDs for change-tracking)
 {{lessonCoverage}}
@@ -1732,8 +1709,6 @@ You are an expert Instructional Designer creating **PRESENTATION SLIDES** for a 
 - Environment: {{environment}}
 - Language: {{language}}
 - Audience: {{targetAudience}}
-- Protagonist: {{protagonistName}}
-- Core Problem: {{coreProblem}}
 
 ### KEY CONCEPTS
 {{keyConcepts}}
@@ -1766,7 +1741,7 @@ You are an expert Instructional Designer creating **PRESENTATION SLIDES** for a 
 5. **SPEAKER NOTES**: FULL VERBATIM SCRIPT, 100-150 words per slide minimum. Include:
    - How to open this slide (hook question or statement)
    - Full explanation of the content
-   - Connection to {{protagonistName}}'s story where relevant
+   - A concrete audience-relevant example (invent local characters as needed — they exist only inside the slide)
    - Interaction cue (question, show of hands, "type in chat" for online)
 6. **FLOW**: Narrative arc across slides — Hook → Concept → Framework → Story → Application → Recap
 
@@ -1815,7 +1790,6 @@ These are standalone handouts — complete, practical, usable without the workbo
 - Environment: {{environment}}
 - Language: {{language}}
 - Audience: {{targetAudience}}
-- Protagonist: {{protagonistName}} ({{protagonistRole}})
 
 ### KEY CONCEPTS
 {{keyConcepts}}
@@ -1882,7 +1856,7 @@ These are standalone handouts — complete, practical, usable without the workbo
 
 ### CRITICAL RULES
 1. **SCENARIO-BASED**: Never ask "What is X?" — always use realistic scenarios from {{targetAudience}} context
-2. **SPECIFICITY**: Use {{protagonistName}}'s world for all scenarios
+2. **LOCAL CHARACTERS**: For every exercise, invent the characters you need with distinct, realistic names appropriate for the {{language}} culture. Give each character a concrete role, stake, and tension that makes the dilemma unavoidable. Characters exist ONLY inside this exercise — never carry names across exercises. Do NOT reuse a single "protagonist"; every scenario has its own cast.
 3. **LANGUAGE**: ALL content in **{{language}}**
 4. **ENVIRONMENT**: {{envRules}}
 5. **REAL WORKSPACES**: Tables and checkboxes must be ACTUAL Markdown, not placeholder text
@@ -1903,7 +1877,6 @@ These scripts are used directly for video production — complete, professional,
 - Module: {{moduleTitle}} ({{durationMinutes}} min)
 - Language: {{language}}
 - Audience: {{targetAudience}}
-- Protagonist: {{protagonistName}}
 - Tone: {{voiceProfile}}
 
 ### KEY CONCEPTS
@@ -1936,14 +1909,14 @@ These scripts are used directly for video production — complete, professional,
 "[Clear explanation of the concept — action-first, not definition-first]
 [Key insight: 'Cei mai mulți oameni cred că X. Dar în realitate, Y.']
 [Named model or framework with 3 steps]
-[Example from {{protagonistName}}'s world, told as a story]"
+[Example told as a short story, using a character invented for this scene with a realistic name for {{language}} culture]"
 
 ---
 ### [SCENĂ 3: DEMONSTRAȚIE / EXEMPLU] (~N min)
 **(Vizual: [Screen recording / Split screen / B-Roll footage description])**
 
 "[Walk through a concrete before/after example]
-[Use {{protagonistName}} as the story protagonist]
+[Invent a character with a realistic name for {{language}} culture; they exist only in this scene]
 [Compare old approach vs. new approach with specific outcomes]"
 
 ---
@@ -2345,8 +2318,6 @@ const renderManualSection = (section: GoldenSection, protagonistName: string, la
 function buildFallbackModuleContext(
   course: Course,
   moduleData: any,
-  protagonistName: string,
-  storyStage: string
 ): ModuleContext {
   const modules = (course.blueprint && Array.isArray(course.blueprint.modules)) ? course.blueprint.modules : [];
   const moduleIndex = moduleData.module_index ?? 0;
@@ -2368,12 +2339,6 @@ function buildFallbackModuleContext(
       coreIdea: `Core concepts for ${moduleData.title}`,
       keyTerms: [],
     }],
-    narrative: {
-      protagonistName,
-      protagonistRole: course.dna?.narrativeUniverse?.protagonists?.[0]?.role || 'Professional',
-      storyStageForThisModule: storyStage,
-      coreProblemInThisModule: `Key challenge addressed in ${moduleData.title}`,
-    },
     macroPosition: {
       isFirstModule: moduleIndex === 0,
       isLastModule: moduleIndex === modules.length - 1,
@@ -2395,8 +2360,6 @@ async function generateModuleContext(
   supabase: any,
   course: Course,
   moduleData: any,
-  protagonistName: string,
-  storyStage: string
 ): Promise<ModuleContext> {
   const lang = course.language || 'ro';
   const dna = buildDNABlocks(course);
@@ -2439,8 +2402,6 @@ async function generateModuleContext(
     domainContext: dna.domainContextBlock,
     macroContext,
     knowledgeBase,
-    storyStage,
-    protagonistName,
     moduleId: moduleData.id,
   });
 
@@ -2455,7 +2416,7 @@ async function generateModuleContext(
     return ctx;
   } catch (e: any) {
     Logger.error('Failed to generate ModuleContext, using fallback.', e);
-    return buildFallbackModuleContext(course, moduleData, protagonistName, storyStage);
+    return buildFallbackModuleContext(course, moduleData);
   }
 }
 
@@ -2605,10 +2566,6 @@ async function generateWorkbookContent(course: Course, ctx: ModuleContext, dna: 
     environment: ctx.environment,
     language: lang,
     targetAudience: ctx.targetAudience,
-    protagonistName: ctx.narrative.protagonistName,
-    protagonistRole: ctx.narrative.protagonistRole,
-    storyStage: ctx.narrative.storyStageForThisModule,
-    coreProblem: ctx.narrative.coreProblemInThisModule,
     keyConcepts: formatKeyConcepts(ctx),
     timingPlan: formatTimingPlan(ctx),
     styleBlock: getStyleBlock(course.target_audience || ''),
@@ -2625,7 +2582,7 @@ async function generateWorkbookContent(course: Course, ctx: ModuleContext, dna: 
   });
 
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
-  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+  return result;
 }
 
 /** Generate facilitator/trainer manual markdown for a module */
@@ -2672,10 +2629,6 @@ async function generateManualContent(
     environment: ctx.environment,
     language: lang,
     targetAudience: ctx.targetAudience,
-    protagonistName: ctx.narrative.protagonistName,
-    protagonistRole: ctx.narrative.protagonistRole,
-    storyStage: ctx.narrative.storyStageForThisModule,
-    coreProblem: ctx.narrative.coreProblemInThisModule,
     lessonCoverage,
     keyConcepts: formatKeyConcepts(ctx),
     timingPlan: formatTimingPlan(ctx),
@@ -2688,7 +2641,7 @@ async function generateManualContent(
   });
 
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
-  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+  return result;
 }
 
 /** Generate presentation slides XML for a module */
@@ -2728,8 +2681,6 @@ async function generateSlidesContent(course: Course, ctx: ModuleContext, dna: DN
     environment: ctx.environment,
     language: lang,
     targetAudience: ctx.targetAudience,
-    protagonistName: ctx.narrative.protagonistName,
-    coreProblem: ctx.narrative.coreProblemInThisModule,
     keyConcepts: formatKeyConcepts(ctx),
     timingPlan: formatTimingPlan(ctx),
     styleBlock: getStyleBlock(course.target_audience || ''),
@@ -2742,7 +2693,7 @@ async function generateSlidesContent(course: Course, ctx: ModuleContext, dna: DN
   });
 
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
-  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+  return result;
 }
 
 /** Generate exercise sheets markdown for a module */
@@ -2760,8 +2711,6 @@ async function generateExercisesContent(course: Course, ctx: ModuleContext, dna:
     environment: ctx.environment,
     language: lang,
     targetAudience: ctx.targetAudience,
-    protagonistName: ctx.narrative.protagonistName,
-    protagonistRole: ctx.narrative.protagonistRole,
     keyConcepts: formatKeyConcepts(ctx),
     timingPlan: formatTimingPlan(ctx),
     depthSpecs: specsObj.exercises,
@@ -2772,7 +2721,7 @@ async function generateExercisesContent(course: Course, ctx: ModuleContext, dna:
   });
 
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
-  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+  return result;
 }
 
 /** Generate video scripts markdown for an online module */
@@ -2784,14 +2733,13 @@ async function generateVideoScriptContent(course: Course, ctx: ModuleContext, dn
     durationMinutes: ctx.moduleDurationMinutes,
     language: lang,
     targetAudience: ctx.targetAudience,
-    protagonistName: ctx.narrative.protagonistName,
     voiceProfile: dna.voiceProfileBlock,
     keyConcepts: formatKeyConcepts(ctx),
     timingPlan: formatTimingPlan(ctx),
   });
 
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
-  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+  return result;
 }
 
 /** Granular Lesson Content Generator (Single Source of Generation) */
@@ -2826,23 +2774,8 @@ async function generateLessonContent(supabase: any, lessonId: string, stepType: 
     environment
   };
 
-  // 3. Resolve protagonist & DNA
-  let protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name as string | undefined;
-  if (!protagonistName || String(protagonistName).trim().length === 0) {
-    const inferred = inferProtagonistFromAudience(course.target_audience || '', course.language || 'ro');
-    protagonistName = inferred?.name || 'Alex';
-  }
+  // 3. Build DNA blocks
   const dna = buildDNABlocks(course);
-
-  // 4. Get story stage
-  const { data: moduleData } = await supabase
-    .from('course_modules')
-    .select('module_index')
-    .eq('id', lesson.module_id)
-    .single();
-  const moduleIndex = moduleData?.module_index ?? 0;
-  const storyArc = await getOrCreateStoryArc(supabase, course, moduleIndex);
-  const storyStage = storyArc[lesson.module_id] || storyArc[String(moduleIndex)] || 'Protagonist applies the concepts from this lesson.';
 
   // 5. Construct LessonContext (Fake ModuleContext but focused on this lesson)
   const lang = course.language || 'ro';
@@ -2871,12 +2804,6 @@ async function generateLessonContent(supabase: any, lessonId: string, stepType: 
     language: lang,
     targetAudience: course.target_audience || 'General',
     keyConcepts,
-    narrative: {
-      protagonistName,
-      protagonistRole: course.dna?.narrativeUniverse?.protagonists?.[0]?.role || 'Learner',
-      storyStageForThisModule: storyStage,
-      coreProblemInThisModule: lesson.learning_objective || ''
-    },
     macroPosition: {
       isFirstModule: false,
       isLastModule: false,
@@ -2929,18 +2856,18 @@ async function generateExamplesContent(course: Course, ctx: ModuleContext, dna: 
   const prompt = `
 **TASK**: Write 3-5 detailed stories/examples for the training module "${ctx.moduleTitle}".
 **LANGUAGE**: ${lang}
-**PROTAGONIST**: ${ctx.narrative.protagonistName} (${ctx.narrative.protagonistRole})
 **AUDIENCE**: ${ctx.targetAudience}
-**CORE PROBLEM**: ${ctx.narrative.coreProblemInThisModule}
 
 **KEY CONCEPTS**:
 ${formatKeyConcepts(ctx)}
 
-For each story, use this format:
+For each story, invent one or two characters with distinct, realistic names appropriate for ${lang} culture. Characters exist only inside their story — no shared protagonist across stories.
+
+Use this format:
 ## Exemplu: [Title]
 **Când se folosește:** [applicationContext]
 
-"[Full story: Context → Problem → Action → Result. Minimum 150 words each. Feature ${ctx.narrative.protagonistName} as protagonist.]"
+"[Full story: Context → Problem → Action → Result. Minimum 150 words each. Use the invented character as protagonist.]"
 
 ---
 
@@ -2948,7 +2875,7 @@ Write ALL in **${lang}**. No preamble.
 `;
   // Skip AI validation for examples generation to prevent Gateway Timeout (504)
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
-  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+  return result;
 }
 
 // ==========================================
@@ -2970,7 +2897,6 @@ interface Course {
   blueprint?: any;
   learning_objectives?: string;
   dna?: any;
-  story_arc?: Record<string, string>;
   macro_plan?: {
     macroBlocks: Array<{
       type: 'INTRO' | 'CONTENT_BLOCK' | 'BREAK' | 'WRAP_UP';
@@ -3356,10 +3282,6 @@ OUTPUT JSON ONLY. No markdown, no explanation.`;
         courseModules = refetched;
       }
 
-      // Ensure Story Arc is pre-generated to avoid race conditions in parallel executions
-      const storyArc = await getOrCreateStoryArc(supabase, course);
-      course.story_arc = storyArc;
-
       const promises = courseModules.map((m) => handleGoldenStep(supabase, course, m.id, step_type));
       const parts = await Promise.all(promises);
 
@@ -3442,70 +3364,6 @@ function hasMinimalCourseDNA(course: Course): boolean {
   }
 
   return true;
-}
-
-function inferProtagonistFromAudience(audienceDescription: string, language: string): { name: string; role: string } | null {
-  const desc = (audienceDescription || '').toLowerCase();
-  const lang = (language || '').toLowerCase();
-  const isRo = lang.startsWith('ro') || lang.includes('roman');
-
-  if (!desc) return null;
-
-  // Operational / blue collar
-  if (
-    desc.includes('muncitor') ||
-    desc.includes('linie de produc') ||
-    desc.includes('depozit') ||
-    desc.includes('factory') ||
-    desc.includes('blue collar') ||
-    desc.includes('operator')
-  ) {
-    return isRo
-      ? { name: 'Marcela', role: 'operator în producție' }
-      : { name: 'Marco', role: 'factory operator' };
-  }
-
-  // Sales / call center
-  if (
-    desc.includes('vânz') ||
-    desc.includes('vanz') ||
-    desc.includes('sales') ||
-    desc.includes('account manager') ||
-    desc.includes('call center') ||
-    desc.includes('customer support') ||
-    desc.includes('customer service')
-  ) {
-    return isRo
-      ? { name: 'Andreea', role: 'manager de vânzări' }
-      : { name: 'Andrea', role: 'sales manager' };
-  }
-
-  // Middle management
-  if (
-    desc.includes('manager') ||
-    desc.includes('team leader') ||
-    desc.includes('supervisor') ||
-    desc.includes('middle management')
-  ) {
-    return isRo
-      ? { name: 'Raluca', role: 'manager de echipă' }
-      : { name: 'Alex', role: 'team lead' };
-  }
-
-  // Technical roles
-  if (
-    desc.includes('developer') ||
-    desc.includes('inginer') ||
-    desc.includes('engineer') ||
-    desc.includes('it') ||
-    desc.includes('programator')
-  ) {
-    return isRo
-      ? { name: 'Cătălin', role: 'inginer software' }
-      : { name: 'Chris', role: 'software engineer' };
-  }
-
-  return null;
 }
 
 function buildMandatoryContext(course: Course): string {
@@ -3650,39 +3508,7 @@ async function handleGoldenStep(
     });
   }
 
-  // Step 1: Resolve protagonist name (from DNA or infer from audience)
-  let protagonistName = course.dna?.narrativeUniverse?.protagonists?.[0]?.name as string | undefined;
-  if (!protagonistName || String(protagonistName).trim().length === 0) {
-    const inferred = inferProtagonistFromAudience(course.target_audience || '', course.language || 'ro');
-    if (inferred) {
-      protagonistName = inferred.name;
-      // Persist inferred protagonist to DNA so future modules are consistent
-      try {
-        const currentDna: any = course.dna || {};
-        const protagonists = currentDna.narrativeUniverse?.protagonists || [];
-        const updatedDna = {
-          ...currentDna,
-          narrativeUniverse: {
-            ...(currentDna.narrativeUniverse || {}),
-            protagonists: protagonists.length > 0
-              ? [{ ...protagonists[0], name: inferred.name, role: inferred.role || protagonists[0].role || '' }, ...protagonists.slice(1)]
-              : [{ name: inferred.name, role: inferred.role, personality: '', arc: '' }]
-          }
-        };
-        await supabase.from('courses').update({ dna: updatedDna }).eq('id', course.id);
-        course.dna = updatedDna;
-      } catch (e) {
-        Logger.warn('[GoldenStep] Failed to persist inferred protagonist.', e);
-      }
-    }
-  }
-  if (!protagonistName || String(protagonistName).trim().length === 0) protagonistName = 'Alex';
-
-  // Step 2: Get story arc stage for this module
-  const storyArc = await getOrCreateStoryArc(supabase, course, moduleData.module_index);
-  const storyStage = storyArc[module_id] || storyArc[String(moduleData.module_index)] || 'Protagonist applies the concepts from this module.';
-
-  // Step 3: Get or generate ModuleContext (lightweight structural blueprint, cached in content_data)
+  // Step 1: Get or generate ModuleContext (lightweight structural blueprint, cached in content_data)
   const isDirty = (moduleData as any).is_dirty === true;
   let moduleContext: ModuleContext | null = isValidModuleContext(moduleData.content_data)
     ? moduleData.content_data
@@ -3690,7 +3516,7 @@ async function handleGoldenStep(
 
   if (!moduleContext || isDirty) {
     Logger.info(`[GoldenStep] ${isDirty ? 'Dirty flag set' : 'No valid ModuleContext'}. Generating for module: ${moduleData.title}`);
-    moduleContext = await generateModuleContext(supabase, course, moduleData, protagonistName, storyStage);
+    moduleContext = await generateModuleContext(supabase, course, moduleData);
     await supabase
       .from('course_modules')
       .update({ content_data: moduleContext, is_dirty: false })
@@ -3785,72 +3611,6 @@ async function handleGoldenStep(
     default:
       Logger.warn(`[GoldenStep] Unknown step_type '${step_type}', falling back to workbook.`);
       return generateWorkbookContent(course, moduleContext, dna);
-  }
-}
-
-async function getOrCreateStoryArc(supabase: any, course: Course, moduleIndex?: number): Promise<Record<string, string>> {
-  if (course.story_arc && Object.keys(course.story_arc).length > 0) {
-    return course.story_arc;
-  }
-
-  Logger.info(`Generating Story Arc for Course: ${course.title}`);
-
-  const protagonist = course.dna?.narrativeUniverse?.protagonists?.[0];
-  const name = protagonist?.name || "The Participant";
-  const role = protagonist?.role || "Learner";
-  const challenge = protagonist?.initial_state || "Beginner";
-
-  const prompt = `
-    **TASK**: Create a Narrative Arc for a course protagonist.
-    **COURSE**: "${course.title}" (${course.target_audience})
-    **PROTAGONIST**: ${name} (${role}), starting as "${challenge}".
-    **GOAL**: Define the emotional/professional state of the protagonist for each module (1 to 10).
-    **OUTPUT**: JSON { "1": "Initial confusion...", "2": "First small win...", ... }
-    **LANGUAGE**: ${course.language}.
-    Return ONLY JSON.
-  `;
-
-  try {
-    const rawJson = await callLLM(prompt, course.language || 'ro');
-    const storyArc = repairAndParseJson<Record<string, string>>(rawJson);
-
-    await supabase
-      .from('courses')
-      .update({ story_arc: storyArc })
-      .eq('id', course.id);
-
-    return storyArc;
-  } catch (e) {
-    Logger.error("Failed to generate Story Arc, using default.", e);
-    const lang = (course.language || '').toLowerCase();
-    try {
-      const fallbackPrompt = `
-        **TASK**: Create a default Narrative Arc for a generic course participant.
-        **COURSE TITLE**: "${course.title}"
-        **LANGUAGE**: ${course.language || "English"}
-        **GOAL**: Define the emotional/professional state of the participant for 8 modules.
-        **OUTPUT**: JSON { "1": "...", "2": "...", "3": "...", "4": "...", "5": "...", "6": "...", "7": "...", "8": "..." }
-        Return ONLY JSON in the specified language.
-      `;
-      const rawFallback = await callLLM(fallbackPrompt, course.language || 'ro');
-      const arc = repairAndParseJson<Record<string, string>>(rawFallback);
-      return arc;
-    } catch (e2) {
-      Logger.error("Fallback Story Arc generation also failed. Using static map.", e2);
-    }
-    
-    // Final fallback if all LLM calls fail. Return English (system default).
-    // The consuming prompts will handle translation/adaptation if necessary.
-    return {
-      "1": "Enthusiastic but overwhelmed by the new concepts.",
-      "2": "Encountering the first major obstacle.",
-      "3": "Beginning to understand the core logic.",
-      "4": "Attempting to apply the knowledge, making mistakes.",
-      "5": "Achieving the first small win.",
-      "6": "Gaining confidence and flow.",
-      "7": "Mastering the nuances.",
-      "8": "Fully competent and ready to teach others."
-    };
   }
 }
 
@@ -5046,58 +4806,6 @@ function fillPromptTemplate(template: string, variables: Record<string, any>): s
     output = output.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
   }
   return output;
-}
-
-// ==========================================
-// 8. PROTAGONIST ENFORCER (CRITICAL FIX)
-// ==========================================
-
-class ProtagonistEnforcer {
-  private static DEFAULT_BANNED_NAMES = [
-    'ion', 'maria', 'ana', 'bogdan', 'vasile', 'elena', 
-    'andrei', 'mihai', 'alexandru', 'ioana', 'george'
-  ];
-
-  private static getEffectiveBannedNames(override?: string[]): string[] {
-    const normalizedOverride = (override || [])
-      .map(name => String(name || '').trim().toLowerCase())
-      .filter(name => name.length > 0);
-
-    if (normalizedOverride.length > 0) {
-      return normalizedOverride;
-    }
-
-    return this.DEFAULT_BANNED_NAMES;
-  }
-
-  static enforce(content: string, protagonistName: string, bannedNamesOverride?: string[]): string {
-    const lowerProtagonist = protagonistName.toLowerCase();
-    const bannedNames = this.getEffectiveBannedNames(bannedNamesOverride);
-    
-    // Find and replace banned names
-    let fixedContent = content;
-    let modified = false;
-
-    bannedNames.forEach(bannedName => {
-      // Don't ban the protagonist if their name happens to be in the banned list
-      if (bannedName === lowerProtagonist) return;
-
-      // Regex to find whole words, case insensitive
-      const regex = new RegExp(`\\b${bannedName}\\b`, 'gi');
-      
-      if (regex.test(fixedContent)) {
-        Logger.warn(`[ProtagonistEnforcer] Found banned name: ${bannedName}. Replacing with ${protagonistName}.`);
-        fixedContent = fixedContent.replace(regex, protagonistName);
-        modified = true;
-      }
-    });
-
-    if (modified) {
-        Logger.info(`[ProtagonistEnforcer] Content auto-corrected.`);
-    }
-
-    return fixedContent;
-  }
 }
 
 // ==========================================
