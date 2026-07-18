@@ -2625,7 +2625,7 @@ async function generateWorkbookContent(course: Course, ctx: ModuleContext, dna: 
   });
 
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
-  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+  return result;
 }
 
 /** Generate facilitator/trainer manual markdown for a module */
@@ -2688,7 +2688,7 @@ async function generateManualContent(
   });
 
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
-  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+  return result;
 }
 
 /** Generate presentation slides XML for a module */
@@ -2742,7 +2742,7 @@ async function generateSlidesContent(course: Course, ctx: ModuleContext, dna: DN
   });
 
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
-  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+  return result;
 }
 
 /** Generate exercise sheets markdown for a module */
@@ -2772,7 +2772,7 @@ async function generateExercisesContent(course: Course, ctx: ModuleContext, dna:
   });
 
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
-  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+  return result;
 }
 
 /** Generate video scripts markdown for an online module */
@@ -2791,7 +2791,7 @@ async function generateVideoScriptContent(course: Course, ctx: ModuleContext, dn
   });
 
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
-  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+  return result;
 }
 
 /** Granular Lesson Content Generator (Single Source of Generation) */
@@ -2948,7 +2948,7 @@ Write ALL in **${lang}**. No preamble.
 `;
   // Skip AI validation for examples generation to prevent Gateway Timeout (504)
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
-  return ProtagonistEnforcer.enforce(result, ctx.narrative.protagonistName);
+  return result;
 }
 
 // ==========================================
@@ -5046,58 +5046,6 @@ function fillPromptTemplate(template: string, variables: Record<string, any>): s
     output = output.replace(new RegExp(`{{${key}}}`, 'g'), String(value));
   }
   return output;
-}
-
-// ==========================================
-// 8. PROTAGONIST ENFORCER (CRITICAL FIX)
-// ==========================================
-
-class ProtagonistEnforcer {
-  private static DEFAULT_BANNED_NAMES = [
-    'ion', 'maria', 'ana', 'bogdan', 'vasile', 'elena', 
-    'andrei', 'mihai', 'alexandru', 'ioana', 'george'
-  ];
-
-  private static getEffectiveBannedNames(override?: string[]): string[] {
-    const normalizedOverride = (override || [])
-      .map(name => String(name || '').trim().toLowerCase())
-      .filter(name => name.length > 0);
-
-    if (normalizedOverride.length > 0) {
-      return normalizedOverride;
-    }
-
-    return this.DEFAULT_BANNED_NAMES;
-  }
-
-  static enforce(content: string, protagonistName: string, bannedNamesOverride?: string[]): string {
-    const lowerProtagonist = protagonistName.toLowerCase();
-    const bannedNames = this.getEffectiveBannedNames(bannedNamesOverride);
-    
-    // Find and replace banned names
-    let fixedContent = content;
-    let modified = false;
-
-    bannedNames.forEach(bannedName => {
-      // Don't ban the protagonist if their name happens to be in the banned list
-      if (bannedName === lowerProtagonist) return;
-
-      // Regex to find whole words, case insensitive
-      const regex = new RegExp(`\\b${bannedName}\\b`, 'gi');
-      
-      if (regex.test(fixedContent)) {
-        Logger.warn(`[ProtagonistEnforcer] Found banned name: ${bannedName}. Replacing with ${protagonistName}.`);
-        fixedContent = fixedContent.replace(regex, protagonistName);
-        modified = true;
-      }
-    });
-
-    if (modified) {
-        Logger.info(`[ProtagonistEnforcer] Content auto-corrected.`);
-    }
-
-    return fixedContent;
-  }
 }
 
 // ==========================================
