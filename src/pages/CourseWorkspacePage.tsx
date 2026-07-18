@@ -9,10 +9,9 @@ import { Course, CourseStep, CourseBlueprint } from '../types';
 import { htmlToMarkdownWithComments, updateSlideInMarkdown, updateSlideLayoutInMarkdown } from '../services/markdownUpdater';
 import { SlideState } from '../types/slideState';
 
-import { refineCourseContent } from '../services/geminiService';
 import { syncCourseModulesWithBlueprint } from '../services/courseService';
 import { supabase } from '../services/supabaseClient';
-import { CheckCircle, Circle, Loader2, Sparkles, Wand, DownloadCloud, Save, Lightbulb, Pilcrow, Combine, BookOpen, ChevronRight, X, ArrowLeft, ArrowRight, Upload, Replace, History, PanelLeft, Eye, Layout } from 'lucide-react';
+import { CheckCircle, Circle, Loader2, Sparkles, DownloadCloud, Save, BookOpen, ChevronRight, X, ArrowLeft, ArrowRight, Upload, Replace, History, PanelLeft, Eye, Layout } from 'lucide-react';
 import BlueprintEditModal from '../components/BlueprintEditModal';
 import BlueprintRefineModal from '../components/BlueprintRefineModal';
 import { exportCourseAsZip, exportCourseAsPptx, exportCourseAsPdf, formatToCanonicalSlides } from '../services/exportService';
@@ -22,7 +21,6 @@ import VisualOrchestrator from '../components/VisualOrchestrator';
 import { detectNonLocalizedFragments, compareModuleTitlesText, extractModuleDurations } from '../lib/outputValidators';
 import { replaceBlobUrlsWithPublic, uploadBlobToStorage } from '../services/imageService';
 import { useToast } from '../contexts/ToastContext';
-import ReviewChangesModal from '../components/ReviewChangesModal';
 import ImageStudioModal from '../components/ImageStudioModal';
 
 import MarkdownPreview from '../components/MarkdownPreview';
@@ -158,8 +156,6 @@ const CourseWorkspacePage: React.FC = () => {
     }
   }, [id]);
 
-  const [isGenerating] = useState(false);
-  const [isProposingChanges, setIsProposingChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDownloading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -173,13 +169,7 @@ const CourseWorkspacePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
   const [editorRefreshTick, setEditorRefreshTick] = useState(0);
-  const [isAiActionsOpen, setIsAiActionsOpen] = useState(false);
-  const [selectedText, setSelectedText] = useState('');
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
-  const [proposedContent, setProposedContent] = useState<string | null>(null);
-  const [originalForProposal, setOriginalForProposal] = useState<string | null>(null);
-
-  const [localRefinements, setLocalRefinements] = useState<Record<string, boolean>>({});
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showImageStudio, setShowImageStudio] = useState(false);
@@ -287,9 +277,6 @@ const CourseWorkspacePage: React.FC = () => {
   // const [importError, setImportError] = useState<string | null>(null);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const selectionRef = useRef<{ start: number, end: number }>({ start: 0, end: 0 });
-  const aiActionsDesktopRef = useRef<HTMLDivElement>(null);
-  const aiActionsMobileRef = useRef<HTMLDivElement>(null);
 
   // ... (lines 133-728)
 
@@ -434,19 +421,6 @@ const CourseWorkspacePage: React.FC = () => {
   }, [user]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const targetNode = event.target as Node;
-      const insideDesktop = aiActionsDesktopRef.current ? aiActionsDesktopRef.current.contains(targetNode) : false;
-      const insideMobile = aiActionsMobileRef.current ? aiActionsMobileRef.current.contains(targetNode) : false;
-      if (!insideDesktop && !insideMobile) {
-        setIsAiActionsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
     void handleFormat;
     void handleSubmitLink;
     void handleSubmitImage;
@@ -554,12 +528,6 @@ const CourseWorkspacePage: React.FC = () => {
     : safeMarkedParse(originalContentForStep || '', { breaks: true });
   const hasUnsavedChanges = editedContent !== originalHtml;
 
-  const handleGenerate = useCallback(async () => {
-    if (!course) return;
-    // New Flow: Open the Generation Modal
-    setShowGenerationModal(true);
-  }, [course]);
-
   const handleGenerationComplete = async () => {
     setShowGenerationModal(false);
     showToast('Course materials generated successfully!', 'success');
@@ -597,89 +565,6 @@ const CourseWorkspacePage: React.FC = () => {
     }, 7000);
     return () => clearInterval(interval);
   }, [course, activeStepIndex, editedContent]);
-
-  const handleAiAction = async (actionType: 'simplify' | 'expand' | 'example') => {
-    if (!course || !course.steps) return;
-    setIsAiActionsOpen(false);
-    setIsProposingChanges(true);
-    showToast('Rafinare în curs...', 'info');
-
-    try {
-      const currentStep = course.steps[activeStepIndex];
-      const isHtml = /<[a-z][\s\S]*>/i.test(editedContent || '');
-      let payloadMd: string;
-      try {
-        if (isHtml) {
-          const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
-          payloadMd = turndown.turndown(editedContent);
-        } else {
-          payloadMd = editedContent;
-        }
-      } catch {
-        payloadMd = isHtml ? htmlToSimpleMarkdown(editedContent || '') : (editedContent || '');
-      }
-
-      if (!payloadMd || payloadMd.trim().length === 0) {
-        throw new Error('Selectează text sau adaugă conținut pentru rafinare.');
-      }
-
-      if (!selectedText || !selectedText.trim()) {
-        throw new Error('Selectează un fragment de text pentru rafinare.');
-      }
-
-      const refinedText = await refineCourseContent(course, currentStep, payloadMd, selectedText, actionType);
-      if (!refinedText || refinedText.trim().length === 0) {
-        throw new Error('Serviciul de AI nu a returnat conținut. Încearcă din nou.');
-      }
-      const refinedHtml = safeMarkedParse(refinedText || '', { breaks: true });
-      setOriginalForProposal(editedContent);
-      let previewHtml = refinedHtml;
-      if (selectionRef.current.end > selectionRef.current.start) {
-        const { start, end } = selectionRef.current;
-        previewHtml = (editedContent.substring(0, start) + refinedHtml + editedContent.substring(end));
-      }
-      setProposedContent(previewHtml);
-      console.log('[Refine] Proposed content prepared', { length: previewHtml.length, hasOriginal: !!editedContent });
-      showToast('Propunere generată. Verifică și acceptă modificarea.', 'success');
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Rafinarea a eșuat.';
-      showToast(msg, 'error');
-    } finally {
-      setIsProposingChanges(false);
-    }
-  };
-
-  const handleAcceptChanges = () => {
-    if (proposedContent === null) return;
-
-    if (selectedText && selectionRef.current.end > selectionRef.current.start) {
-      const { start, end } = selectionRef.current;
-      const newContent = editedContent.substring(0, start) + proposedContent + editedContent.substring(end);
-      setEditedContent(newContent);
-      if (course && course.steps) {
-        const currentStep = course.steps[activeStepIndex];
-        const key = currentStep.id || `idx-${activeStepIndex}`;
-        setLocalRefinements(prev => ({ ...prev, [key]: true }));
-      }
-    } else {
-      setEditedContent(proposedContent);
-      if (course && course.steps) {
-        const currentStep = course.steps[activeStepIndex];
-        const key = currentStep.id || `idx-${activeStepIndex}`;
-        setLocalRefinements(prev => ({ ...prev, [key]: true }));
-      }
-    }
-
-    setProposedContent(null);
-    setOriginalForProposal(null);
-    setSelectedText('');
-    selectionRef.current = { start: 0, end: 0 };
-  };
-
-  const handleRejectChanges = () => {
-    setProposedContent(null);
-    setOriginalForProposal(null);
-  };
 
   const handleSaveChanges = async (andContinue = false) => {
     if (!course || !course.steps) return;
@@ -1194,26 +1079,6 @@ const CourseWorkspacePage: React.FC = () => {
 
 
 
-  const htmlToSimpleMarkdown = (html: string): string => {
-    return html
-      .replace(/<h1[^>]*>/gi, '# ').replace(/<\/h1>/gi, '\n\n')
-      .replace(/<h2[^>]*>/gi, '## ').replace(/<\/h2>/gi, '\n\n')
-      .replace(/<h3[^>]*>/gi, '### ').replace(/<\/h3>/gi, '\n\n')
-      .replace(/<p[^>]*>/gi, '').replace(/<\/p>/gi, '\n\n')
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<ul[^>]*>/gi, '').replace(/<\/ul>/gi, '')
-      .replace(/<ol[^>]*>/gi, '').replace(/<\/ol>/gi, '')
-      .replace(/<li[^>]*>/gi, '- ').replace(/<\/li>/gi, '\n')
-      .replace(/<strong[^>]*>/gi, '**').replace(/<\/strong>/gi, '**')
-      .replace(/<b[^>]*>/gi, '**').replace(/<\/b>/gi, '**')
-      .replace(/<em[^>]*>/gi, '*').replace(/<\/em>/gi, '*')
-      .replace(/<i[^>]*>/gi, '*').replace(/<\/i>/gi, '*')
-      .replace(/<[^>]+>/g, '')
-      .trim();
-  };
-
-
-
   const handleSubmitTable = () => {
     if (!textareaRef.current) return;
     const rows = Math.max(1, Math.min(20, Number(tableRows) || 1));
@@ -1540,23 +1405,11 @@ const CourseWorkspacePage: React.FC = () => {
 
   const isLastStep = activeStepIndex === ((course.steps?.length ?? 0) - 1);
   const isCourseComplete = (course.steps ?? []).every((s: CourseStep) => s.is_completed);
-  const isBusy = isGenerating || isProposingChanges;
-  const canEdit = !isBusy;
-  const canGenerate = canEdit && !currentStep.is_completed;
-  const canRefine = canEdit && !!editedContent && !!selectedText.trim();
 
 
   return (
     <div className="course-workspace-container flex flex-col lg:flex-row overflow-x-hidden">
       {isHelpModalOpen && <HelpModal onClose={handleCloseHelpModal} />}
-      {proposedContent !== null && (
-        <ReviewChangesModal
-          originalContent={originalForProposal ?? editedContent}
-          proposedContent={proposedContent}
-          onAccept={handleAcceptChanges}
-          onReject={handleRejectChanges}
-        />
-      )}
       {showImageStudio && (
         <ImageStudioModal
           onClose={() => setShowImageStudio(false)}
@@ -1673,9 +1526,6 @@ const CourseWorkspacePage: React.FC = () => {
                 <div className="flex-1 flex justify-center px-1 sm:px-4 overflow-hidden min-w-0">
                   <h1 className="text-sm sm:text-xl font-bold flex items-center gap-1 sm:gap-2 truncate text-center">
                     {t(currentStep.title_key)}
-                    {(localRefinements[(currentStep.id || `idx-${activeStepIndex}`)]) && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 shrink-0">Editare locală</span>
-                    )}
                   </h1>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
@@ -1709,15 +1559,6 @@ const CourseWorkspacePage: React.FC = () => {
             </div>
 
             <div className="editor-wrapper-container flex-1 flex flex-col min-h-0 mt-0 !mt-0 pt-0 !pt-0">
-              {isBusy && (
-                <div className="absolute inset-1 bg-gray-100/50 dark:bg-gray-900/50 flex items-center justify-center z-20 rounded-2xl shadow-lg">
-                  <div className="text-center p-6 bg-white/90 dark:bg-gray-800/90 rounded-xl shadow-lg backdrop-blur-sm">
-                    <Loader2 className="animate-spin text-gold mx-auto" size={40} />
-                    <p className="mt-3 text-lg font-semibold">{isGenerating ? t('course.generating') : t('course.refine.button')}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('course.generating.waitMessage')}</p>
-                  </div>
-                </div>
-              )}
               {activeTab === 'editor' ? (
                 <div className="flex-1 flex flex-col h-full">
                   <div className="flex-1 relative min-h-0 overflow-hidden">
@@ -1726,21 +1567,6 @@ const CourseWorkspacePage: React.FC = () => {
                       value={editedContent}
                       refreshSignal={editorRefreshTick}
                       onChange={setEditedContent}
-                      onSelectionChange={(text) => {
-                        setSelectedText(text);
-                        const html = editedContent || '';
-                        const trimmed = (text || '').trim();
-                        if (trimmed.length === 0) {
-                          selectionRef.current = { start: 0, end: 0 };
-                          return;
-                        }
-                        const idx = html.indexOf(trimmed);
-                        if (idx >= 0) {
-                          selectionRef.current = { start: idx, end: idx + trimmed.length };
-                        } else {
-                          selectionRef.current = { start: 0, end: 0 };
-                        }
-                      }}
                     />
                   </div>
                 </div>
@@ -1766,45 +1592,6 @@ const CourseWorkspacePage: React.FC = () => {
           </div>
           <div id="workspace-actions" className="editor-actions-sticky p-4 border-t dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 no-scrollbar">
-              {isEnabled('editorGenerateButtonEnabled') && (
-                <button
-                  onClick={handleGenerate}
-                  disabled={!canGenerate}
-                  className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-gold text-gold hover:bg-paper-alt disabled:opacity-50"
-                >
-                  <Sparkles size={16} />
-                  {t('course.generate')}
-                </button>
-              )}
-
-              {isEnabled('editorRefineButtonEnabled') && (
-                // INTENȚIONAT: Ascundem „Rafinează cu AI” în editor (desktop)
-                <div ref={aiActionsDesktopRef} className="relative flex-shrink-0">
-                  <button
-                    onClick={() => setIsAiActionsOpen((prev: boolean) => !prev)}
-                    disabled={!canRefine}
-                    className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                    title={!selectedText.trim() ? 'Select text first to refine it' : t('course.refine.tooltip')}
-                  >
-                    <Wand size={16} />
-                    {t('course.refine.button')}
-                  </button>
-                  {isAiActionsOpen && (
-                    <div className="absolute bottom-full mb-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-30">
-                      <button onClick={() => handleAiAction('simplify')} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3">
-                        <Pilcrow size={16} /> {t('course.refine.simplify')}
-                      </button>
-                      <button onClick={() => handleAiAction('expand')} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3">
-                        <Combine size={16} /> {t('course.refine.expand')}
-                      </button>
-                      <button onClick={() => handleAiAction('example')} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3">
-                        <Lightbulb size={16} /> {t('course.refine.example')}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Always show Export button regardless of completion status */}
               {(
                 <button
@@ -1860,7 +1647,7 @@ const CourseWorkspacePage: React.FC = () => {
               {currentStep.is_completed && (
                 <button
                   onClick={() => handleSaveChanges(false)}
-                  disabled={isBusy || isSaving}
+                  disabled={isSaving}
                   className={`flex-1 sm:flex-none justify-center px-6 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${
                     hasUnsavedChanges 
                       ? 'bg-gold text-gold-fg hover:bg-gold-dim shadow-sm' 
@@ -1904,7 +1691,7 @@ const CourseWorkspacePage: React.FC = () => {
               {!currentStep.is_completed && (
                 <button
                   onClick={() => handleSaveChanges(true)}
-                  disabled={isBusy || isSaving || !editedContent}
+                  disabled={isSaving || !editedContent}
                   className="flex-1 sm:flex-none justify-center px-6 py-2 rounded-md text-sm font-medium text-white bg-gold hover:bg-gold-dim disabled:bg-gray-400"
                 >
                   {isSaving && <Loader2 className="animate-spin inline-block mr-2" size={16} />}
@@ -2104,45 +1891,7 @@ const CourseWorkspacePage: React.FC = () => {
       {/* Sticky mobile actions bar */}
       <div id="mobile-actions-bar" className="mobile-actions-sticky sm:hidden border-t dark:border-gray-700 shadow-lg safe-area-bottom">
         <div className="px-3 py-2 flex items-center justify-between gap-2">
-          <div className="flex gap-2 flex-1">
-            {isEnabled('editorGenerateButtonEnabled') && (
-              <button
-                onClick={handleGenerate}
-                disabled={!canGenerate}
-                className="flex-1 flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border border-gold text-gold hover:bg-paper-alt disabled:opacity-50"
-              >
-                <Sparkles size={16} />
-                {t('course.generate')}
-              </button>
-            )}
-            {isEnabled('editorRefineButtonEnabled') && (
-              // INTENȚIONAT: Ascundem „Rafinează cu AI” în editor (mobil)
-              <div ref={aiActionsMobileRef} className="relative flex-1">
-                <button
-                  onClick={() => setIsAiActionsOpen((prev: boolean) => !prev)}
-                  disabled={!canRefine}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border border-purple-500 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={!selectedText.trim() ? 'Select text first to refine it' : t('course.refine.tooltip')}
-                >
-                  <Wand size={16} />
-                  {t('course.refine.button')}
-                </button>
-                {isAiActionsOpen && (
-                  <div className="absolute bottom-full mb-2 left-0 right-0 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-50">
-                    <button onClick={() => handleAiAction('simplify')} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3">
-                      <Pilcrow size={16} /> {t('course.refine.simplify')}
-                    </button>
-                    <button onClick={() => handleAiAction('expand')} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3">
-                      <Combine size={16} /> {t('course.refine.expand')}
-                    </button>
-                    <button onClick={() => handleAiAction('example')} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3">
-                      <Lightbulb size={16} /> {t('course.refine.example')}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <div className="flex gap-2 flex-1" />
           <div className="flex-shrink-0">
             {isCourseComplete ? (
               <button
@@ -2156,7 +1905,7 @@ const CourseWorkspacePage: React.FC = () => {
             ) : currentStep.is_completed ? (
               <button
                 onClick={() => handleSaveChanges(false)}
-                disabled={isBusy || isSaving}
+                disabled={isSaving}
                 className={`px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors ${
                   hasUnsavedChanges 
                     ? 'bg-gold text-gold-fg hover:bg-gold-dim shadow-sm' 
@@ -2169,7 +1918,7 @@ const CourseWorkspacePage: React.FC = () => {
             ) : !currentStep.is_completed ? (
               <button
                 onClick={() => handleSaveChanges(true)}
-                disabled={isBusy || isSaving || !editedContent}
+                disabled={isSaving || !editedContent}
                 className="px-4 py-2 rounded-md text-sm font-medium text-white bg-gold hover:bg-gold-dim disabled:bg-gray-400"
               >
                 {isSaving && <Loader2 className="animate-spin inline-block mr-2" size={16} />}
