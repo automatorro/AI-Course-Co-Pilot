@@ -29,13 +29,18 @@ const HomeRoute: React.FC = () => {
 export const AppContent: React.FC = () => {
   const location = useLocation();
   const isWorkspaceRoute = location.pathname.startsWith('/course/');
+  const isLandingRoute   = location.pathname === '/';
+  const isDemoRoute      = location.pathname.startsWith('/demo');
+  // Landing + demo carry their own nav/footer, so hide the shared shell.
+  const hideShell = isWorkspaceRoute || isLandingRoute || isDemoRoute;
   return (
     <div className="min-h-screen flex flex-col bg-paper text-graphite transition-colors duration-200">
-      {!isWorkspaceRoute && <Header />}
-      <main className={isWorkspaceRoute ? 'flex-grow' : 'pt-16 flex-grow'}>
+      {!hideShell && <Header />}
+      <main className={hideShell ? 'flex-grow' : 'pt-16 flex-grow'}>
         <Routes>
           <Route path="/" element={<HomeRoute />} />
           <Route path="/demo" element={<DemoPage />} />
+          <Route path="/demo/:sessionId" element={<DemoPage />} />
           <Route path="/auto-export" element={<AutoExportPage />} />
           <Route path="/login" element={<AuthPage />} />
           <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
@@ -46,7 +51,7 @@ export const AppContent: React.FC = () => {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>
-      {!isWorkspaceRoute && <Footer />}
+      {!hideShell && <Footer />}
     </div>
   );
 };
