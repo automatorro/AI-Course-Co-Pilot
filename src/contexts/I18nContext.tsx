@@ -67,26 +67,27 @@ export const I18nProvider: React.FC<{ children: React.ReactNode; initialTranslat
   }, [language]);
 
   const t = useCallback((key: string, replacements?: { [key: string]: string | number }): any => {
-    if (!translations) {
-      return key;
-    }
+    // Lookup order: current locale → English fallback → caller-supplied
+    // defaultValue → the raw key. defaultValue lives inside `replacements`
+    // for backward compat with the existing t(key, {defaultValue}) call sites.
+    const pickFrom = (dict: Translations | undefined): any =>
+      dict && Object.prototype.hasOwnProperty.call(dict, key) ? dict[key] : undefined;
 
-    const langTranslations = translations[language];
-    if (!langTranslations) {
-      return key;
-    }
+    let result: any =
+      pickFrom(translations?.[language]) ??
+      pickFrom(translations?.en);
 
-    let result = langTranslations[key];
-    
-    if (result === undefined) {
-      return key;
+    if (result === undefined && replacements && 'defaultValue' in replacements) {
+      result = replacements.defaultValue;
     }
-    
+    if (result === undefined) result = key;
+
     if (typeof result === 'string' && replacements) {
-        Object.keys(replacements).forEach(replacementKey => {
-            const value = replacements[replacementKey];
-            result = result.replace(new RegExp(`\\{${replacementKey}\\}`, 'g'), String(value));
-        });
+      Object.keys(replacements).forEach(replacementKey => {
+        if (replacementKey === 'defaultValue') return;
+        const value = replacements[replacementKey];
+        result = (result as string).replace(new RegExp(`\\{${replacementKey}\\}`, 'g'), String(value));
+      });
     }
 
     return result;

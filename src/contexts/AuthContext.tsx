@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, ReactNode, useEffect } from
 import { supabase } from '../services/supabaseClient';
 import { User, Plan } from '../types';
 import { AuthChangeEvent, Session } from '@supabase/supabase-js';
+import { markDemoSessionConverted } from '../services/leadService';
 
 interface AuthContextType {
   user: User | null;
@@ -59,6 +60,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               last_name: profile?.last_name,
             };
             setUser(fullUser);
+            // Best-effort: if this session was preceded by an anonymous demo,
+            // flip the demo_sessions row and drop the local id. Idempotent —
+            // subsequent SIGNED_INs on the same browser no-op silently.
+            if (event === 'SIGNED_IN') {
+              markDemoSessionConverted(session.user.id).catch(() => {});
+            }
           }
         } else {
           setUser(null);
