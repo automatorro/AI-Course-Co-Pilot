@@ -1221,6 +1221,14 @@ const exportCourseAsPptxV2 = async (course: Course): Promise<void> => {
                             } catch (renderErr) {
                                 console.error('Error rendering slide:', renderErr);
                                 if (isEnabled('pptxEnhancedPipeline')) {
+                                    blockingErrors.push(`[BLOCK] ${section.title}: eroare la randare → ${(renderErr as Error)?.message ?? String(renderErr)}`);
+                                }
+                            }
+                        }
+                    }));
+                }
+            }
+        }
     }
 
     // 4. Summary Slide
