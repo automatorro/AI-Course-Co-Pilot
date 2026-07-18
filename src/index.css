@@ -26,6 +26,7 @@
     --text-secondary: #6b6659;
     --accent:         #8a6c1a;
     --accent-dim:     #7a5f16;
+    --accent-fg:      #FAF8F3; /* foreground text on --accent surfaces (4.57:1) */
     --border:         rgba(26,24,21,0.14);
     --grid-line:      rgba(26,24,21,0.06);
   }
@@ -38,84 +39,107 @@
     --text-secondary: #93897C;
     --accent:         #D4A72C;
     --accent-dim:     #9c8228;
+    --accent-fg:      #161513; /* foreground text on --accent surfaces (8.14:1) */
     --border:         rgba(212,167,44,0.18);
     --grid-line:      rgba(212,167,44,0.06);
   }
 
   html { font-feature-settings: "kern" 1, "liga" 1; }
-  body { @apply font-sans text-ink-700 dark:text-ink-200; }
-  h1, h2, h3, h4 { @apply font-display text-ink-900 dark:text-white tracking-tight; }
+  body {
+    @apply font-sans;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+  }
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+    color: var(--text-primary);
+  }
   h1 { @apply text-3xl md:text-4xl; }
   h2 { @apply text-2xl md:text-3xl; }
   h3 { @apply text-xl md:text-2xl; }
 
-  .premium-texture {
-    position: relative;
-    isolation: isolate;
-  }
-  .premium-texture::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background-image: var(--premium-bg-light);
-    background-repeat: no-repeat;
-    background-size: cover;
-    opacity: 0.7;
-    z-index: -1;
-  }
-  .dark .premium-texture::before {
-    background-image: var(--premium-bg-dark);
-    opacity: 0.55;
-  }
+  /* Legacy .premium-texture — neutralised (was a radial gradient overlay).
+     Kept as an empty selector because many JSX files still reference it. */
+  .premium-texture { position: relative; }
+  .premium-texture::before,
+  .dark .premium-texture::before { content: none; }
 }
 
-/* Premium Components */
+/* Premium Components — Architect of Mastery.
+   Sharp corners, hairline borders, uppercase mono labels, no shadows. */
 @layer components {
+  /* Primary CTA: solid gold with contrast-verified fg. */
   .btn-premium {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold tracking-tight text-white 
-           bg-gradient-to-br from-[#2DD4BF] to-[#3B82F6] shadow-premium transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] 
-           hover:shadow-lg hover:brightness-110 hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400;
-  }
-  .btn-premium--secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium 
-           bg-white/80 dark:bg-ink-800/60 text-ink-700 dark:text-ink-200 border border-ink-200 dark:border-ink-700 backdrop-blur-sm 
-           shadow-sm hover:bg-white dark:hover:bg-ink-800 hover:shadow-md transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] 
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300;
-  }
-  .btn-premium--ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium 
-           text-ink-700 dark:text-ink-200 hover:bg-ink-50/70 dark:hover:bg-ink-800/40 transition-colors;
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-[11px] font-mono font-semibold uppercase
+           tracking-eyebrow-tight bg-gold border border-gold text-gold-fg
+           transition-colors duration-200
+           hover:bg-gold-dim hover:border-gold-dim
+           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
+  /* Secondary: hairline outline in gold-dim. */
+  .btn-premium--secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-[11px] font-mono font-medium uppercase
+           tracking-eyebrow-tight text-graphite bg-transparent border border-gold-dim
+           transition-colors duration-200
+           hover:bg-gold hover:text-gold-fg hover:border-gold
+           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Ghost: no border, hover reveals gold. */
+  .btn-premium--ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-[11px] font-mono font-medium uppercase
+           tracking-eyebrow-tight text-graphite bg-transparent
+           transition-colors duration-200 hover:text-gold;
+  }
+
+  /* Small variants (denser layouts, table actions). */
   .btn-premium-sm {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold tracking-tight text-white 
-           bg-gradient-to-br from-[#2DD4BF] to-[#3B82F6] shadow-premium transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] 
-           hover:shadow-md hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-[10px] font-mono font-semibold uppercase
+           tracking-eyebrow-tight bg-gold border border-gold text-gold-fg
+           transition-colors duration-200 hover:bg-gold-dim hover:border-gold-dim
+           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-premium--secondary-sm {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium 
-           bg-white/80 dark:bg-ink-800/60 text-ink-700 dark:text-ink-200 border border-ink-200 dark:border-ink-700 backdrop-blur-sm 
-           shadow-sm hover:bg-white dark:hover:bg-ink-800 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] 
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300;
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-[10px] font-mono font-medium uppercase
+           tracking-eyebrow-tight text-graphite bg-transparent border border-gold-dim
+           transition-colors duration-200 hover:bg-gold hover:text-gold-fg hover:border-gold
+           focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gold focus-visible:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
+  /* Input: paper surface, hairline border. */
   .input-premium {
-    @apply w-full rounded-lg px-3 py-2 text-sm bg-white/70 dark:bg-ink-800/60 border border-ink-200 dark:border-ink-700 backdrop-blur-sm 
-           placeholder:text-ink-400 focus:border-primary-400 focus:ring-2 focus:ring-primary-200 dark:focus:ring-primary-700 outline-none transition;
+    @apply w-full px-3 py-2.5 text-sm text-graphite bg-paper border border-hairline
+           font-sans placeholder:text-stone
+           focus:border-gold focus:outline-none focus:ring-1 focus:ring-gold
+           transition-colors duration-200;
   }
 
+  /* Card: paper-alt surface, hairline border, no shadow. */
   .card-premium {
-    @apply rounded-2xl border border-ink-100 dark:border-ink-700 bg-white/80 dark:bg-ink-800/70 backdrop-blur-sm shadow-premium;
+    @apply bg-paper-alt border border-hairline;
   }
 
-  .separator-premium {
-    height: 1px;
-    background: linear-gradient(to right, transparent, rgba(100,116,139,0.25), transparent);
+  /* Separator: 1px hairline. */
+  .separator-premium { height: 1px; background: var(--border); }
+
+  /* Interactive-soft: tone down (was scale + shadow). */
+  .interactive-soft { @apply transition-colors duration-200; }
+
+  /* Eyebrow label — uppercase mono, secondary color. */
+  .mono-eyebrow {
+    @apply font-mono text-[11px] uppercase tracking-eyebrow text-stone;
   }
 
-  .interactive-soft {
-    @apply transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.04] active:scale-[0.98];
+  /* Grid backdrop for dark sections (per spec: 64px, --grid-line). */
+  .mastery-grid {
+    background-image: linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+                      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: 64px 64px;
   }
   /* Vibrant hero background using accent lime + secondary */
   .bg-hero-vibrant {
