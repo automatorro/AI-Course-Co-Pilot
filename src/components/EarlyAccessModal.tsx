@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Check } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from '../contexts/I18nContext';
 import { submitWaitlistLead } from '../services/leadService';
 
@@ -44,10 +45,12 @@ const EarlyAccessModal: React.FC<Props> = ({ open, onClose, source }) => {
       setStatus('error');
       setErrorMsg(res.error === 'invalid_email'
         ? t('landing.earlyAccess.errorInvalidEmail', { defaultValue: 'That email address looks off — check for typos.' })
-        : t('landing.earlyAccess.errorGeneric', { defaultValue: 'Something went wrong. Please try again.' })
+        : null  // server errors show the fallback login link below
       );
     }
   };
+
+  const isServerError = status === 'error' && errorMsg === null;
 
   return (
     <div
@@ -120,6 +123,20 @@ const EarlyAccessModal: React.FC<Props> = ({ open, onClose, source }) => {
 
               {errorMsg && (
                 <p className="text-sm font-mono text-red-700 dark:text-red-400">{errorMsg}</p>
+              )}
+              {isServerError && (
+                <div className="border border-hairline p-4 bg-paper-alt">
+                  <p className="text-sm text-stone leading-relaxed">
+                    {t('landing.earlyAccess.errorFallback', { defaultValue: 'Lista de așteptare nu este deschisă încă.' })}
+                  </p>
+                  <Link
+                    to={`/login?email=${encodeURIComponent(email)}`}
+                    onClick={onClose}
+                    className="inline-block mt-3 font-mono text-[11px] uppercase tracking-eyebrow-tight text-gold hover:text-gold-dim transition-colors"
+                  >
+                    {t('landing.earlyAccess.errorFallbackCta', { defaultValue: 'Creează cont →' })}
+                  </Link>
+                </div>
               )}
 
               <button

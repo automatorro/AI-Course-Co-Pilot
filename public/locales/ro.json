@@ -632,6 +632,8 @@
   "landing.earlyAccess.confirmedBody": "Fără newsletter, fără drip. Un singur email, când deschidem ușa.",
   "landing.earlyAccess.errorInvalidEmail": "Adresa de email pare greșită — verifică pentru typo-uri.",
   "landing.earlyAccess.errorGeneric": "Ceva a mers prost. Te rog încearcă din nou.",
+  "landing.earlyAccess.errorFallback": "Lista de așteptare nu este încă deschisă. Între timp îți poți crea cont direct.",
+  "landing.earlyAccess.errorFallbackCta": "Creează cont →",
 
   "demo.meta.title": "Demo — CourseCopilot",
   "demo.banner": "Previzualizare gratuită · fără cont · un curs demonstrativ",
