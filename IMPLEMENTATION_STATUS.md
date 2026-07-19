@@ -163,6 +163,8 @@ Notează aici orice descoperire sau nelămurire care apare în timpul execuției
 
 **Fișiere:** `src/components/OnboardingChat.tsx`, `src/pages/CourseWorkspacePage.tsx`. Typecheck verde; teste 12/12 (D-003 neschimbat). Nu a fost reprodus live (fără acces la Supabase din mediul remote) — owner-ul re-testează cu smoke-ul F1-T4.
 
+**Urmare — protocol de triaj permanent.** Discuție cu owner-ul: riscul ca „descoperiri" repetate să bulverseze planul de 11 faze. Decizie: planul rămâne coloana vertebrală; orice descoperire trece printr-un test unic (blochează DoD-ul fazei curente? DA → reparat imediat sub plafon strict + aprobare owner, ca mai sus; NU → doar logat aici, cu recomandare de fază). Revizuirea planului se face DOAR la M4 și M6. Fiecare fază capătă un smoke minimal, nu doar typecheck+test. Protocolul complet e scris permanent în `CLAUDE.md § Reguli owner → 5. Protocolul de triaj pentru descoperiri` — citit automat la fiecare sesiune viitoare.
+
 ### D-004 — Tag-ul `pre-refactor-2026-07` respins la push (403)
 **Context.** Owner-ul a confirmat push-ul tag-ului de siguranță. `git push origin pre-refactor-2026-07` a returnat `403` de la remote-ul de sesiune. Cauza probabilă: GitHub App-ul folosit de sesiune nu are scope-ul pentru crearea de tag-uri, sau există tag protection rule pe repo.
 **Decizie.** Tag-ul rămâne local (`git tag pre-refactor-2026-07` la commit `6b5bc9a`, HEAD-ul branch-ului de lucru la momentul refactor-ului). Ancora e păstrată — orice clonă cu istoricul actual îl poate reconstitui pentru că e la HEAD-ul unui commit deja push-uit.
