@@ -11,10 +11,10 @@ import { startDemoSession } from '../services/leadService';
 // Structured content — image paths default to /landing/*.jpg (place the four
 // hero photos in public/landing/). Missing files fall back to a texture
 // placeholder via onError.
-const HERO_IMG        = '/landing/hero.jpg';
-const HOW_IT_WORKS_IMG = '/landing/how-it-works.jpg';
-const OUTPUT_IMG      = '/landing/output.jpg';
-const FINAL_CTA_IMG   = '/landing/final-cta.jpg';
+const HERO_IMG        = '/landing/hero.png';
+const HOW_IT_WORKS_IMG = '/landing/how-it-works.png';
+const OUTPUT_IMG      = '/landing/output.png';
+const FINAL_CTA_IMG   = '/landing/final-cta.png';
 
 const withImageFallback: React.ImgHTMLAttributes<HTMLImageElement> = {
   onError: (e) => {
