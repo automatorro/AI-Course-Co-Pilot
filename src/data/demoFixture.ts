@@ -1,7 +1,7 @@
-// Pre-generated sample course served on the anonymous /demo/:sessionId route.
-// Static — no AI call at demo time, no API cost per visitor. Localised copy
-// stays in public/locales/*.json under 'demo.*'; the fixture only carries
-// structural data + representative excerpts.
+// Curs demonstrativ pregenerat pentru ruta anonimă /demo/:sessionId.
+// Static — fără apel AI la momentul demo-ului, fără cost API per vizitator.
+// Textele de interfață stau în public/locales/*.json sub 'demo.*';
+// fixture-ul poartă doar date structurale + extrase reprezentative.
 
 export interface DemoLesson {
   id: string;
@@ -42,173 +42,173 @@ export interface DemoCourse {
 }
 
 export const DEMO_COURSE: DemoCourse = {
-  title: 'Difficult Conversations for Middle Managers',
-  subject: 'Interpersonal leadership',
-  audience: 'First-time managers, 6–24 months in role',
-  level: 'Intermediate',
-  duration: 'Half-day (4h)',
-  tone: 'Direct, warm, low-jargon',
-  environment: 'In-person workshop, up to 16 participants',
+  title: 'Conversații dificile pentru manageri de mijloc',
+  subject: 'Leadership interpersonal',
+  audience: 'Manageri la prima funcție, 6–24 luni în rol',
+  level: 'Intermediar',
+  duration: 'Jumătate de zi (4h)',
+  tone: 'Direct, cald, fără jargon',
+  environment: 'Atelier față-în-față, până la 16 participanți',
   learning_outcome:
-    'By the end of the session, participants can plan and open a difficult conversation with a direct report using a four-step frame, and can recover from three common derailments.',
+    'La finalul sesiunii, participanții pot planifica și deschide o conversație dificilă cu un subordonat direct folosind un cadru în patru pași, și pot recupera din trei deraiaje frecvente.',
   modules: [
     {
       id: 'm1',
       index: '01',
-      title: 'Why we avoid the conversation we know we owe',
+      title: 'De ce evităm conversația pe care o datorăm',
       learning_objective:
-        'Name the three costs of avoidance and describe one conversation the participant is currently avoiding.',
+        'Enumeră cele trei costuri ale evitării și descrie o conversație pe care participantul o amână în prezent.',
       duration: '45m',
       lessons: [
         {
           id: 'm1l1',
-          title: 'The three costs of postponement',
+          title: 'Cele trei costuri ale amânării',
           duration_minutes: 15,
-          learning_objective: 'List the personal, team, and organisational costs of a postponed conversation.',
+          learning_objective: 'Enumeră costurile personale, de echipă și organizaționale ale unei conversații amânate.',
           key_takeaways: [
-            'The cost of postponement compounds — it does not stay the same.',
-            'People read silence as endorsement.',
-            'The person you are avoiding usually knows.',
+            'Costul amânării se acumulează — nu rămâne același.',
+            'Oamenii citesc tăcerea ca aprobare.',
+            'Persoana pe care o eviți știe, de obicei.',
           ],
           excerpt:
-            "Most conversations you're avoiding aren't unclear — they're clear and uncomfortable. The frame here is not communication skill, it's the will to spend three minutes of adrenaline to save three months of drift.",
+            'Majoritatea conversațiilor pe care le eviți nu sunt neclare — sunt clare și incomode. Nu e vorba de abilitate de comunicare, ci de voința de a investi trei minute de adrenalină ca să salvezi trei luni de derivă.',
         },
         {
           id: 'm1l2',
-          title: 'Small exercise: your one conversation',
+          title: 'Exercițiu mic: o singură conversație',
           duration_minutes: 15,
-          learning_objective: 'Identify one specific conversation the participant is postponing, with the person and the topic named on paper.',
+          learning_objective: 'Identifică o conversație specifică pe care participantul o amână, cu persoana și subiectul notate pe hârtie.',
           key_takeaways: [
-            'Write the person\'s name. Not the role.',
-            'Write the topic in one sentence, verb first.',
-            'Write what you fear will happen if you open it.',
+            'Scrie numele persoanei. Nu rolul.',
+            'Scrie subiectul într-o propoziție, cu verbul la început.',
+            'Scrie ce ți-e teamă că se va întâmpla dacă o deschizi.',
           ],
           excerpt:
-            'Take the card. Do not share it with anyone in the room. Fold it, put it in your pocket. By the end of the day we will unfold it.',
+            'Ia cartonașul. Nu-l arăta nimănui din cameră. Pliază-l, pune-l în buzunar. La sfârșitul zilei îl vom desface.',
         },
         {
           id: 'm1l3',
-          title: 'Debrief',
+          title: 'Reflecție colectivă',
           duration_minutes: 15,
-          learning_objective: 'Reframe the fear identified in the exercise as data about the conversation to be had.',
+          learning_objective: 'Recadrează teama identificată în exercițiu ca informație despre conversația de purtat.',
           key_takeaways: [
-            'Fear is a pointer, not a stop sign.',
-            'The story you tell yourself is not the story.',
-            'Precision reduces adrenaline more than rehearsal does.',
+            'Teama e un indicator, nu un semn de stop.',
+            'Povestea pe care ți-o spui nu e povestea.',
+            'Precizia reduce adrenalina mai mult decât repetițiile.',
           ],
           excerpt:
-            'Notice how nearly every fear on your card is a story about how the OTHER person will react. That is your first instrument — because the story is guessable, and if it is guessable, it is testable.',
+            'Observă că aproape fiecare teamă de pe cartonașul tău e o poveste despre cum va reacționa CELĂLALT. Ăsta e primul tău instrument — pentru că povestea poate fi ghicită, și dacă poate fi ghicită, poate fi testată.',
         },
       ],
     },
     {
       id: 'm2',
       index: '02',
-      title: 'The four-step frame',
+      title: 'Cadrul în patru pași',
       learning_objective:
-        'Draft the opening of one difficult conversation using the Fact → Impact → Question → Silence frame.',
+        'Formulează deschiderea unei conversații dificile folosind cadrul Fapt → Impact → Întrebare → Tăcere.',
       duration: '75m',
       lessons: [
         {
           id: 'm2l1',
-          title: 'Fact — the sentence they cannot argue with',
+          title: 'Faptul — propoziția pe care nu o pot contrazice',
           duration_minutes: 20,
-          learning_objective: 'Compose an opening sentence that names an observable behaviour, not a character.',
+          learning_objective: 'Formulează o propoziție de deschidere care numește un comportament observabil, nu un caracter.',
           key_takeaways: [
-            '"Yesterday at 3pm you sent the reply-all" — fact.',
-            '"You are careless" — character.',
-            'Fact you can point at. Character you have to defend.',
+            '„Ieri la 15:00 ai dat reply-all la mail" — fapt.',
+            '„Ești neglijent" — caracter.',
+            'Faptul îl poți arăta. Caracterul trebuie să-l aperi.',
           ],
           excerpt:
-            "Every conversation that goes off the rails goes off in the first sentence. The first sentence is not your opinion — it is a fact you both saw. If they can dispute it, you have the wrong sentence.",
+            'Orice conversație care deraiază, deraiază în prima propoziție. Prima propoziție nu e opinia ta — e un fapt pe care l-ați văzut amândoi. Dacă îl poate contesta, ai propoziția greșită.',
         },
         {
           id: 'm2l2',
-          title: 'Impact — the missing half',
+          title: 'Impactul — jumătatea lipsă',
           duration_minutes: 20,
-          learning_objective: 'Attach a specific impact to the fact using the "what this means for us" pattern.',
+          learning_objective: 'Atașează un impact specific faptului, folosind tiparul „ce înseamnă asta pentru noi".',
           key_takeaways: [
-            'Impact is what the fact costs — money, trust, time, morale.',
-            'Impact grounds the conversation in shared consequence.',
-            'Without impact, the fact reads as nitpicking.',
+            'Impactul e ce costă faptul — bani, încredere, timp, moral.',
+            'Impactul ancorează conversația într-o consecință comună.',
+            'Fără impact, faptul sună a moftologie.',
           ],
           excerpt:
-            'Fact and impact together turn "you sent the reply-all" into "you sent the reply-all, and the client asked me whether we have a process for this."',
+            'Faptul și impactul împreună transformă „ai dat reply-all" în „ai dat reply-all, și clientul m-a întrebat dacă avem un proces pentru asta".',
         },
         {
           id: 'm2l3',
-          title: 'Question — hand them the pen',
+          title: 'Întrebarea — dai-le stiloul',
           duration_minutes: 20,
-          learning_objective: 'End the opening with a question that returns agency to the other person.',
+          learning_objective: 'Încheie deschiderea cu o întrebare care returnează inițiativa celeilalte persoane.',
           key_takeaways: [
-            'Ask, do not tell.',
-            'The question is an invitation, not a trap.',
-            'Best question: "What do you see?"',
+            'Întreabă, nu spune.',
+            'Întrebarea e o invitație, nu o capcană.',
+            'Cea mai bună întrebare: „Ce vezi tu?".',
           ],
           excerpt:
-            'You have named a fact and its impact. You have not yet said what should happen. You are about to. Do not. Ask. Silence next.',
+            'Ai numit un fapt și impactul lui. Nu ai spus încă ce ar trebui să se întâmple. Ești pe cale. Nu. Întreabă. Urmează tăcerea.',
         },
         {
           id: 'm2l4',
-          title: 'Silence — the hardest step',
+          title: 'Tăcerea — pasul cel mai greu',
           duration_minutes: 15,
-          learning_objective: 'Hold silence for at least seven seconds after asking the question.',
+          learning_objective: 'Menține tăcerea cel puțin șapte secunde după ce pui întrebarea.',
           key_takeaways: [
-            'Seven seconds feels like forty.',
-            'Whoever breaks silence first surrenders the frame.',
-            'Silence is where the actual answer lives.',
+            'Șapte secunde par patruzeci.',
+            'Cine rupe tăcerea primul cedează cadrul.',
+            'Tăcerea e locul în care trăiește răspunsul real.',
           ],
           excerpt:
-            'This is the step you will fail on. You will fill the silence with a suggestion, a softener, a joke. Do not. Count. If you feel it, sip water.',
+            'Acesta e pasul la care vei da greș. Vei umple tăcerea cu o sugestie, un atenuator, o glumă. Nu. Numără. Dacă simți nevoia, bea o gură de apă.',
         },
       ],
     },
     {
       id: 'm3',
       index: '03',
-      title: 'Recovering from the three most common derailments',
+      title: 'Recuperarea din cele trei deraiaje frecvente',
       learning_objective:
-        'Identify tears, anger, and deflection as predictable derailments and respond to each with a rehearsed line.',
+        'Identifică lacrimile, furia și evaziunea ca deraiaje previzibile și răspunde fiecăruia cu o replică exersată.',
       duration: '60m',
       lessons: [
         {
           id: 'm3l1',
-          title: 'When they cry',
+          title: 'Când plâng',
           duration_minutes: 20,
-          learning_objective: 'Respond to tears without collapsing the conversation or dismissing the emotion.',
+          learning_objective: 'Răspunde la lacrimi fără să prăbușești conversația sau să ignori emoția.',
           key_takeaways: [
-            'Tears are not a stop signal.',
-            'Offer water, hold silence, do not apologise for the fact.',
-            'Resume only when they signal readiness.',
+            'Lacrimile nu sunt semnal de stop.',
+            'Oferă apă, menține tăcerea, nu cere scuze pentru fapt.',
+            'Reia doar când dau semnal că sunt gata.',
           ],
           excerpt:
-            "Line to rehearse: 'Take the time you need. The conversation is important; we can pause but not skip it.'",
+            'Replică de exersat: „Ia-ți timpul de care ai nevoie. Conversația e importantă; putem face o pauză, dar nu o putem ocoli".',
         },
         {
           id: 'm3l2',
-          title: 'When they get angry',
+          title: 'Când se enervează',
           duration_minutes: 20,
-          learning_objective: 'Absorb anger without matching it or backing down from the fact.',
+          learning_objective: 'Absoarbe furia fără s-o egalizezi sau să te retragi din fața faptului.',
           key_takeaways: [
-            'Match volume and you lose the frame.',
-            'Name the emotion, hold the fact.',
-            'One breath before every reply.',
+            'Egalezi volumul și pierzi cadrul.',
+            'Numește emoția, menține faptul.',
+            'O respirație înainte de fiecare replică.',
           ],
           excerpt:
-            "Line to rehearse: 'I can see this lands hard. I am not questioning your intent — I am telling you what happened and what it cost.'",
+            'Replică de exersat: „Văd că asta lovește tare. Nu îți pun la îndoială intenția — îți spun ce s-a întâmplat și ce a costat".',
         },
         {
           id: 'm3l3',
-          title: 'When they deflect',
+          title: 'Când evitează',
           duration_minutes: 20,
-          learning_objective: 'Recognise the four common deflection patterns and return the conversation to the topic.',
+          learning_objective: 'Recunoaște cele patru tipare frecvente de evaziune și readuce conversația la subiect.',
           key_takeaways: [
-            'Deflection is polite avoidance.',
-            'Return, do not confront the deflection.',
-            'Line: "Let us come back to that. First —"',
+            'Evaziunea e evitare politicoasă.',
+            'Readuce, nu confrunta evaziunea.',
+            'Replică: „Vom reveni la asta. Dar mai întâi —".',
           ],
           excerpt:
-            "Deflections read as: 'yes but also...', 'the real problem is...', 'to be fair, everyone...', or the classic 'I hear you.' You: 'Let us come back to that. First — what do you see?'",
+            'Evaziunile sună ca: „da, dar și...", „problema reală e...", „ca să fim corecți, toți...", sau clasicul „te aud". Tu: „Vom reveni la asta. Dar mai întâi — ce vezi tu?".',
         },
       ],
     },
@@ -216,38 +216,38 @@ export const DEMO_COURSE: DemoCourse = {
   deliverables: [
     {
       slug: 'trainer_guide',
-      title: 'Trainer Guide',
-      description: 'Verbatim scripts for every module, timing markers, transitions between sections.',
+      title: 'Ghidul trainerului',
+      description: 'Scripturi cuvânt cu cuvânt pentru fiecare modul, marcaje de timp, tranziții între secțiuni.',
       excerpt:
-        "→ 10:00 (5m) — Open module 2. Whiteboard the four steps as headers only. Do not fill them yet.\n→ 10:05 (15m) — Lesson 1: the sentence they cannot argue with. Read the two example openings on p.7. Ask, hand up:\n   'Which one names the person, and which one names the behaviour?'",
+        '→ 10:00 (5m) — Deschide modulul 2. Pe tablă, doar titlurile celor patru pași. Nu le completa încă.\n→ 10:05 (15m) — Lecția 1: propoziția pe care nu o pot contrazice. Citește cele două exemple de deschidere de la p.7. Cere ridicarea mâinii:\n   „Care numește persoana și care numește comportamentul?"',
     },
     {
       slug: 'participant_manual',
-      title: 'Participant Manual',
-      description: 'Theory, worked examples, reflection prompts, and workspace for the day.',
+      title: 'Manualul participantului',
+      description: 'Teorie, exemple lucrate, întrebări de reflecție, spațiu de lucru pentru toată ziua.',
       excerpt:
-        "MODULE 2 — Draft your opening sentence.\n\nThink of the conversation you wrote on your card in module 1.\n\nFact: __________________________________________\nImpact: ________________________________________\nQuestion: ______________________________________\n\nThen hold your seven seconds.",
+        'MODULUL 2 — Formulează propoziția de deschidere.\n\nGândește-te la conversația notată pe cartonaș în modulul 1.\n\nFapt:      ________________________________________\nImpact:    ________________________________________\nÎntrebare: ________________________________________\n\nApoi ține cele șapte secunde de tăcere.',
     },
     {
       slug: 'slide_deck',
-      title: 'Slide Deck',
-      description: 'One editable file. Layered. Speaker notes embedded on every slide.',
+      title: 'Prezentarea',
+      description: 'Un singur fișier editabil. Pe layere. Note pentru vorbitor pe fiecare slide.',
       excerpt:
-        "SLIDE 12 · SPLIT-LEFT · Titled 'Fact vs character'\n\nLeft column   Right column\n-----------   -----------\nYesterday     You are\nat 3pm you    careless.\nsent the\nreply-all.\n\nSpeaker notes: 'Give the room twenty seconds. Ask which sentence they would rather receive as a report.'",
+        'SLIDE 12 · SPLIT-LEFT · Titlu „Fapt vs caracter"\n\nStânga          Dreapta\n------------    -----------\nIeri la 15:00   Ești\nai dat          neglijent.\nreply-all.\n\nNote: dă sălii douăzeci de secunde. Întreabă ce propoziție ar prefera să primească.',
     },
     {
       slug: 'exercises',
-      title: 'Exercise Sheets',
-      description: 'Scenario-based, self-contained, debrief questions on the back of every card.',
+      title: 'Fișe de exerciții',
+      description: 'Bazate pe scenarii. Auto-conținute. Întrebări de reflecție pe verso.',
       excerpt:
-        "EXERCISE 3 · Fifteen minutes · Pairs.\n\nScenario: A team member has been rewriting the meeting notes to remove their own action items. You have observed this three times. Draft the four-step opening you would use in a private one-to-one.\n\nDebrief on the back.",
+        'EXERCIȚIU 3 · Cincisprezece minute · Perechi.\n\nScenariu: Un coleg a rescris notițele ședinței de trei ori pentru a-și elimina propriile sarcini. Formulează deschiderea în patru pași pe care ai folosi-o într-o discuție privată unu-la-unu.\n\nReflecție pe verso.',
     },
     {
       slug: 'trainer_flow',
-      title: 'Trainer Flow',
-      description: 'The choreography of the day — where you stand, when you sit, when to break.',
+      title: 'Fluxul trainerului',
+      description: 'Coregrafia zilei — unde stai, când te așezi, când iei pauză.',
       excerpt:
-        "13:15 · Return from lunch. Stand behind the flipchart, not at the door.\n13:20 · Recap the four-step frame from memory. Do NOT open the deck.\n13:25 · Cold call: one participant demonstrates their opening. You take the seat of the direct report.\n13:35 · Break — quiet music, do not chase conversations.",
+        '13:15 · Întoarcere din pauza de prânz. Stai în spatele flipchart-ului, nu la ușă.\n13:20 · Reia cadrul în patru pași din memorie. NU deschide prezentarea.\n13:25 · Cold call: un participant demonstrează deschiderea. Tu iei locul subordonatului direct.\n13:35 · Pauză — muzică de fundal, nu urmări conversațiile.',
     },
   ],
 };

@@ -534,7 +534,7 @@
   "landing.meta.description": "Îi dai subiectul, publicul și vocea ta — îți întoarce un curs la fel de temeinic ca unul construit manual, într-o fracțiune din timp.",
 
   "landing.nav.dashboard": "Dashboard",
-  "landing.nav.cta": "Cere Early Access",
+  "landing.nav.cta": "Rezervă-mi un loc",
 
   "landing.hero.eyebrow": "Pentru traineri care meșteresc — nu asamblează",
   "landing.hero.line1": "Ai investit",
@@ -543,18 +543,18 @@
   "landing.hero.body": "Sistemul care respectă asta. Îi dai subiectul, publicul și vocea ta — și îți întoarce un curs la fel de temeinic ca unul construit manual, într-o fracțiune din timp.",
   "landing.hero.demoCta": "Încearcă demo gratuit",
   "landing.hero.demoLoading": "Se încarcă…",
-  "landing.hero.leadCta": "Cere early access",
+  "landing.hero.leadCta": "Rezervă-mi un loc",
 
   "landing.spec.subject": "Subiect",
   "landing.spec.subjectValue": "Orice domeniu profesional",
   "landing.spec.level": "Nivel",
   "landing.spec.levelValue": "De la începător la executiv",
   "landing.spec.duration": "Durată",
-  "landing.spec.durationValue": "De la half-day la semestru",
+  "landing.spec.durationValue": "De la o oră la o zi întreagă",
   "landing.spec.tone": "Ton",
   "landing.spec.toneValue": "Al tău, cuvânt cu cuvânt",
   "landing.spec.environment": "Mediu",
-  "landing.spec.environmentValue": "Sală live sau cohortă online",
+  "landing.spec.environmentValue": "Sală de curs sau atelier online",
 
   "landing.problem.eyebrow": "Problema",
   "landing.problem.title": "Trei lucruri despre care fiecare trainer a încetat să vorbească public.",
@@ -574,7 +574,7 @@
   "landing.provide.item1": "Un subiect și un rezultat de învățare",
   "landing.provide.item2": "Publicul — cine sunt, ce știu",
   "landing.provide.item3": "Durata — câte ore, împărțite cum",
-  "landing.provide.item4": "Mediul — sală live sau curs online async",
+  "landing.provide.item4": "Mediul — sală de curs sau atelier online",
   "landing.provide.item5": "Vocea ta — tonul, metaforele, subiectele interzise",
   "landing.provide.item6": "Opțional: materiale existente de moștenit",
 
@@ -611,14 +611,14 @@
 
   "landing.finalCta.eyebrow": "Invitația",
   "landing.finalCta.title": "Construit de traineri, pentru traineri care iau munca în serios.",
-  "landing.finalCta.body": "Early access e limitat. Auzi de la noi o singură dată, când deschidem ușa. Fără newsletter. Fără drip. Fără zgomot.",
-  "landing.finalCta.cta": "Cere Early Access",
+  "landing.finalCta.body": "Locurile sunt limitate. Auzi de la noi o singură dată, când deschidem ușa. Fără newsletter. Fără drip. Fără zgomot.",
+  "landing.finalCta.cta": "Rezervă-mi un loc",
   "landing.finalCta.demoCta": "Încearcă demo gratuit",
 
   "landing.footer.tagline": "Pentru traineri care meșteresc — nu asamblează",
 
   "landing.earlyAccess.close": "Închide",
-  "landing.earlyAccess.eyebrow": "Early access",
+  "landing.earlyAccess.eyebrow": "Acces timpuriu",
   "landing.earlyAccess.title": "Ține-mă la curent.",
   "landing.earlyAccess.body": "Lasă un email. Îți scriem o dată — când deschidem ușa — și niciodată altfel, decât dacă ne ceri tu.",
   "landing.earlyAccess.emailLabel": "Email",
@@ -628,13 +628,13 @@
   "landing.earlyAccess.submit": "Trimite",
   "landing.earlyAccess.confirmedEyebrow": "Ești pe listă",
   "landing.earlyAccess.confirmedTitle": "Îți scriem când e gata.",
-  "landing.earlyAccess.confirmedBody": "Fără newsletter, fără drip. Un singur email, când se deschide early access.",
+  "landing.earlyAccess.confirmedBody": "Fără newsletter, fără drip. Un singur email, când deschidem ușa.",
   "landing.earlyAccess.errorInvalidEmail": "Adresa de email pare greșită — verifică pentru typo-uri.",
   "landing.earlyAccess.errorGeneric": "Ceva a mers prost. Te rog încearcă din nou.",
 
   "demo.meta.title": "Demo — CourseCopilot",
-  "demo.banner": "Demo read-only · fără cont · un singur curs sample",
-  "demo.cta": "Cere Early Access",
+  "demo.banner": "Previzualizare gratuită · fără cont · un curs demonstrativ",
+  "demo.cta": "Rezervă-mi un loc",
   "demo.eyebrow": "Curs mostră",
   "demo.structureEyebrow": "Structură",
   "demo.moduleObjective": "Obiectiv de învățare",
@@ -643,9 +643,9 @@
   "demo.previewEditable": "Previzualizare · editabil",
   "demo.wallEyebrow": "Zidul",
   "demo.wallTitle": "Generarea reală e după cont.",
-  "demo.wallBody": "Ce ai parcurs este un exemplu preconstruit. Ca să introduci subiectul, publicul și vocea ta — și să primești un curs la fel de temeinic — cere un loc de early access.",
-  "demo.wallCta": "Cere Early Access",
-  "demo.wallBack": "Înapoi la landing",
+  "demo.wallBody": "Ce ai parcurs este un exemplu preconstruit. Ca să introduci subiectul, publicul și vocea ta — și să primești un curs la fel de temeinic — rezervă-ți un loc.",
+  "demo.wallCta": "Rezervă-mi un loc",
+  "demo.wallBack": "Înapoi la pagina principală",
   "demo.export": "Export",
   "demo.exportDisabled": "Export disponibil după înregistrare"
 }
