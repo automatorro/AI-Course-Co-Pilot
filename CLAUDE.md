@@ -48,6 +48,34 @@ Fișier citit automat la începutul fiecărei sesiuni. Se aplică indiferent de 
 - **M6** (finalul F6) — aprobare rubrică ≥4,0 pe RO+EN. Nicio fază ulterioară
   nu începe fără această aprobare.
 
+### 5. Protocolul de triaj pentru descoperiri (decis 2026-07-18, D-007)
+Auditul a fost o citire statică a `generate-course-content`; nu a rulat niciodată
+aplicația live. Bug-uri de runtime (curse de randare, i18n în UI-ul de chrome,
+etc.) nu sunt vizibile static și vor continua să apară pe măsură ce se testează
+efectiv fluxurile. Regula de mai jos e ca să nu bulverseze planul de 11 faze.
+
+- **Planul de faze rămâne coloana vertebrală.** F0→F1→…→F10, exact ca în
+  `docs/CURATENIE-SI-MODERNIZARE-CourseCopilot.md`. Nu se abandonează pentru
+  reparații ad-hoc.
+- **Orice descoperire trece printr-un singur test:** *cauzează / blochează DoD-ul
+  fazei curente?*
+  - **DA** → se repară imediat, dar doar sub acest plafon: ≤2 fișiere, zero
+    schimbare de schemă, reversibil într-un singur commit, **aprobat explicit
+    de owner** înainte de a scrie cod. Dacă depășește plafonul, trece la
+    ramura „NU" de mai jos chiar dacă pare urgentă.
+  - **NU** (pre-existentă, neafectată de faza curentă) → **nu se repară acum**.
+    Se scrie în `IMPLEMENTATION_STATUS.md § Descoperiri` cu severitate și
+    recomandare de fază unde se rezolvă (ex. amestec de limbi → F2, curățenie
+    UI → F8/F9). Se continuă faza curentă.
+- **Planul se revizuiește DOAR la M4 și M6.** Nu se inventează un al treilea
+  moment de re-planificare. La fiecare poartă, pe lângă aprobarea specifică
+  fazei, se trece rapid prin Descoperirile acumulate și se decide dacă vreuna
+  justifică o fază nouă (ex. „F1.5") sau rămâne backlog.
+- **Fiecare fază capătă un smoke minimal**, nu doar `typecheck && test`. F1, F4
+  și F6 au deja asta în DoD; F2, F3, F8 primesc și ele un pas rapid de „rulează
+  fluxul principal", nu doar verificări automate — analiza statică nu prinde
+  bug-uri de runtime.
+
 ## Convenții de lucru
 
 - **Git.** Branch de lucru desemnat de CI/harness la fiecare sesiune (vezi
