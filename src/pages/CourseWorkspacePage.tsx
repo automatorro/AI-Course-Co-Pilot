@@ -32,7 +32,6 @@ import BlueprintReview from '../components/BlueprintReview';
 import FileManager from '../components/FileManager';
 import ImportStagingModal from '../components/ImportStagingModal';
 import VersionHistoryModal from '../components/VersionHistoryModal';
-import DNAEditModal from '../components/DNAEditModal';
 import { createStepVersion } from '../services/versioningService';
 import { GenerationProgressModal } from '../components/GenerationProgressModal';
 import { isEnabled } from '../config/featureFlags';
@@ -193,7 +192,6 @@ const CourseWorkspacePage: React.FC = () => {
   // defaults and can mis-mount OnboardingChat before objectives exist (see IMPLEMENTATION_STATUS.md D-007).
   const [routedCourseId, setRoutedCourseId] = useState<string | null>(null);
   const [showBlueprintEdit, setShowBlueprintEdit] = useState(false);
-  const [showDNAEdit, setShowDNAEdit] = useState(false);
   const [showBlueprintRefine, setShowBlueprintRefine] = useState(false);
   const [showUploadBlueprint, setShowUploadBlueprint] = useState(false);
   const [tableRows, setTableRows] = useState(3);
@@ -1210,45 +1208,8 @@ const CourseWorkspacePage: React.FC = () => {
             onGenerateContent={handleGenerateContent}
             onRefine={() => setShowBlueprintRefine(true)}
             onEdit={() => setShowBlueprintEdit(true)}
-            onEditDNA={course.dna ? () => setShowDNAEdit(true) : undefined}
           />
         </div>
-        {showDNAEdit && course.dna && (
-            <DNAEditModal
-                isOpen={showDNAEdit}
-                dna={course.dna}
-                course={course}
-                onClose={() => setShowDNAEdit(false)}
-                onSave={async (dna) => {
-                const { error } = await supabase
-                    .from('courses')
-                    .update({ dna })
-                    .eq('id', course.id);
-                if (error) {
-                    console.error('Failed to save DNA:', error);
-                    showToast('Failed to save DNA.', 'error');
-                    return;
-                }
-
-                const { error: dirtyError } = await supabase
-                  .from('course_modules')
-                  .update({ is_dirty: true })
-                  .eq('course_id', course.id);
-                if (dirtyError) {
-                  console.warn('Failed to mark modules as dirty after DNA edit:', dirtyError);
-                }
-
-                // Clear generation cache to force regeneration with new DNA
-                localStorage.removeItem(`generation_progress_${course.id}`);
-                localStorage.removeItem(`slides_partial_${course.id}`);
-                localStorage.removeItem(`workbook_partial_${course.id}`);
-                setGenerationVersion(v => v + 1);
-
-                setCourse(prev => prev ? { ...prev, dna } : null);
-                showToast('DNA updated successfully.', 'success');
-                }}
-            />
-        )}
         {showBlueprintEdit && (
           <BlueprintEditModal
             isOpen={showBlueprintEdit}

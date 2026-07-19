@@ -3295,7 +3295,6 @@ OUTPUT JSON ONLY. No markdown, no explanation.`;
     const GLOBAL_STEPS = [
   'course.steps.structure',
   'structure',
-  'course_dna',
   'course.steps.performance_objectives',
   'performance_objectives',
   'course.steps.course_objectives',
@@ -3308,6 +3307,10 @@ OUTPUT JSON ONLY. No markdown, no explanation.`;
   'course_macro_structure',
   'course.steps.course_slides',
   'course_slides',
+  'agenda_table',
+  'discussion_guide',
+  'action_plan',
+  'diagnostic_questionnaire',
   'cheat_sheets',
   'projects',
   'tests'
@@ -3348,23 +3351,6 @@ OUTPUT JSON ONLY. No markdown, no explanation.`;
 // 7. BUSINESS LOGIC HANDLERS
 // ==========================================
 
-function hasMinimalCourseDNA(course: Course): boolean {
-  const dna = course.dna;
-  if (!dna) return false;
-
-  const firstProtagonistName = dna.narrativeUniverse?.protagonists?.[0]?.name;
-  const lang = String(course.language || '').trim();
-
-  if (!firstProtagonistName || String(firstProtagonistName).trim().length === 0) {
-    return false;
-  }
-
-  if (!lang) {
-    return false;
-  }
-
-  return true;
-}
 
 function buildMandatoryContext(course: Course): string {
   const title = course.title || "Untitled Course";
@@ -3500,13 +3486,6 @@ async function handleGoldenStep(
     .single();
 
   if (moduleError || !moduleData) throw new Error(`Module not found: ${module_id}`);
-
-  if (!hasMinimalCourseDNA(course)) {
-    Logger.warn('[GoldenStep] Course DNA is incomplete. Materials may be generic.', {
-      courseId: course.id,
-      hasDna: !!course.dna
-    });
-  }
 
   // Step 1: Get or generate ModuleContext (lightweight structural blueprint, cached in content_data)
   const isDirty = (moduleData as any).is_dirty === true;
@@ -3662,125 +3641,6 @@ async function handleLegacyStep(
   explicitModuleList: string = ""
 ): Promise<string> {
   
-
-  if (step_type === 'course_dna') {
-      // T5: Build knowledge base context
-      const knowledgeBase = await buildKnowledgeBaseContext(supabase, course.id, course.language || 'ro');
-      const kbBlock = knowledgeBase ? `\n### UPLOADED REFERENCE MATERIALS\n${knowledgeBase}\nUse these to populate domainContext fields.` : '';
-
-      const prompt = `
-      **TASK**: Create the "Course DNA" - the stylistic and pedagogical "soul" of the course.
-      **COURSE**: "${course.title}"
-      **TARGET AUDIENCE**: "${course.target_audience}"
-      **ENVIRONMENT**: ${course.environment}
-      **LANGUAGE**: ${course.language || "Romanian"}
-      **TIMING**: Total course duration is ${blueprintDuration}.
-      ${kbBlock}
-      
-      **GOAL**: Define the terminology, narrative universe, and learning philosophy.
-      
-      **OUTPUT FORMAT**:
-      Strict JSON object with this structure:
-      {
-        "terminology": {
-          "participant": "Term for learner (e.g. Participant, Student, Explorer)",
-          "exercise": "Term for activity (e.g. Exercise, Challenge, Mission)",
-          "trainer": "Term for instructor (e.g. Trainer, Facilitator, Guide)",
-          "mandatoryTerms": {}
-        },
-        "narrativeUniverse": {
-          "protagonists": [
-             { "name": "Name", "role": "Role", "initial_state": "Starting mindset" }
-          ],
-          "setting": "Where does this take place? (e.g. Corporate Office, Start-up, Factory)",
-          "tone": "Voice/Tone (e.g. Professional, Playful, Strict)"
-        },
-        "voiceProfile": {
-          "formality": "Formality level (e.g. Professional, Casual, Academic)",
-          "humorLevel": "Humor level (e.g. None, Light, Witty)",
-          "forbiddenPhrases": ["Phrase 1", "Phrase 2"],
-          "signaturePhrases": ["Phrase 1", "Phrase 2"]
-        },
-        "learningPhilosophy": {
-          "manifesto": ["Principle 1", "Principle 2"],
-          "rules_of_engagement": ["Rule 1", "Rule 2"]
-        },
-        "masterTimeline": {
-          "totalDuration": 480,
-          "bufferPerModule": 10,
-          "modules": [
-            {
-              "id": "1",
-              "title": "Suggested Module Title",
-              "duration": 60,
-              "activities": [
-                { "type": "theory", "duration": 15, "description": "Intro" },
-                { "type": "exercise", "duration": 40, "description": "Practice" },
-                { "type": "break", "duration": 5, "description": "Coffee" }
-              ]
-            }
-          ]
-        },
-        "domainContext": {
-          "industryTerms": { "term": "definition" },
-          "clientProfiles": [{ "type": "...", "decisionLogic": "...", "approach": "..." }],
-          "productCatalog": [{ "category": "...", "items": ["..."] }],
-          "competitorIntelligence": [{ "name": "...", "weaknesses": [...], "counterStrategy": "..." }],
-          "negotiationFrameworks": [{ "name": "...", "steps": [...] }]
-        }
-      }
-      
-      **IMPORTANT**: Return ONLY valid JSON. The content MUST be in ${course.language || "Romanian"}.
-      Populate domainContext ONLY from the reference materials above. If no materials are provided, leave arrays empty.
-      `;
-      
-      try {
-        Logger.info(`[LegacyStep] Invoking LLM for CourseDNA...`);
-        const response = await callLLM(prompt, course.language || 'ro');
-        Logger.info(`[LegacyStep] CourseDNA LLM Response received (length: ${response.length})`);
-        return response;
-      } catch (e: any) {
-        Logger.error(`[LegacyStep] CourseDNA LLM Failed:`, e);
-        
-        // Soft Fallback to prevent Edge Function timeout/crash from killing the UI flow
-        const isRo = (course.language || 'ro').toLowerCase().startsWith('ro');
-        return JSON.stringify({
-          terminology: {
-            participant: isRo ? "Participant" : "Participant",
-            exercise: isRo ? "Exercițiu" : "Exercise",
-            trainer: isRo ? "Trainer" : "Trainer",
-            mandatoryTerms: {}
-          },
-          narrativeUniverse: {
-            protagonists: [],
-            setting: isRo ? "Mediu Profesional Standard" : "Standard Professional Environment",
-            tone: isRo ? "Profesional și Încurajator" : "Professional and Encouraging"
-          },
-          voiceProfile: {
-            formality: isRo ? "Profesional" : "Professional",
-            humorLevel: isRo ? "Redus" : "Low",
-            forbiddenPhrases: [],
-            signaturePhrases: []
-          },
-          learningPhilosophy: {
-            manifesto: isRo ? ["Învățare prin practică", "Implicare activă"] : ["Learning by Doing", "Interactive Engagement"],
-            rules_of_engagement: isRo ? ["Respect reciproc", "Participare activă"] : ["Mutual respect", "Active participation"]
-          },
-          masterTimeline: {
-            totalDuration: 480,
-            bufferPerModule: 10,
-            modules: []
-          },
-          domainContext: {
-            industryTerms: {},
-            clientProfiles: [],
-            productCatalog: [],
-            competitorIntelligence: [],
-            negotiationFrameworks: []
-          }
-        });
-      }
-  }
 
   if (step_type === 'course.steps.structure' || step_type === 'structure') {
      let modulesList = "";

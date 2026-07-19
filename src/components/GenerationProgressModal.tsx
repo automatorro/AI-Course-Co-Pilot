@@ -39,7 +39,6 @@ interface GenerationProgressModalProps {
 }
 
 const STEPS_ORDER = [
-    { type: TrainerStepType.CourseDNA, key: 'generation.steps.courseDNA' },
     { type: TrainerStepType.PerformanceObjectives, key: 'generation.steps.performanceObjectives' },
     { type: TrainerStepType.CourseObjectives, key: 'generation.steps.courseObjectives' },
     { type: TrainerStepType.Structure, key: 'generation.steps.structure' },
@@ -201,7 +200,6 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             target_audience: c.target_audience,
             environment: c.environment,
             language: c.language,
-            dna: c.dna,
             blueprint: c.blueprint,
             macro_plan: c.macro_plan,
             user_id: c.user_id
@@ -267,34 +265,6 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
         setCurrentStepIndex(0);
         setCompletedSteps([]);
         accumulatedContentRef.current = [];
-
-        // Attempt to restore DNA from DB (User closed modal case)
-        try {
-             const { data: existingDNA } = await supabase
-                 .from('course_steps')
-                 .select('content')
-                 .eq('course_id', course.id)
-                 .eq('title_key', 'course.livrables.course_dna')
-                 .maybeSingle();
-             
-             if (existingDNA && existingDNA.content) {
-                 console.log('[GenerationProgressModal] Found existing Course DNA in DB. Resuming from Step 1.');
-                 
-                 accumulatedContentRef.current = [{
-                     step_type: TrainerStepType.CourseDNA,
-                     content: existingDNA.content
-                 }];
-                 
-                 setCompletedSteps([TrainerStepType.CourseDNA]);
-                 setCurrentStepIndex(1);
-                 
-                 // Immediately process Step 1
-                 await processStep(1);
-                 return;
-             }
-        } catch (e) {
-             console.warn('[GenerationProgressModal] Failed to check existing DNA:', e);
-        }
 
         try {
             // 0. Connection Check (Ping)
@@ -919,105 +889,6 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
 
             // 3. Next Step (Recursive)
             if (!isStoppedRef.current) {
-                // NEW: Pause after CourseDNA (Step 0) to allow user review
-                if (step.type === TrainerStepType.CourseDNA) {
-                     console.log('[GenerationProgressModal] Pausing after CourseDNA for user review.');
-                     
-                     // SAVE DNA TO DB (courses table)
-                     try {
-                         let dnaContent = generatedContent;
-                         let parsedDNA = null;
-
-                         if (typeof dnaContent === 'string') {
-                             // 1. Try to find code blocks
-                             const jsonMatch = dnaContent.match(/```json\s*([\s\S]*?)\s*```/) || dnaContent.match(/```\s*([\s\S]*?)\s*```/);
-                             if (jsonMatch) {
-                                 dnaContent = jsonMatch[1];
-                             } else {
-                                 // 2. Try to find raw JSON object structure (start with { and end with })
-                                 const firstBrace = dnaContent.indexOf('{');
-                                 const lastBrace = dnaContent.lastIndexOf('}');
-                                 if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-                                     dnaContent = dnaContent.substring(firstBrace, lastBrace + 1);
-                                 } else {
-                                     // No braces found? It's not JSON.
-                                      // Log warning but CREATE FALLBACK so user can edit raw text
-                                      console.warn("No JSON object found in Course DNA response. Creating fallback.");
-                                      dnaContent = null; 
-                                  }
-                              }
-                              
-                              // 3. Try to parse (only if we have content)
-                              if (dnaContent) {
-                                 try {
-                                     parsedDNA = JSON.parse(dnaContent);
-                                 } catch (e) {
-                                     console.warn("JSON parse failed. Creating fallback.");
-                                     parsedDNA = null;
-                                 }
-                              }
-                          } else {
-                              // Already an object?
-                              parsedDNA = dnaContent;
-                          }
-                          
-                          // 4. Fallback if parsing failed or no JSON found
-                          if (!parsedDNA) {
-                              parsedDNA = {
-                                  _status: "parse_error",
-                                  _raw_content: typeof generatedContent === 'string' ? generatedContent : JSON.stringify(generatedContent),
-                                  terminology: { 
-                                      participant: "Participant", 
-                                      trainer: "Trainer", 
-                                      exercise: "Exercise",
-                                      mandatoryTerms: {} 
-                                  },
-                                  narrativeUniverse: { 
-                                      protagonists: [] 
-                                  },
-                                  voiceProfile: {
-                                      formality: "professional",
-                                      humorLevel: "none",
-                                      forbiddenPhrases: [],
-                                      signaturePhrases: []
-                                  },
-                                  masterTimeline: {
-                                      totalDuration: 0,
-                                      bufferPerModule: 0,
-                                      modules: []
-                                  }
-                              };
-                          }
-                          
-                          // Always save something (valid or fallback)
-                          if (parsedDNA) {
-                             const { error: updateError } = await supabase
-                                 .from('courses')
-                                 .update({ dna: parsedDNA })
-                                 .eq('id', course.id);
-                                 
-                             if (updateError) throw updateError;
-                             
-                             const { error: dirtyError } = await supabase
-                                 .from('course_modules')
-                                 .update({ is_dirty: true })
-                                 .eq('course_id', course.id);
-                             if (dirtyError) {
-                                 console.warn('[GenerationProgressModal] Failed to mark modules as dirty after DNA generation:', dirtyError);
-                             }
-
-                             console.log('[GenerationProgressModal] DNA saved to courses table.');
-                          }
-                     } catch (e) {
-                         console.error('[GenerationProgressModal] Failed to save DNA to DB (Non-fatal):', e);
-                         // Do NOT rethrow, so the UI keeps working.
-                     }
-
-                     setIsGenerating(false);
-                     setSuccessMessage("ADN-ul Cursului a fost generat cu succes. Puteți închide fereastra pentru a revizui/edita ADN-ul, apoi reluați generarea.");
-                     return;
-                }
-
                 await processStep(index + 1);
             }
 
@@ -1488,9 +1359,7 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                                             isCompleted ? 'text-green-700 dark:text-green-300' :
                                                 'text-slate-500 dark:text-slate-500'
                                             }`}>
-                                            {step.type === TrainerStepType.CourseDNA ? 
-                            <span className="font-bold text-green-700 dark:text-green-400">ADN-ul Cursului --&gt; Apasa acum "Inchide"</span> 
-                            : `${index}. ${t(step.key)}`}
+                                            {`${index + 1}. ${t(step.key)}`}
                                         </span>
                                     </div>
 
