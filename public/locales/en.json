@@ -167,6 +167,7 @@
   "course.livrables.video_scripts": "Video Scripts",
   "course.livrables.assessment": "Assessment & Tests",
   "header.title": "CourseCopilot",
+  "header.signedInAs": "Signed in as",
   "header.profile": "My Profile",
   "header.dashboard": "Dashboard",
   "header.billing": "Billing",

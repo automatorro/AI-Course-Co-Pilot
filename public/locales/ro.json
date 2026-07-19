@@ -173,6 +173,7 @@
   "course.livrables.video_scripts": "Scripturi video",
   "course.livrables.assessment": "Evaluare și teste",
   "header.title": "CourseCopilot",
+  "header.signedInAs": "Autentificat ca",
   "header.profile": "Profilul Meu",
   "header.dashboard": "Panou de control",
   "header.billing": "Abonament",
