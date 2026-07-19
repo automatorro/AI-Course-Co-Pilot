@@ -1,5 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
 import { HelmetProvider } from 'react-helmet-async';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -35,6 +41,7 @@ export const AppContent: React.FC = () => {
   const hideShell = isWorkspaceRoute || isLandingRoute || isDemoRoute;
   return (
     <div className="min-h-screen flex flex-col bg-paper text-graphite transition-colors duration-200">
+      <ScrollToTop />
       {!hideShell && <Header />}
       <main className={hideShell ? 'flex-grow' : 'pt-16 flex-grow'}>
         <Routes>
