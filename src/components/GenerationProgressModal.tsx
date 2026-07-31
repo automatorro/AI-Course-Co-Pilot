@@ -38,7 +38,7 @@ interface GenerationProgressModalProps {
     onComplete: () => void;
 }
 
-const STEPS_ORDER = [
+const LEGACY_STEPS_ORDER = [
     { type: TrainerStepType.CourseDNA, key: 'generation.steps.courseDNA' },
     { type: TrainerStepType.PerformanceObjectives, key: 'generation.steps.performanceObjectives' },
     { type: TrainerStepType.CourseObjectives, key: 'generation.steps.courseObjectives' },
@@ -56,6 +56,20 @@ const STEPS_ORDER = [
     { type: TrainerStepType.ParticipantWorkbook, key: 'generation.steps.participantWorkbook' },
     { type: TrainerStepType.ActionPlan, key: 'generation.steps.actionPlan' },
     { type: TrainerStepType.VideoScripts, key: 'generation.steps.videoScripts' },
+];
+
+const CONTRACT_STEPS_ORDER = [
+    { type: TrainerStepType.CourseDNA, key: 'generation.steps.courseDNA' },
+    { type: TrainerStepType.PerformanceObjectives, key: 'generation.steps.performanceObjectives' },
+    { type: TrainerStepType.CourseObjectives, key: 'generation.steps.courseObjectives' },
+    { type: TrainerStepType.Structure, key: 'generation.steps.structure' },
+    { type: TrainerStepType.LearningMethods, key: 'generation.steps.learningMethods' },
+    { type: TrainerStepType.TimingAndFlow, key: 'generation.steps.timingFlow' },
+    { type: TrainerStepType.Exercises, key: 'generation.steps.exercises' },
+    { type: TrainerStepType.ExamplesAndStories, key: 'generation.steps.examplesStories' },
+    { type: TrainerStepType.FacilitatorManual, key: 'generation.steps.facilitatorManual' },
+    { type: TrainerStepType.Slides, key: 'generation.steps.slides' },
+    { type: TrainerStepType.ParticipantWorkbook, key: 'generation.steps.participantWorkbook' },
 ];
 
 export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = ({
@@ -83,8 +97,10 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
     const pendingStepsRef = useRef<any[]>([]); // Steps ready to insert if user chooses to save despite warnings
     const isStoppedRef = useRef(false);
 
+    const baseStepOrder = isEnabled('contractPipeline') ? CONTRACT_STEPS_ORDER : LEGACY_STEPS_ORDER;
+
     // Filter steps based on environment
-    const relevantSteps = STEPS_ORDER.filter(step => {
+    const relevantSteps = baseStepOrder.filter(step => {
         if (course.environment === 'LiveWorkshop' && step.type === TrainerStepType.VideoScripts) return false;
         if (course.environment === 'OnlineCourse' && step.type === TrainerStepType.FacilitatorManual) return false; // Optional: Online might not need Facilitator Manual
         return true;
@@ -844,7 +860,8 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                     course: course,
                     step_type: step.type,
                     previous_steps: prevForContext,
-                    context_summary: summary
+                    context_summary: summary,
+                    contractPipeline: isEnabled('contractPipeline')
                 };
                 
                 // Diagnostic log

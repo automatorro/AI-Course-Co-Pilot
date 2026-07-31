@@ -1247,22 +1247,12 @@ function buildDNABlocks(course: Course): DNABlocks {
   let voiceProfileBlock = "";
   if (course.dna?.voiceProfile) {
     const v = course.dna.voiceProfile;
-    const formality = (v.formality || '').toLowerCase();
-    const ARCHETYPES: Record<string, string> = {
-      professional: `**ARCHETYPE**: "The Mentor" (Professional & Warm)\n- Tone: Authoritative but accessible.\n- Style: Clear, structured, encouraging.\n- Forbidden: Slang, academic jargon.`,
-      energetic: `**ARCHETYPE**: "The Coach" (Energetic & Motivational)\n- Tone: High energy, punchy, action-oriented.\n- Style: Short sentences, strong verbs, calls to action.\n- Forbidden: Passive voice, long paragraphs.`,
-      casual: `**ARCHETYPE**: "The Buddy" (Relaxed & Direct)\n- Tone: Informal, peer-to-peer.\n- Style: Contractions, humor, direct address.\n- Forbidden: Stiff corporate speak.`,
-    };
-    let archetype = ARCHETYPES.professional;
-    if (formality.includes('casual') || formality.includes('buddy')) archetype = ARCHETYPES.casual;
-    if (formality.includes('energetic') || formality.includes('motivational')) archetype = ARCHETYPES.energetic;
-
-    voiceProfileBlock = `\n\n### VOICE & TONE (FROM DNA)\n${archetype}\n` +
-      `- Formality: ${v.formality || "Professional"}\n` +
-      `- Humor: ${v.humorLevel || (v as any).humor || "Light"}\n`;
-    if (v.forbiddenPhrases?.length) voiceProfileBlock += `- Forbidden: ${v.forbiddenPhrases.join(', ')}\n`;
-    if (v.signaturePhrases?.length) voiceProfileBlock += `- Signature: ${v.signaturePhrases.join(', ')}\n`;
-    voiceProfileBlock += `\n`;
+    voiceProfileBlock = `\n\n### VOICE & TONE (FROM DNA)\n`;
+    if (v.formality) voiceProfileBlock += `- Formality: ${v.formality}\n`;
+    if (v.humorLevel) voiceProfileBlock += `- Humor Level: ${v.humorLevel}\n`;
+    if (v.forbiddenPhrases?.length) voiceProfileBlock += `- Forbidden phrases: ${v.forbiddenPhrases.join(', ')}\n`;
+    if (v.signaturePhrases?.length) voiceProfileBlock += `- Signature phrases: ${v.signaturePhrases.join(', ')}\n`;
+    voiceProfileBlock += `- Use these voice profile values exactly as provided by the Course DNA. Do not translate them into Mentor/Coach/Buddy archetypes.\n`;
   }
 
   // T3: Learning Philosophy
@@ -3224,10 +3214,11 @@ OUTPUT JSON ONLY. No markdown, no explanation.`;
         return new Response(JSON.stringify({ content: result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const { step_type, module_id, context, blueprint_duration, explicit_module_list } = body;
+    const { step_type, module_id, context, blueprint_duration, explicit_module_list, contractPipeline } = body;
     const course_id = body.course_id || body.course?.id;
+    const useContractPipeline = Boolean(contractPipeline);
 
-    Logger.info(`[Main] Received request: step_type=${step_type}, course_id=${course_id}, module_id=${module_id}`);
+    Logger.info(`[Main] Received request: step_type=${step_type}, course_id=${course_id}, module_id=${module_id}, contractPipeline=${useContractPipeline}`);
 
     if (!course_id) throw new Error("Missing course_id");
     
@@ -3251,8 +3242,13 @@ OUTPUT JSON ONLY. No markdown, no explanation.`;
     // A0. Per-module steps sent without module_id (e.g. from general generate_step_content flow)
     // Auto-iterate over all course modules and concatenate results.
     const PER_MODULE_STEPS_AUTO = [
-      'exercises', 'examples_and_stories', 'facilitator_notes',
-      'facilitator_manual', 'trainer_manual', 'video_scripts',
+      'exercises', 'course.steps.exercises',
+      'examples_and_stories', 'course.steps.examples',
+      'facilitator_notes', 'course.steps.manual',
+      'facilitator_manual', 'trainer_manual',
+      'slides', 'course.steps.slides',
+      'participant_workbook', 'course.steps.workbook',
+      'video_scripts', 'course.steps.video_scripts',
     ];
     if (!module_id && PER_MODULE_STEPS_AUTO.includes(step_type)) {
       let { data: courseModules } = await supabase
@@ -3314,7 +3310,7 @@ OUTPUT JSON ONLY. No markdown, no explanation.`;
 ];
 
     if (GLOBAL_STEPS.includes(step_type)) {
-       result = await handleLegacyStep(supabase, course, step_type, context, blueprint_duration, explicit_module_list);
+       result = await handleLegacyStep(supabase, course, step_type, context, blueprint_duration, explicit_module_list, useContractPipeline);
     } 
     // B. Golden Path (Module Level Content)
     else {
@@ -3659,9 +3655,34 @@ async function handleLegacyStep(
   step_type: string, 
   context: any,
   blueprintDuration: string = "8 hours",
-  explicitModuleList: string = ""
+  explicitModuleList: string = "",
+  useContractPipeline: boolean = false
 ): Promise<string> {
   
+
+  if (useContractPipeline && ['facilitator_notes', 'facilitator_manual', 'trainer_manual', 'course.steps.manual'].includes(step_type)) {
+    const modules = course.blueprint?.modules;
+    if (!modules || modules.length === 0) {
+      Logger.warn(`[LegacyStep][ContractPipeline] No blueprint modules for step_type=${step_type}. Falling back to generic manual prompt.`);
+      return await callLLM(`Generate ${step_type} content for course "${course.title}". Language: ${course.language || 'ro'}.`, course.language || 'ro');
+    }
+
+    const stepKeyMap: Record<string, string> = {
+      'facilitator_notes': 'course.steps.manual',
+      'facilitator_manual': 'course.steps.manual',
+      'trainer_manual': 'course.steps.manual',
+      'course.steps.manual': 'course.steps.manual',
+    };
+    const goldenStepKey = stepKeyMap[step_type] || 'course.steps.manual';
+    Logger.info(`[LegacyStep][ContractPipeline] Routing ${step_type} through Golden per-module generation. Modules: ${modules.length}, step_key: ${goldenStepKey}`);
+    const results: string[] = [];
+    for (let i = 0; i < modules.length; i++) {
+      const moduleId = await resolveModuleId(supabase, course.id, modules[i], i);
+      const content = await handleGoldenStep(supabase, course, moduleId, goldenStepKey);
+      results.push(content);
+    }
+    return results.join('\n\n---\n\n');
+  }
 
   if (step_type === 'course_dna') {
       // T5: Build knowledge base context
