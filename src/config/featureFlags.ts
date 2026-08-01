@@ -22,7 +22,7 @@ export const FEATURE_FLAGS: Record<FeatureFlagKey, boolean> = {
   pptxEnhancedPipeline: true,
   pptxTextOnlySafeMode: false,
   visualOrchestrator: true, // Enable new Visual Orchestrator flow
-  contractPipeline: false, // Enable the new contract-based generation workflow
+  contractPipeline: true, // Enable the new contract-based generation workflow
 };
 
 export const FEATURE_DOCS: Record<FeatureFlagKey, string> = {
