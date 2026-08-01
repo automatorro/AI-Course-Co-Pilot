@@ -3246,6 +3246,7 @@ OUTPUT JSON ONLY. No markdown, no explanation.`;
       'examples_and_stories', 'course.steps.examples',
       'facilitator_notes', 'course.steps.manual',
       'facilitator_manual', 'trainer_manual',
+      'course.steps.manual',
       'slides', 'course.steps.slides',
       'participant_workbook', 'course.steps.workbook',
       'video_scripts', 'course.steps.video_scripts',

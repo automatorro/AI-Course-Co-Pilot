@@ -417,7 +417,8 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                         course, 
                         step_type: s, 
                         previous_steps: prevForContext,
-                        context_summary: summary 
+                        context_summary: summary,
+                        contractPipeline: isEnabled('contractPipeline')
                     },
                 });
                 if (fnError) {

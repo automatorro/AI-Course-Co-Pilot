@@ -3,6 +3,7 @@ import { X, Save, Plus, Trash2, Wand2 } from 'lucide-react';
 import { useTranslation } from '../contexts/I18nContext';
 import { CourseDNA, Course, TrainerStepType } from '../types';
 import { supabase } from '../services/supabaseClient';
+import { isEnabled } from '../config/featureFlags';
 
 interface DNAEditModalProps {
     isOpen: boolean;
@@ -76,7 +77,8 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, course, onClos
                         body: { 
                             action: 'generate_step_content', 
                             step_type: TrainerStepType.CourseDNA, 
-                            course 
+                            course,
+                            contractPipeline: isEnabled('contractPipeline')
                         }
                     });
                     
