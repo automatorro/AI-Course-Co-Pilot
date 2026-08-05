@@ -1254,21 +1254,63 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                 }
             }
 
-            if (toUpdate.length > 0) {
-                const { error: updateError } = await supabase
-                    .from('course_steps')
-                    .upsert(toUpdate);
-                if (updateError) throw updateError;
-                console.log(`[GenerationProgressModal] Updated ${toUpdate.length} steps.`);
+            // Helper to attempt write and retry without `status` column if schema missing
+            async function attemptWrite() {
+                // Try upsert first
+                if (toUpdate.length > 0) {
+                    const { error: updateError } = await supabase
+                        .from('course_steps')
+                        .upsert(toUpdate);
+                    if (updateError) {
+                        const msg = String(updateError?.message || updateError);
+                        // If error mentions missing 'status' column, retry without it
+                        if (msg.includes("status") || msg.includes("Could not find the 'status' column")) {
+                            console.warn('[GenerationProgressModal] Upsert failed due to missing status column. Retrying without status field.');
+                            const cleaned = toUpdate.map(s => {
+                                const c = { ...s } as any;
+                                delete c.status;
+                                return c;
+                            });
+                            const { error: retryErr } = await supabase
+                                .from('course_steps')
+                                .upsert(cleaned);
+                            if (retryErr) throw retryErr;
+                        } else {
+                            throw updateError;
+                        }
+                    } else {
+                        console.log(`[GenerationProgressModal] Updated ${toUpdate.length} steps.`);
+                    }
+                }
+
+                // Then insert new ones
+                if (toInsert.length > 0) {
+                    const { error: insertError } = await supabase
+                        .from('course_steps')
+                        .insert(toInsert);
+                    if (insertError) {
+                        const msg = String(insertError?.message || insertError);
+                        if (msg.includes("status") || msg.includes("Could not find the 'status' column")) {
+                            console.warn('[GenerationProgressModal] Insert failed due to missing status column. Retrying without status field.');
+                            const cleaned = toInsert.map(s => {
+                                const c = { ...s } as any;
+                                delete c.status;
+                                return c;
+                            });
+                            const { error: retryInsertErr } = await supabase
+                                .from('course_steps')
+                                .insert(cleaned);
+                            if (retryInsertErr) throw retryInsertErr;
+                        } else {
+                            throw insertError;
+                        }
+                    } else {
+                        console.log(`[GenerationProgressModal] Inserted ${toInsert.length} new steps.`);
+                    }
+                }
             }
 
-            if (toInsert.length > 0) {
-                const { error: insertError } = await supabase
-                    .from('course_steps')
-                    .insert(toInsert);
-                if (insertError) throw insertError;
-                console.log(`[GenerationProgressModal] Inserted ${toInsert.length} new steps.`);
-            }
+            await attemptWrite();
 
             console.log('[GenerationProgressModal] Sync successful');
 
@@ -1321,19 +1363,55 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                 }
             }
 
-            if (toUpdate.length > 0) {
-                const { error: updateError } = await supabase
-                    .from('course_steps')
-                    .upsert(toUpdate);
-                if (updateError) throw updateError;
+            async function attemptDraftWrite() {
+                if (toUpdate.length > 0) {
+                    const { error: updateError } = await supabase
+                        .from('course_steps')
+                        .upsert(toUpdate);
+                    if (updateError) {
+                        const msg = String(updateError?.message || updateError);
+                        if (msg.includes("status") || msg.includes("Could not find the 'status' column")) {
+                            console.warn('[GenerationProgressModal] Draft upsert failed due to missing status column. Retrying without status field.');
+                            const cleaned = toUpdate.map(s => {
+                                const c = { ...s } as any;
+                                delete c.status;
+                                return c;
+                            });
+                            const { error: retryErr } = await supabase
+                                .from('course_steps')
+                                .upsert(cleaned);
+                            if (retryErr) throw retryErr;
+                        } else {
+                            throw updateError;
+                        }
+                    }
+                }
+
+                if (toInsert.length > 0) {
+                    const { error: insertError } = await supabase
+                        .from('course_steps')
+                        .insert(toInsert);
+                    if (insertError) {
+                        const msg = String(insertError?.message || insertError);
+                        if (msg.includes("status") || msg.includes("Could not find the 'status' column")) {
+                            console.warn('[GenerationProgressModal] Draft insert failed due to missing status column. Retrying without status field.');
+                            const cleaned = toInsert.map(s => {
+                                const c = { ...s } as any;
+                                delete c.status;
+                                return c;
+                            });
+                            const { error: retryInsertErr } = await supabase
+                                .from('course_steps')
+                                .insert(cleaned);
+                            if (retryInsertErr) throw retryInsertErr;
+                        } else {
+                            throw insertError;
+                        }
+                    }
+                }
             }
 
-            if (toInsert.length > 0) {
-                const { error: insertError } = await supabase
-                    .from('course_steps')
-                    .insert(toInsert);
-                if (insertError) throw insertError;
-            }
+            await attemptDraftWrite();
 
             setValidationReport(null);
             setIsGenerating(false);
