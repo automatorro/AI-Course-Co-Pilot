@@ -224,6 +224,48 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
         };
     };
 
+    // Persist a single generated step as a draft so we can resume from server-side later.
+    const saveStepDraft = async (title_key: string, content: string, stepOrder?: number) => {
+        try {
+            const userId = course.user_id || user?.id;
+            if (!userId) {
+                console.warn('[GenerationProgressModal] saveStepDraft: missing user id, skipping save.');
+                return;
+            }
+
+            const payload: any = {
+                course_id: course.id,
+                user_id: userId,
+                title_key,
+                content,
+                is_completed: false,
+                status: 'draft'
+            };
+            if (typeof stepOrder === 'number') payload.step_order = stepOrder;
+
+            // Try upsert with onConflict on (course_id, title_key)
+            const { error } = await supabase
+                .from('course_steps')
+                .upsert(payload, { onConflict: 'course_id,title_key' });
+
+            if (error) {
+                console.warn('[GenerationProgressModal] saveStepDraft upsert failed, will keep in-memory for manual save:', error);
+                // Keep in pendingStepsRef for manual save later
+                const existing = pendingStepsRef.current.find((p: any) => p.title_key === title_key);
+                if (existing) existing.content = content; else pendingStepsRef.current.push({ ...payload });
+            } else {
+                // If upsert succeeded, ensure we don't keep stale pending entry
+                pendingStepsRef.current = pendingStepsRef.current.filter((p: any) => p.title_key !== title_key);
+                console.log('[GenerationProgressModal] Step draft saved:', title_key);
+            }
+        } catch (e) {
+            console.warn('[GenerationProgressModal] saveStepDraft error:', e);
+            const payload = { course_id: course.id, title_key, content, is_completed: false, status: 'draft' } as any;
+            const existing = pendingStepsRef.current.find((p: any) => p.title_key === title_key);
+            if (existing) existing.content = content; else pendingStepsRef.current.push(payload);
+        }
+    };
+
     const startGeneration = async () => {
         setIsGenerating(true);
         isStoppedRef.current = false;
@@ -655,6 +697,20 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                         return newArr;
                      });
 
+                     // Persist this workbook livrable as a draft so generation can be resumed server-side
+                     try {
+                         await saveStepDraft(step.key, finalContent, index + 1);
+                     } catch (e) {
+                         console.warn('[GenerationProgressModal] Non-fatal: failed to persist workbook draft', e);
+                     }
+
+                     // Persist this livrable as a draft so generation can be resumed server-side
+                     try {
+                         await saveStepDraft(step.key, finalContent, index + 1);
+                     } catch (e) {
+                         console.warn('[GenerationProgressModal] Non-fatal: failed to persist slides draft', e);
+                     }
+
                      await processStep(index + 1);
                      return;
                  }
@@ -934,6 +990,14 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                 saveProgressToCache(newArr, accumulatedContentRef.current);
                 return newArr;
             });
+
+            // Persist this individual step as draft to allow server-side resume
+            try {
+                const contentToSave = generatedContent;
+                await saveStepDraft(step.key, contentToSave, index + 1);
+            } catch (e) {
+                console.warn('[GenerationProgressModal] Non-fatal: failed to persist step draft', e);
+            }
 
             // 3. Next Step (Recursive)
             if (!isStoppedRef.current) {
