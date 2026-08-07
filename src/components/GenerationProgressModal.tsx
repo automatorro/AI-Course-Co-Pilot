@@ -224,6 +224,65 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
         };
     };
 
+    const titleKeyToStepType = (titleKey: string): TrainerStepType | null => {
+        const allSteps = [...LEGACY_STEPS_ORDER, ...CONTRACT_STEPS_ORDER];
+        const match = allSteps.find(step => step.key === titleKey);
+        return match ? match.type : null;
+    };
+
+    const loadProgressFromDb = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('course_steps')
+                .select('title_key, content, status')
+                .eq('course_id', course.id)
+                .eq('status', 'draft');
+
+            if (error) {
+                console.warn('[GenerationProgressModal] loadProgressFromDb failed:', error);
+                return null;
+            }
+
+            if (!data || data.length === 0) return null;
+
+            const steps: Array<{ step_type: TrainerStepType; content: string }> = [];
+            for (const row of data) {
+                const type = titleKeyToStepType(String(row.title_key));
+                if (!type) continue;
+                steps.push({ step_type: type, content: String(row.content || '') });
+            }
+
+            if (steps.length === 0) return null;
+
+            const orderedSteps = relevantSteps
+                .map(step => steps.find(saved => saved.step_type === step.type))
+                .filter(Boolean) as Array<{ step_type: TrainerStepType; content: string }>;
+
+            return {
+                completedSteps: orderedSteps.map(s => s.step_type),
+                accumulatedContent: orderedSteps
+            };
+        } catch (e) {
+            console.warn('[GenerationProgressModal] Error loading progress from DB:', e);
+            return null;
+        }
+    };
+
+    const clearDbDrafts = async () => {
+        try {
+            const { error } = await supabase
+                .from('course_steps')
+                .delete()
+                .eq('course_id', course.id)
+                .eq('status', 'draft');
+            if (error) {
+                console.warn('[GenerationProgressModal] Failed to clear DB drafts:', error);
+            }
+        } catch (e) {
+            console.warn('[GenerationProgressModal] clearDbDrafts error:', e);
+        }
+    };
+
     // Persist a single generated step as a draft so we can resume from server-side later.
     const saveStepDraft = async (title_key: string, content: string, stepOrder?: number) => {
         try {
@@ -243,21 +302,45 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             };
             if (typeof stepOrder === 'number') payload.step_order = stepOrder;
 
-            // Try upsert with onConflict on (course_id, title_key)
-            const { error } = await supabase
+            const { data: existing, error: selectError } = await supabase
                 .from('course_steps')
-                .upsert(payload, { onConflict: 'course_id,title_key' });
+                .select('id')
+                .eq('course_id', course.id)
+                .eq('title_key', title_key)
+                .maybeSingle();
 
-            if (error) {
-                console.warn('[GenerationProgressModal] saveStepDraft upsert failed, will keep in-memory for manual save:', error);
-                // Keep in pendingStepsRef for manual save later
-                const existing = pendingStepsRef.current.find((p: any) => p.title_key === title_key);
-                if (existing) existing.content = content; else pendingStepsRef.current.push({ ...payload });
-            } else {
-                // If upsert succeeded, ensure we don't keep stale pending entry
-                pendingStepsRef.current = pendingStepsRef.current.filter((p: any) => p.title_key !== title_key);
-                console.log('[GenerationProgressModal] Step draft saved:', title_key);
+            if (selectError) {
+                console.warn('[GenerationProgressModal] saveStepDraft select failed:', selectError);
             }
+
+            if (existing && existing.id) {
+                const { error: updateError } = await supabase
+                    .from('course_steps')
+                    .update(payload)
+                    .eq('id', existing.id);
+
+                if (updateError) {
+                    console.warn('[GenerationProgressModal] saveStepDraft update failed:', updateError);
+                    const existingPending = pendingStepsRef.current.find((p: any) => p.title_key === title_key);
+                    if (existingPending) existingPending.content = content;
+                    else pendingStepsRef.current.push(payload);
+                    return;
+                }
+            } else {
+                const { error: insertError } = await supabase
+                    .from('course_steps')
+                    .insert(payload);
+                if (insertError) {
+                    console.warn('[GenerationProgressModal] saveStepDraft insert failed:', insertError);
+                    const existingPending = pendingStepsRef.current.find((p: any) => p.title_key === title_key);
+                    if (existingPending) existingPending.content = content;
+                    else pendingStepsRef.current.push(payload);
+                    return;
+                }
+            }
+
+            pendingStepsRef.current = pendingStepsRef.current.filter((p: any) => p.title_key !== title_key);
+            console.log('[GenerationProgressModal] Step draft saved:', title_key);
         } catch (e) {
             console.warn('[GenerationProgressModal] saveStepDraft error:', e);
             const payload = { course_id: course.id, title_key, content, is_completed: false, status: 'draft' } as any;
@@ -274,7 +357,43 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
         console.log('[GenerationProgressModal] Starting generation...');
         setError(null);
 
-        // Try to resume
+        // Try to resume from DB first
+        const dbCached = await loadProgressFromDb();
+        if (dbCached && dbCached.completedSteps.length > 0) {
+            console.log('[GenerationProgressModal] Resuming from DB cache:', dbCached.completedSteps.length, 'steps done.');
+            accumulatedContentRef.current = dbCached.accumulatedContent;
+            saveProgressToCache(dbCached.completedSteps, dbCached.accumulatedContent);
+
+            let nextIndex = 0;
+            for (let i = 0; i < relevantSteps.length; i++) {
+                if (!dbCached.completedSteps.includes(relevantSteps[i].type)) {
+                    nextIndex = i;
+                    break;
+                }
+                if (i === relevantSteps.length - 1 && dbCached.completedSteps.includes(relevantSteps[i].type)) {
+                    nextIndex = relevantSteps.length;
+                }
+            }
+
+            let validCompletedSteps = dbCached.completedSteps;
+            if (nextIndex < relevantSteps.length) {
+                validCompletedSteps = dbCached.completedSteps.filter((stepType: any) => {
+                     const idx = relevantSteps.findIndex(r => r.type === stepType);
+                     return idx !== -1 && idx < nextIndex;
+                });
+                if (validCompletedSteps.length !== dbCached.completedSteps.length) {
+                    console.log(`[GenerationProgressModal] Cleaning up ${dbCached.completedSteps.length - validCompletedSteps.length} stale future steps from DB cache.`);
+                    saveProgressToCache(validCompletedSteps, dbCached.accumulatedContent);
+                }
+            }
+            
+            setCompletedSteps(validCompletedSteps);
+            setCurrentStepIndex(nextIndex);
+            await processStep(nextIndex);
+            return;
+        }
+
+        // Fallback to localStorage cache
         const cached = loadProgressFromCache();
         if (cached && cached.completedSteps && cached.completedSteps.length > 0) {
             console.log('[GenerationProgressModal] Resuming from cache:', cached.completedSteps.length, 'steps done.');
@@ -282,33 +401,26 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             // Restore content first
             accumulatedContentRef.current = cached.accumulatedContent;
 
-            // Find next step index
             let nextIndex = 0;
             for (let i = 0; i < relevantSteps.length; i++) {
                 if (!cached.completedSteps.includes(relevantSteps[i].type)) {
                     nextIndex = i;
                     break;
                 }
-                // If we are at the last step and it is completed, nextIndex should be length (to finalize)
                 if (i === relevantSteps.length - 1 && cached.completedSteps.includes(relevantSteps[i].type)) {
                     nextIndex = relevantSteps.length;
                 }
             }
 
-            // Clean up stale future steps from cache/state if we are resuming from an earlier point
-            // This prevents "1-5 and 11" states where intermediate steps are missing
             let validCompletedSteps = cached.completedSteps;
             if (nextIndex < relevantSteps.length) {
                 validCompletedSteps = cached.completedSteps.filter((stepType: any) => {
                      const idx = relevantSteps.findIndex(r => r.type === stepType);
-                     // Keep steps that are BEFORE the nextIndex
-                     // If idx is -1 (not found in relevantSteps), keep it? Maybe it's irrelevant.
                      return idx !== -1 && idx < nextIndex;
                 });
                 
                 if (validCompletedSteps.length !== cached.completedSteps.length) {
                     console.log(`[GenerationProgressModal] Cleaning up ${cached.completedSteps.length - validCompletedSteps.length} stale future steps.`);
-                    // Update cache immediately to reflect reality
                     saveProgressToCache(validCompletedSteps, cached.accumulatedContent);
                 }
             }
@@ -316,7 +428,6 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             setCompletedSteps(validCompletedSteps);
             setCurrentStepIndex(nextIndex);
             
-            // Resume immediately
             await processStep(nextIndex);
             return;
         }
@@ -1377,6 +1488,10 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             await attemptWrite();
 
             console.log('[GenerationProgressModal] Sync successful');
+
+            // Clear DB draft rows once final persistence has succeeded
+            await clearDbDrafts();
+            clearProgress();
 
             setIsGenerating(false);
             onComplete();
