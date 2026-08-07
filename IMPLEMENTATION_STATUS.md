@@ -177,3 +177,22 @@ Reprodus și pe HEAD-ul curat (înainte de modificările F0), deci defectul e pr
 | 2026-07-18 | S01 | F0-T1 DONE · F0-T2 DONE · F0-T3 BLOCKED · F0-T4 DONE | Plasa de siguranță instalată. Baseline așteaptă owner-ul (docs/baseline/README.md). M0 rămâne parțial până la F0-T3; F1 NU pornește în această sesiune. |
 | 2026-07-18 | S02 | F0-T3 SKIPPED (owner decision) · M0 DONE · F1 pornit | CLAUDE.md adăugat (regula: owner deploy SQL). Baseline abandonat cu motiv (rubrică absolută + UI fără câmp ton verbatim). F1 începe în această sesiune. |
 | 2026-07-18 | S02 | F1-T1 · F1-T2 · F1-T3 DONE · F1-T4 BLOCKED(owner smoke live) | Editor Generate/Refine + ProtagonistEnforcer + fixes/ + protagonist global toate șterse (commits ecac06b, bbab569, 85b548b). ~1.000 linii cod mort eliminate. Placeholder-ele `{{protagonist*}}`/`{{storyStage}}` sterilizate din toate prompturile. Regula P4 (personaje locale) intră în EXERCISES_PROMPT. Typecheck verde; teste 12/12 (D-003 pre-existent). Așteaptă deploy edge function + smoke owner. |
+
+### D-005 — Local terminal lacks Node/npm; cannot execute local repro here
+**Context.** The current terminal environment does not expose `node`, `npm`, `npx`, `yarn`, or `pnpm`, so this session cannot run the local JavaScript repro or execute `npm run typecheck` from the workspace.
+
+**Discovery.** The implementation changes in `src/components/GenerationProgressModal.tsx` rely on a working local Node toolchain for full verification. This session can inspect and patch code, but not execute the application locally.
+
+**Recommendation.** Owner or developer should run the following from a local machine with Node 18+ installed:
+
+1. `cd CourseCopilot`
+2. `npm install` (or `pnpm install` / `yarn install`)
+3. `npm run typecheck`
+4. `npm test`
+5. Launch the app and reproduce the generation flow:
+   - generate content for a course with blueprint/DNA
+   - close and reopen the generation modal to verify resume
+   - confirm final save persists `course_steps` rows and clears draft state
+6. If Supabase is available, inspect `course_steps` rows for draft entries with `is_completed = false` and final `status = generat`.
+
+**Status impact.** This is a local-environment blocker for direct repro in this session, not a code-completion blocker. The implementation and database-safe fallback work were still completed in code inspection.

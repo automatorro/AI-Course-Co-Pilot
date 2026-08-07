@@ -113,6 +113,23 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             hasStartedRef.current = true;
             startGeneration();
         }
+
+        if (!isOpen) {
+            hasStartedRef.current = false;
+            setIsGenerating(false);
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+                abortControllerRef.current = null;
+            }
+            setCompletedSteps([]);
+            setCurrentStepIndex(0);
+            setError(null);
+            setSuccessMessage(null);
+            setValidationReport(null);
+            accumulatedContentRef.current = [];
+            pendingStepsRef.current = [];
+        }
+
         return () => {
             if (abortControllerRef.current) {
                 abortControllerRef.current.abort();
@@ -232,11 +249,31 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
 
     const loadProgressFromDb = async () => {
         try {
-            const { data, error } = await supabase
+            let data: any = null;
+            let error: any = null;
+
+            const query = supabase
                 .from('course_steps')
                 .select('title_key, content, status')
                 .eq('course_id', course.id)
-                .eq('status', 'draft');
+                .eq('status', 'draft')
+                .order('step_order', { ascending: true });
+
+            const firstResult = await query;
+            data = firstResult.data;
+            error = firstResult.error;
+
+            if (error && String(error.message).includes('status')) {
+                console.warn('[GenerationProgressModal] loadProgressFromDb status column missing, retrying without status filter.');
+                const fallbackResult = await supabase
+                    .from('course_steps')
+                    .select('title_key, content')
+                    .eq('course_id', course.id)
+                    .eq('is_completed', false)
+                    .order('step_order', { ascending: true });
+                data = fallbackResult.data;
+                error = fallbackResult.error;
+            }
 
             if (error) {
                 console.warn('[GenerationProgressModal] loadProgressFromDb failed:', error);
@@ -270,13 +307,23 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
 
     const clearDbDrafts = async () => {
         try {
-            const { error } = await supabase
+            let result = await supabase
                 .from('course_steps')
                 .delete()
                 .eq('course_id', course.id)
                 .eq('status', 'draft');
-            if (error) {
-                console.warn('[GenerationProgressModal] Failed to clear DB drafts:', error);
+
+            if (result.error && String(result.error.message).includes('status')) {
+                console.warn('[GenerationProgressModal] clearDbDrafts status column missing, retrying with is_completed filter.');
+                result = await supabase
+                    .from('course_steps')
+                    .delete()
+                    .eq('course_id', course.id)
+                    .eq('is_completed', false);
+            }
+
+            if (result.error) {
+                console.warn('[GenerationProgressModal] Failed to clear DB drafts:', result.error);
             }
         } catch (e) {
             console.warn('[GenerationProgressModal] clearDbDrafts error:', e);
@@ -302,41 +349,66 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             };
             if (typeof stepOrder === 'number') payload.step_order = stepOrder;
 
-            const { data: existing, error: selectError } = await supabase
+            let existing: any = null;
+            let selectError: any = null;
+
+            const primarySelect = await supabase
                 .from('course_steps')
                 .select('id')
                 .eq('course_id', course.id)
                 .eq('title_key', title_key)
+                .eq('status', 'draft')
                 .maybeSingle();
 
-            if (selectError) {
+            existing = primarySelect.data;
+            selectError = primarySelect.error;
+
+            if (selectError && String(selectError.message).includes('status')) {
+                console.warn('[GenerationProgressModal] saveStepDraft status column missing, retrying select by is_completed=false.');
+                const fallback = await supabase
+                    .from('course_steps')
+                    .select('id')
+                    .eq('course_id', course.id)
+                    .eq('title_key', title_key)
+                    .eq('is_completed', false)
+                    .maybeSingle();
+                existing = fallback.data;
+                selectError = fallback.error;
+            }
+
+            if (selectError && !String(selectError.message).includes('status')) {
                 console.warn('[GenerationProgressModal] saveStepDraft select failed:', selectError);
             }
 
-            if (existing && existing.id) {
-                const { error: updateError } = await supabase
-                    .from('course_steps')
-                    .update(payload)
-                    .eq('id', existing.id);
-
-                if (updateError) {
-                    console.warn('[GenerationProgressModal] saveStepDraft update failed:', updateError);
-                    const existingPending = pendingStepsRef.current.find((p: any) => p.title_key === title_key);
-                    if (existingPending) existingPending.content = content;
-                    else pendingStepsRef.current.push(payload);
-                    return;
+            const savePayload = async (payloadToSave: any) => {
+                if (existing && existing.id) {
+                    const { error: updateError } = await supabase
+                        .from('course_steps')
+                        .update(payloadToSave)
+                        .eq('id', existing.id);
+                    return updateError;
                 }
-            } else {
                 const { error: insertError } = await supabase
                     .from('course_steps')
-                    .insert(payload);
-                if (insertError) {
-                    console.warn('[GenerationProgressModal] saveStepDraft insert failed:', insertError);
-                    const existingPending = pendingStepsRef.current.find((p: any) => p.title_key === title_key);
-                    if (existingPending) existingPending.content = content;
-                    else pendingStepsRef.current.push(payload);
-                    return;
-                }
+                    .insert(payloadToSave);
+                return insertError;
+            };
+
+            let errorResult = await savePayload(payload);
+
+            if (errorResult && String(errorResult.message).includes('status')) {
+                console.warn('[GenerationProgressModal] saveStepDraft failed due to missing status column, retrying without status field.');
+                const cleanedPayload = { ...payload };
+                delete cleanedPayload.status;
+                errorResult = await savePayload(cleanedPayload);
+            }
+
+            if (errorResult) {
+                console.warn('[GenerationProgressModal] saveStepDraft failed:', errorResult);
+                const existingPending = pendingStepsRef.current.find((p: any) => p.title_key === title_key);
+                if (existingPending) existingPending.content = content;
+                else pendingStepsRef.current.push(payload);
+                return;
             }
 
             pendingStepsRef.current = pendingStepsRef.current.filter((p: any) => p.title_key !== title_key);
@@ -1231,9 +1303,6 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
             console.log('[GenerationProgressModal] Finalizing generation...');
             const userId = course.user_id || user?.id;
             if (!userId) throw new Error('User ID is missing.');
-
-            // Clear progress on success
-            clearProgress();
 
             const LIVRABLE_MAPPING = [
                 // NOTE: Course DNA (Step 0) is internal and stored in course.dna column. 
