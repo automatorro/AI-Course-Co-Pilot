@@ -265,7 +265,7 @@ const getDepthSpecs = (language: string, type: 'live' | 'online' = 'live', pract
     - **METHODOLOGY**:
       *   **Feedback**: SBI Model only.
       *   **Problem Solving**: Ishikawa / 5 Whys.
-    - **STRUCTURĂ**: ONE coherent manual.
+    - **STRUCTURE**: ONE coherent manual.
     - **LANGUAGE**: All content must be in **${language}**.
     ${envSpecs}
   `
@@ -2312,6 +2312,12 @@ function buildFallbackModuleContext(
   const modules = (course.blueprint && Array.isArray(course.blueprint.modules)) ? course.blueprint.modules : [];
   const moduleIndex = moduleData.module_index ?? 0;
   const duration = moduleData.duration_minutes || 60;
+  // Only Romanian gets Romanian section titles; every other language falls back to
+  // English rather than silently defaulting to Romanian (same fix as COST_ZERO_SLIDES_LABELS).
+  const isRoFallback = (course.language || '').toLowerCase().startsWith('ro');
+  const fallbackTitles = isRoFallback
+    ? { intro: 'Introducere', theory: 'Concepte Cheie', exercise: 'Aplicare Practică', debrief: 'Debrief & Concluzii' }
+    : { intro: 'Introduction', theory: 'Key Concepts', exercise: 'Practical Application', debrief: 'Debrief & Conclusions' };
 
   return {
     contextVersion: 'v4.0',
@@ -2337,10 +2343,10 @@ function buildFallbackModuleContext(
       transitionNote: 'Continues from previous module concepts.',
     },
     timingPlan: [
-      { sectionTitle: 'Introducere', durationMinutes: 10, type: 'INTRO', conceptRef: null },
-      { sectionTitle: 'Concepte Cheie', durationMinutes: Math.round(duration * 0.4), type: 'THEORY', conceptRef: 'c1' },
-      { sectionTitle: 'Aplicare Practică', durationMinutes: Math.round(duration * 0.35), type: 'EXERCISE', conceptRef: 'c1' },
-      { sectionTitle: 'Debrief & Concluzii', durationMinutes: Math.round(duration * 0.15), type: 'DEBRIEF', conceptRef: null },
+      { sectionTitle: fallbackTitles.intro, durationMinutes: 10, type: 'INTRO', conceptRef: null },
+      { sectionTitle: fallbackTitles.theory, durationMinutes: Math.round(duration * 0.4), type: 'THEORY', conceptRef: 'c1' },
+      { sectionTitle: fallbackTitles.exercise, durationMinutes: Math.round(duration * 0.35), type: 'EXERCISE', conceptRef: 'c1' },
+      { sectionTitle: fallbackTitles.debrief, durationMinutes: Math.round(duration * 0.15), type: 'DEBRIEF', conceptRef: null },
     ],
   };
 }
@@ -2435,6 +2441,8 @@ const COST_ZERO_SLIDES_LABELS: Record<string, any> = {
     objNotes: (obj: string) => `Obiectivul nostru principal este să: ${obj}.`,
     takeawayNotes: (takeaway: string) => `În acest slide, analizăm o idee fundamentală: "${takeaway}". Este important să înțelegem cum se transpune această idee în practică.`,
     exerciseNotes: "Acum este timpul să punem în practică teoria. Vom realiza o activitate aplicată pentru a consolida conceptele discutate.",
+    exerciseBullet1: "Aplicarea conceptelor prezentate prin exercițiu practic",
+    exerciseBullet2: "Lucru individual sau în echipă",
     recapNotes: "Pentru a încheia, haideți să recapitulăm cele mai importante idei de astăzi:",
     recapNotesEnd: "Acestea sunt punctele cheie care ne vor ghida în continuare."
   },
@@ -2446,6 +2454,8 @@ const COST_ZERO_SLIDES_LABELS: Record<string, any> = {
     objNotes: (obj: string) => `Our primary objective is to: ${obj}.`,
     takeawayNotes: (takeaway: string) => `In this slide, we analyze a key takeaway: "${takeaway}". It is important to understand how to apply this concept in our daily work.`,
     exerciseNotes: "Now it is time to put theory into practice. We will do a hands-on activity to reinforce the concepts discussed.",
+    exerciseBullet1: "Applying the concepts presented through a hands-on exercise",
+    exerciseBullet2: "Individual or team work",
     recapNotes: "To wrap up, let's review the main takeaways from today:",
     recapNotesEnd: "These are the key points that will guide us moving forward."
   }
@@ -2458,9 +2468,12 @@ function generateCostZeroSlides(lesson: any, lang: string = 'ro'): string {
   const takeaways = Array.isArray(lesson.key_takeaways) ? lesson.key_takeaways : [];
   const hasExercise = lesson.has_exercise === true;
 
-  const dictionary = (lang || '').toLowerCase().startsWith('en') 
-    ? COST_ZERO_SLIDES_LABELS.en 
-    : COST_ZERO_SLIDES_LABELS.ro;
+  // Only Romanian gets the Romanian dictionary; every other language (including the
+  // ~100 non-RO/EN languages in src/languages.ts, which have no dedicated dictionary
+  // here) falls back to English rather than silently defaulting to Romanian.
+  const dictionary = (lang || '').toLowerCase().startsWith('ro')
+    ? COST_ZERO_SLIDES_LABELS.ro
+    : COST_ZERO_SLIDES_LABELS.en;
 
   let xml = "";
   let slideIndex = 1;
@@ -2508,8 +2521,8 @@ function generateCostZeroSlides(lesson: any, lang: string = 'ro'): string {
     xml += `<!-- slide-layout: EXERCISE -->\n`;
     xml += `<VISUAL>Collaborative workshop session, team working together on a challenge</VISUAL>\n`;
     xml += `<CONTENT>\n`;
-    xml += `- Aplicarea conceptelor prezentate prin exercițiu practic\n`;
-    xml += `- Lucru individual sau în echipă\n`;
+    xml += `- ${dictionary.exerciseBullet1}\n`;
+    xml += `- ${dictionary.exerciseBullet2}\n`;
     xml += `</CONTENT>\n`;
     xml += `<NOTES>\n`;
     xml += `${dictionary.exerciseNotes}\n`;
@@ -2853,9 +2866,9 @@ ${formatKeyConcepts(ctx)}
 
 For each story, invent one or two characters with distinct, realistic names appropriate for ${lang} culture. Characters exist only inside their story — no shared protagonist across stories.
 
-Use this format:
-## Exemplu: [Title]
-**Când se folosește:** [applicationContext]
+Use this format (headers below are shown in English for the developer reading this prompt — translate them into ${lang} in your output):
+## Example: [Title]
+**When to use:** [applicationContext]
 
 "[Full story: Context → Problem → Action → Result. Minimum 150 words each. Use the invented character as protagonist.]"
 
@@ -4218,8 +4231,8 @@ async function handleLegacyStep(
 
       **GOAL**:
       For each module, generate:
-      1. A **Hook Question** ("Întrebare de Agățare") — an open, provocative question that GRABS attention before explaining the theory. NOT "What is X?", but "When was the last time you felt misunderstood at work?"
-      2. A **Key Takeaway** ("Concluzie Cheie") — 1-2 sentences that summarize the core insight participants should leave with.
+      1. A **Hook Question** — an open, provocative question that GRABS attention before explaining the theory. NOT "What is X?", but "When was the last time you felt misunderstood at work?"
+      2. A **Key Takeaway** — 1-2 sentences that summarize the core insight participants should leave with.
 
       **PEDAGOGICAL RULES**:
       - Hook questions must be experiential — they refer to real situations the audience has lived through.
@@ -4228,7 +4241,7 @@ async function handleLegacyStep(
       - Use simple, non-academic language appropriate for the audience.
 
       **OUTPUT FORMAT**:
-      A markdown table with 3 columns: | Modul | Întrebare de Agățare | Concluzie Cheie |
+      A markdown table with 3 columns, headers translated into ${course.language || 'Romanian'}: | Module | Hook Question | Key Takeaway |
       One row per module. Then below the table, for each module, also provide a short 2-3 bullet "Debrief Script" — what to say right after the activity.
 
       **CRITICAL**: Output ONLY in ${course.language || 'Romanian'}. No English words.
@@ -4632,12 +4645,18 @@ async function handleGenerateLearningObjectives(course: any): Promise<string> {
         return JSON.stringify({ objectives: lines });
     }
     
-    // Final fallback
+    // Final fallback. Only Romanian gets Romanian objectives; every other language
+    // falls back to English rather than silently defaulting to Romanian.
+    const isRoObjectives = (lang || '').toLowerCase().startsWith('ro');
     return JSON.stringify({
-        objectives: [
+        objectives: isRoObjectives ? [
             `Definirea conceptelor de bază din ${title}`,
             `Aplicarea tehnicilor practice specifice audienței: ${targetAudience}`,
             `Evaluarea rezultatelor și optimizarea fluxului de lucru`
+        ] : [
+            `Define the core concepts of ${title}`,
+            `Apply practical techniques specific to the audience: ${targetAudience}`,
+            `Evaluate results and optimize the workflow`
         ]
     });
 }
@@ -4697,9 +4716,13 @@ async function handleChatOnboarding(chat_history: any[], course: any): Promise<s
         Logger.info("Step 1: Parsed Analyst Data", analystData);
     } catch (e) {
         Logger.error("Failed to parse Analyst response", e);
-        // Fallback: Assume we need more info if AI failed to format correctly
+        // Fallback: Assume we need more info if AI failed to format correctly.
+        // Only Romanian gets the Romanian message; every other language falls back to English.
+        const isRoChat = (lang || '').toLowerCase().startsWith('ro');
         return JSON.stringify({
-            message: "Îmi poți da te rog mai multe detalii despre audiența țintă și obiective?",
+            message: isRoChat
+                ? "Îmi poți da te rog mai multe detalii despre audiența țintă și obiective?"
+                : "Could you give me a bit more detail about the target audience and objectives?",
             blueprint: null
         });
     }
@@ -4757,8 +4780,11 @@ async function handleChatOnboarding(chat_history: any[], course: any): Promise<s
         blueprintData = repairAndParseJson(rawBlueprint);
     } catch (e) {
         Logger.error("Failed to parse Blueprint", e);
+        const isRoBlueprint = (lang || '').toLowerCase().startsWith('ro');
         return JSON.stringify({
-            message: "Am întâmpinat o eroare tehnică la generarea structurii. Te rog să mai încerci o dată.",
+            message: isRoBlueprint
+                ? "Am întâmpinat o eroare tehnică la generarea structurii. Te rog să mai încerci o dată."
+                : "I ran into a technical error generating the structure. Please try again.",
             blueprint: null
         });
     }
@@ -5105,8 +5131,12 @@ RULES:
     return renderWorkbookIntroHtml(introData);
   } catch (e) {
     Logger.error('[generateWorkbookIntro] Failed to parse JSON or render HTML', e);
-    // Fallback: minimal HTML intro
-    return `<h2 style="font-family:Arial,sans-serif;color:#1a1a2e;">Bun venit la ${course.title || 'Curs'}</h2><p style="font-family:Arial,sans-serif;">Acest caiet este instrumentul tău de lucru pe parcursul cursului. Notează, reflectează și completează exercițiile.</p>`;
+    // Fallback: minimal HTML intro. Only Romanian gets the Romanian text; every other
+    // language falls back to English rather than silently defaulting to Romanian.
+    const isRoIntro = (course.language || '').toLowerCase().startsWith('ro');
+    return isRoIntro
+      ? `<h2 style="font-family:Arial,sans-serif;color:#1a1a2e;">Bun venit la ${course.title || 'Curs'}</h2><p style="font-family:Arial,sans-serif;">Acest caiet este instrumentul tău de lucru pe parcursul cursului. Notează, reflectează și completează exercițiile.</p>`
+      : `<h2 style="font-family:Arial,sans-serif;color:#1a1a2e;">Welcome to ${course.title || 'the Course'}</h2><p style="font-family:Arial,sans-serif;">This workbook is your working tool throughout the course. Take notes, reflect, and complete the exercises.</p>`;
   }
 }
 
@@ -5138,6 +5168,10 @@ RULES:
     return renderWorkbookOutroHtml(outroData);
   } catch (e) {
     Logger.error('[generateWorkbookOutro] Failed to parse JSON or render HTML', e);
-    return `<h2 style="font-family:Arial,sans-serif;color:#1a1a2e;">Pași următori</h2><p style="font-family:Arial,sans-serif;">Aplică ce ai învățat! Identifică 3 acțiuni concrete pe care le vei lua în următoarele 30 de zile.</p>`;
+    // Only Romanian gets the Romanian text; every other language falls back to English.
+    const isRoOutro = (course.language || '').toLowerCase().startsWith('ro');
+    return isRoOutro
+      ? `<h2 style="font-family:Arial,sans-serif;color:#1a1a2e;">Pași următori</h2><p style="font-family:Arial,sans-serif;">Aplică ce ai învățat! Identifică 3 acțiuni concrete pe care le vei lua în următoarele 30 de zile.</p>`
+      : `<h2 style="font-family:Arial,sans-serif;color:#1a1a2e;">Next Steps</h2><p style="font-family:Arial,sans-serif;">Apply what you've learned! Identify 3 concrete actions you'll take in the next 30 days.</p>`;
   }
 }
