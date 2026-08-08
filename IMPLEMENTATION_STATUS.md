@@ -33,6 +33,37 @@ Convenții:
 
 ---
 
+## Verificări restante (owner — verifică la fiecare reluare, nu sări peste)
+
+Sesiunile de-aici (acest IDE) nu au Node/npm instalat (D-012) și **nu rulează niciodată** SQL pe Supabase (regulă nenegociabilă, `CLAUDE.md § 1`). Cele două liste de mai jos sunt cozile corespunzătoare. O intrare se bifează DOAR de owner, după verificare reală pe o mașină cu Node / cu acces la Supabase Studio — nu se șterge o intrare doar pentru că a trecut timp sau pentru că „probabil e ok".
+
+### A. Cod scris fără typecheck/test local (fără Node/npm aici)
+De rulat pe laptopul personal (Node 18+):
+```
+cd CourseCopilot
+npm install
+npm run typecheck
+npm test
+```
+Dacă ceva pică, spune exact ce — nu presupune că a mers doar pentru că nimeni nu s-a plâns.
+
+| Verificat (data) | Commit-uri | Ce conțin |
+|---|---|---|
+| ☐ | `f3cb0f0`..`a5e7e0e` (7 aug) | Draft save/resume în `GenerationProgressModal` — cea mai riscantă bucată nouă, logică de upsert/state |
+| ☐ | `f13d6b9`, `060adcb` (8 aug) | Sterilizare prompturi F2-T2 — text-only în template literals, risc mic, dar tot netestat |
+
+### B. Migrații SQL scrise dar fără confirmare scrisă că au fost rulate manual
+Regula corectă (deja în `CLAUDE.md § 1`, respectată de aici înainte): Claude scrie `.sql` sub `supabase/migrations/` + postează SQL-ul complet în chat; **numai owner-ul** îl copiază în Supabase Studio → SQL Editor și confirmă. Lista de mai jos = ce există în `supabase/migrations/` sau e presupus de cod, fără o confirmare scrisă aici că a rulat.
+
+| Rulat manual? | Ce | Semnal |
+|---|---|---|
+| ☐ | `supabase/migrations/20260718_lead_capture.sql` — tabelele `waitlist_leads`, `demo_sessions` | Commit `683605c` (19 iul) a adăugat explicit un fallback în UI „pentru cazul în care tabela nu există încă" — deci la acea dată sigur nu era rulată. Nicio confirmare ulterioară găsită. |
+| ⚠️ de verificat direct în Supabase Studio | Coloanele `course_steps.is_completed` / `course_steps.status` (valoarea `'draft'`) | Feature-ul de draft/resume (`f3cb0f0`, 7 aug) le scrie prin upsert, dar **nu există nicio migrație** în `supabase/migrations/` care să le adauge pe `course_steps`. Fie există deja din schema de bază (creată direct în Studio, înainte de convenția de migrații), fie feature-ul eșuează silențios (are try/catch cu `console.warn`, deci nu vezi eroare vizibilă — doar lipsă de date). |
+
+**Cum verifici B rapid:** Supabase Studio → Table Editor → caută `waitlist_leads` și `demo_sessions` (există?); deschide `course_steps` → Columns → caută `is_completed` și `status`. Raportează ce găsești, ca să pot bifa/corecta lista.
+
+---
+
 ## Task-uri pe faze
 
 ### F0 — Plasă de siguranță (½ zi) · Risc: zero
@@ -225,7 +256,9 @@ Reprodus și pe HEAD-ul curat (înainte de modificările F0), deci defectul e pr
 | 2026-08-08 | S04 | F2-T2 IN_PROGRESS | Pornit F2 (următorul pas logic după reconciliere). Verificat rutare Golden/Legacy (§D-011): `EXERCISES_PROMPT`/`WORKBOOK_PROMPT`/`MANUAL_PROMPT`/`VIDEO_SCRIPT_PROMPT` sunt calea vie sub `contractPipeline: true`, nu cod mort. Corectat headerele/etichetele hardcodate în română din toate cele 4 (Manual era cel mai afectat); `SLIDES_PROMPT` era deja curat. Adăugată regulă explicită de traducere a etichetelor la fiecare prompt. Nu s-a putut rula typecheck local (fără Node/npm, D-005) — verificare făcută prin citire atentă + diff linie-cu-linie (55 inserții/55 ștergeri, fără backtick-uri noi, fără drift de linii). |
 | 2026-08-08 | S04 (continuare) | F2-T2 tot IN_PROGRESS | Scanare exhaustivă a fișierului pentru text hardcodat RO rămas. Corectat: `COST_ZERO_SLIDES_LABELS` (fallback greșit → RO pentru orice non-EN, inclusiv DE/FR/ES/IT; acum RO doar pentru RO), typo `STRUCTURĂ` în `getDepthSpecs`, headere hardcodate în `generateExamplesContent` și prompt-ul `discussion_guide`, și 5 fallback-uri de eroare/parsare (`buildFallbackModuleContext`, obiective, `handleChatOnboarding` ×2, workbook intro/outro) care ignorau `lang`/`course.language` deja disponibil în scope. Confirmat definitiv cod mort (§D-011 update): `renderToMarkdown` are 0 apelanți, `golden-master.ts` neimportat — subsistemul `GoldenModuleData` întreg + majoritatea `GOLDEN_SAMPLES` sunt candidați F10, nu bug-uri F2 active. Exclus intenționat din scope: mesajul `credit_limit_exceeded` (nivel aplicație, nu conținut curs). Rămas: inventarul complet F2-T1, F2-T3 (validare de limbă uniformă), F2-T4, F2-T5 (test puritate lingvistică). |
 
-### D-005 — Local terminal lacks Node/npm; cannot execute local repro here
+### D-012 — Local terminal lacks Node/npm; cannot execute local repro here
+**Notă de renumerotare (2026-08-08).** Acest discovery a fost scris inițial cu ID-ul `D-005`, care era deja folosit (vezi `D-005` mai jos, despre eșecul CI-ului de deploy Supabase — acela e cel referit din `CLAUDE.md § Convenții de lucru → CI`). Renumerotat aici la `D-012` ca să nu mai existe două intrări cu același ID. Dacă mai găsești referințe vechi la „D-005 = lipsă Node" în alte note, înlocuiește-le cu D-012.
+
 **Context.** The current terminal environment does not expose `node`, `npm`, `npx`, `yarn`, or `pnpm`, so this session cannot run the local JavaScript repro or execute `npm run typecheck` from the workspace.
 
 **Discovery.** The implementation changes in `src/components/GenerationProgressModal.tsx` rely on a working local Node toolchain for full verification. This session can inspect and patch code, but not execute the application locally.
