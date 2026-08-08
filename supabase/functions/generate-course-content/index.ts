@@ -1507,10 +1507,10 @@ This document is used directly by participants during the training. Make it comp
 #### 1. Section Header
 Format: \`## [Section Type Icon] [Section Title] ([Duration] min)\`
 
-#### 2. "De ce contează / Why This Matters" (150-200 words)
+#### 2. Why This Matters (150-200 words)
 - Open with a provocative question or relatable pain point from {{targetAudience}} daily reality
 - Connect the concept directly to their job/challenges
-- End with: "La finalul acestei secțiuni, vei putea să..." / "By the end of this section, you will be able to..."
+- End with a "By the end of this section, you will be able to..." sentence, written in {{language}}
 
 #### 3. Core Theory (600-800 words per concept, ACTION-FIRST)
 - Start with WHAT TO DO, not what to know
@@ -1524,7 +1524,7 @@ Invent a character with a realistic name for the {{language}} culture (they exis
 > **Context:** [who they are, where, what challenge]
 > [The mistake or wrong approach they tried first and why it failed]
 > [The moment they applied the concept from this section]
-> **Rezultat:** [Specific, concrete positive outcome with numbers/dialogue if possible]
+> **Result:** [Specific, concrete positive outcome with numbers/dialogue if possible]
 
 #### 5. Practical Exercise (for every EXERCISE type section)
 Format:
@@ -1533,19 +1533,19 @@ Format:
 #### 🎯 {{exerciseTerm}}: [Title] (N min)
 **{{objectiveLabel}}:** [Specific measurable skill practiced]
 
-**Instrucțiuni:**
+**Instructions:**
 1. [Step 1]
 2. [Step 2]
 3. [Step 3]
 
-**Spațiu de Lucru:**
+**Workspace:**
 | [Column 1] | [Column 2] | [Column 3] |
 |---|---|---|
 | | | |
 | | | |
 | | | |
 
-**Checklist de autoevaluare:**
+**Self-Assessment Checklist:**
 - [ ] [Criterion 1]
 - [ ] [Criterion 2]
 - [ ] [Criterion 3]
@@ -1560,7 +1560,7 @@ Format as blockquotes:
 
 ---
 ### STYLE RULES (NON-NEGOTIABLE)
-- **Language**: ALL content in **{{language}}**. Zero exceptions.
+- **Language**: ALL content in **{{language}}**. Zero exceptions — this includes every section header and table label in this template (they're written in English here only so a developer can read the prompt; translate each one into {{language}} in your output).
 - **Terminology**: Use "{{participantTerm}}" for learner, "{{trainerTerm}}" for facilitator, "{{exerciseTerm}}" for activity.
 - **Environment**: {{envRules}}
 - **Tone**: Match the Audience DNA above.
@@ -1625,7 +1625,7 @@ This is the trainer's bible — complete, actionable, and containing everything 
 
 #### 2. TIMING TABLE (Minute-by-Minute Agenda)
 Use a Markdown table with these columns:
-| Minut | Segment | Ce face Trainerul | Ce fac Participanții | Metodă | Material |
+| Minute | Segment | Trainer Action | Participant Action | Method | Material |
 |---|---|---|---|---|---|
 One row per section in the timing plan. Start times must be cumulative (0, 10, 30, 50...).
 Times must sum to {{durationMinutes}} minutes.
@@ -1636,41 +1636,41 @@ For EACH section in the timing plan, use this structure:
 ---
 ##### [Section Icon] [Section Title] ([Duration] min)
 
-**[TRANZIȚIE / DESCHIDERE]**
+**[TRANSITION / OPENING]**
 > "[Exact words to say when entering this section. If it's the first section, this is the opening hook.]"
 
-**[INSTRUCȚIUNI FACILITATOR]** *(imperative commands)*
+**[FACILITATOR INSTRUCTIONS]** *(imperative commands)*
 - [What to do first]
 - [What to say/show/write]
 - [When to pause and check for understanding]
 - [Watch for: common confusion points]
 
-**[SCRIPT VERBATIM]** *(write what you say, in quotation marks)*
+**[VERBATIM SCRIPT]** *(write what you say, in quotation marks)*
 > "[Full trainer monologue/dialogue. Long enough to naturally fill the time allocated.]
 > [Include a question to the group at a natural pause point.]"
 
-**[DACĂ GRUPUL REZISTĂ / ESTE CONFUZ]**
+**[IF THE GROUP RESISTS / IS CONFUSED]**
 > "[Exact recovery words if participants seem lost, resistant, or disengaged]"
 
-**[TRANZIȚIE SPRE URMĂTOR]**
+**[TRANSITION TO NEXT]**
 > "[Bridge words connecting to the next section]"
 
 ---
-#### 4. MATERIALE NECESARE
+#### 4. MATERIALS NEEDED
 - [Complete list of physical/digital materials needed]
 
-#### 5. SFATURI DE FACILITARE (Specific to this audience and content)
+#### 5. FACILITATION TIPS (Specific to this audience and content)
 - [Tip 1: specific to {{targetAudience}} and {{moduleTitle}}]
 - [Tip 2]
 - [Tip 3]
 
-#### 6. VARIANTE DE ADAPTARE
-| Situație | Adaptare |
+#### 6. ADAPTATION VARIANTS
+| Situation | Adaptation |
 |---|---|
-| Grup avansat (cunoaște deja conceptele) | [What to skip/accelerate] |
-| Grup beginner (nu are experiență) | [What to slow down/add] |
-| Timp limitat (-10 min față de plan) | [What to cut without losing impact] |
-| Timp extra (+10 min față de plan) | [What to deepen or add] |
+| Advanced group (already knows the concepts) | [What to skip/accelerate] |
+| Beginner group (no prior experience) | [What to slow down/add] |
+| Limited time (-10 min vs. plan) | [What to cut without losing impact] |
+| Extra time (+10 min vs. plan) | [What to deepen or add] |
 
 ---
 ### CRITICAL RULES
@@ -1678,7 +1678,7 @@ For EACH section in the timing plan, use this structure:
    - BAD: "The trainer should explain the concept."
    - GOOD: "Explain the concept using the following analogy: ..."
 2. **NO META-COMMENTARY**: Do NOT describe what a section is. Write actual instructions and scripts.
-3. **LANGUAGE**: ALL content (including scripts) in **{{language}}**.
+3. **LANGUAGE**: ALL content (including scripts) in **{{language}}**. This includes every section header, table column, and bracketed label in this template — they're written in English/Romanian here only for the developer reading this prompt; translate each one into {{language}} in your output.
 4. **VERBATIM SCRIPTS**: Must be long enough to fill the time. For a 15-min section, write 400+ words of script.
 5. **SPECIFICITY**: Never write "Ask a question about the topic." Write: "Ask: '[Exact question]?' (pause 20 seconds)"
 6. **ENVIRONMENT**: {{envRules}}
@@ -1804,22 +1804,22 @@ These are standalone handouts — complete, practical, usable without the workbo
 **Format:** [INDIVIDUAL / PAIRS / GROUPS OF 3-4 / FULL GROUP]
 **{{objectiveLabel}}:** [Specific, measurable skill practiced — NOT "understand X" but "apply X to scenario Y"]
 
-### Instrucțiuni Participant
+### Participant Instructions
 [Numbered step-by-step instructions from the participant's perspective]
 [Include any role descriptions, scenario setup, or materials they need]
 
-### Spațiu de Lucru
+### Workspace
 [REAL formatted workspace — tables, checkboxes, fill-in grids]
 [NOT a placeholder like "(write your answer here)"]
 [Example: a comparison table, a role-play script template, a decision matrix]
 
-### Instrucțiuni Facilitator
+### Facilitator Instructions
 
 **Timing Breakdown:**
-| Etapă | Durată | Acțiune Facilitator | Acțiune Participant |
+| Stage | Duration | Facilitator Action | Participant Action |
 |---|---|---|---|
 | Setup | X min | [Exact setup instructions] | [What they prepare] |
-| Execuție | Y min | [What trainer observes/supports] | [What they do] |
+| Execution | Y min | [What trainer observes/supports] | [What they do] |
 | Debrief | Z min | [How to facilitate debrief] | [What they share] |
 
 **Observer Checklist** *(for facilitator while participants work)*:
@@ -1828,26 +1828,26 @@ These are standalone handouts — complete, practical, usable without the workbo
 - [ ] [Success indicator]
 - [ ] [Red flag: what would mean the exercise needs to be paused]
 
-**Întrebări de Debrief:**
-1. [Factual: "Ce s-a întâmplat când...?"]
-2. [Analytical: "De ce crezi că...?"]
-3. [Applicative: "Cum vei folosi asta mâine dimineață?"]
-4. [Generalization: "Ce principiu general putem extrage?"]
+**Debrief Questions:**
+1. [Factual: "What happened when...?"]
+2. [Analytical: "Why do you think...?"]
+3. [Applicative: "How will you use this tomorrow morning?"]
+4. [Generalization: "What general principle can we extract?"]
 
-**Indicatori de Succes:**
+**Success Indicators:**
 - [ ] [Participant can do X]
 - [ ] [Participant demonstrates Y]
 
-**Adaptare:**
-- Grup rezistent: [Specific instruction]
-- Grup prea rapid: [What to add/deepen]
+**Adaptation:**
+- Resistant group: [Specific instruction]
+- Group moving too fast: [What to add/deepen]
 
 ---
 
 ### CRITICAL RULES
 1. **SCENARIO-BASED**: Never ask "What is X?" — always use realistic scenarios from {{targetAudience}} context
 2. **LOCAL CHARACTERS**: For every exercise, invent the characters you need with distinct, realistic names appropriate for the {{language}} culture. Give each character a concrete role, stake, and tension that makes the dilemma unavoidable. Characters exist ONLY inside this exercise — never carry names across exercises. Do NOT reuse a single "protagonist"; every scenario has its own cast.
-3. **LANGUAGE**: ALL content in **{{language}}**
+3. **LANGUAGE**: ALL content in **{{language}}**, including every section header and table label in this template (they're written in English here only for the developer reading this prompt; translate each one into {{language}} in your output)
 4. **ENVIRONMENT**: {{envRules}}
 5. **REAL WORKSPACES**: Tables and checkboxes must be ACTUAL Markdown, not placeholder text
 6. **COMPLETE**: Each exercise sheet must be usable as a standalone handout
@@ -1881,49 +1881,49 @@ These scripts are used directly for video production — complete, professional,
 **For each section in the timing plan:**
 
 ---
-## 🎬 Script Video: [Section Title] ([Duration] min)
+## 🎬 Video Script: [Section Title] ([Duration] min)
 **Format:** [Talking Head / Screen Share + Talking Head / Animation Overlay / B-Roll with VO]
-**Ton:** [e.g., Professional & Warm, Direct, Energetic]
+**Tone:** [e.g., Professional & Warm, Direct, Energetic]
 
-### [SCENĂ 1: HOOK — Talking Head] (~30-45 sec)
-**(Vizual: Instructor looking at camera, professional setting or relevant background)**
+### [SCENE 1: HOOK — Talking Head] (~30-45 sec)
+**(Visual: Instructor looking at camera, professional setting or relevant background)**
 
 "[Opening — relatable pain point OR surprising statistic]
 [Connect immediately to the participant's reality]
-[Promise: 'În următoarele N minute, îți voi arăta cum să...']"
+[Promise: e.g. "In the next N minutes, I'll show you how to...", written in {{language}}]"
 
 ---
-### [SCENĂ 2: CONCEPT PRINCIPAL] (~N min)
-**(Vizual: [Specific description: animation showing the model / screen recording / diagram overlay])**
+### [SCENE 2: MAIN CONCEPT] (~N min)
+**(Visual: [Specific description: animation showing the model / screen recording / diagram overlay])**
 
 "[Clear explanation of the concept — action-first, not definition-first]
-[Key insight: 'Cei mai mulți oameni cred că X. Dar în realitate, Y.']
+[Key insight: e.g. "Most people believe X. But in reality, Y.", written in {{language}}]
 [Named model or framework with 3 steps]
 [Example told as a short story, using a character invented for this scene with a realistic name for {{language}} culture]"
 
 ---
-### [SCENĂ 3: DEMONSTRAȚIE / EXEMPLU] (~N min)
-**(Vizual: [Screen recording / Split screen / B-Roll footage description])**
+### [SCENE 3: DEMONSTRATION / EXAMPLE] (~N min)
+**(Visual: [Screen recording / Split screen / B-Roll footage description])**
 
 "[Walk through a concrete before/after example]
 [Invent a character with a realistic name for {{language}} culture; they exist only in this scene]
 [Compare old approach vs. new approach with specific outcomes]"
 
 ---
-### [SCENĂ 4: CALL TO ACTION] (~30 sec)
-**(Vizual: Instructor on camera)**
+### [SCENE 4: CALL TO ACTION] (~30 sec)
+**(Visual: Instructor on camera)**
 
 "[Recap the single most important takeaway in one sentence]
-[Specific action: 'Oprește videoclipul acum. Deschide caietul de lucru la pagina X și completează exercițiul Y.']
-[Bridge: 'În modulul următor, vom explora...']"
+[Specific action: e.g. "Pause the video now. Open your workbook to page X and complete exercise Y.", written in {{language}}]
+[Bridge: e.g. "In the next module, we'll explore...", written in {{language}}]"
 
-**Note pentru producție:**
-- Overlay la [timestamp]: [Text/graphic to appear]
-- Lower third la [timestamp]: [Name/title to show]
+**Production Notes:**
+- Overlay at [timestamp]: [Text/graphic to appear]
+- Lower third at [timestamp]: [Name/title to show]
 
 ---
 ### RULES
-1. Language: ALL script content in **{{language}}**
+1. Language: ALL script content in **{{language}}**, including every section/scene header and bracketed label in this template (they're written in English here only for the developer reading this prompt; translate each one into {{language}} in your output)
 2. Scripts must be COMPLETE — write actual words, no placeholders
 3. Tone matches the voice profile defined above
 4. CTAs must be specific and actionable
