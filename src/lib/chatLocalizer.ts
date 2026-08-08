@@ -11,7 +11,6 @@ export const detectChatLanguage = (
   if (fromCourse) return fromCourse;
   const fromApp = appLanguage?.toLowerCase();
   if (fromApp) return fromApp;
-  const nav = typeof navigator !== 'undefined' ? navigator.language?.slice(0, 2) : undefined;
-  return (nav || 'en').toLowerCase();
+  return 'en';
 };
 

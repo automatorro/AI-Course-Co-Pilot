@@ -1483,8 +1483,8 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                 console.error('[GenerationProgressModal] Failed to fetch existing steps:', fetchStepsError);
             }
 
-            const toUpdate = [];
-            const toInsert = [];
+            const toUpdate: any[] = [];
+            const toInsert: any[] = [];
 
             for (const step of stepsToInsert) {
                 const existing = existingSteps?.find((es: any) => es.title_key === step.title_key);
@@ -1596,8 +1596,8 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                 console.error('[GenerationProgressModal] Failed to fetch existing steps:', fetchStepsError);
             }
 
-            const toUpdate = [];
-            const toInsert = [];
+            const toUpdate: any[] = [];
+            const toInsert: any[] = [];
 
             for (const step of steps) {
                 const existing = existingSteps?.find((es: any) => es.title_key === step.title_key);
