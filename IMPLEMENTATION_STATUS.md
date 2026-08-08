@@ -11,6 +11,49 @@ Convenții:
 
 ---
 
+## ▶ REIA DE AICI (scris 2026-08-08, sesiune încheiată pe laptopul de serviciu)
+
+**De ce există secțiunea asta.** Sesiunea de pe laptopul de serviciu nu are Node/npm și nu atinge Supabase direct (regulă permanentă, nu limitare temporară — vezi `CLAUDE.md § 1`). Munca se oprește aici; următoarea sesiune (laptop personal) trebuie să facă 3 lucruri, ÎN ORDINEA ASTA, înainte de a scrie cod nou. Nu sări peste pasul 1-2 ca să ajungi mai repede la implementare — exact asta a cerut owner-ul să nu se mai întâmple.
+
+### Pas 0 — sincronizare repo
+```
+cd "CourseCopilot"          # sau calea locală a clonei tale
+git checkout main
+git pull origin main
+git log --oneline -1        # trebuie să arate: 000560f docs(status): add Node/npm and Supabase-migration tracking checklists
+```
+Dacă commit-ul de mai sus nu e cel mai recent, ceva nu s-a sincronizat — oprește-te și investighează înainte de orice altceva (nu presupune că e ok).
+
+### Pas 1 — Verificare Node/npm (rezolvă §A din „Verificări restante" mai jos)
+```
+npm install
+npm run typecheck
+npm test
+```
+- Dacă typecheck/test pică: raportează exact eroarea (fișier + linie + mesaj). NU repara orbește și NU continua la Pas 3 până nu e verde — codul din §A de mai jos a fost scris fără nicio verificare de compilare.
+- Dacă totul e verde: bifează manual cele 2 rânduri din tabelul §A (adaugă data lângă ☑) și, dacă vrei, fă un commit `docs(status): confirm local typecheck/test green for <commit hash>`.
+- Test manual suplimentar recomandat (din D-012): generează un curs, închide și redeschide modalul de generare (verifică resume), confirmă că la final `course_steps` are rândurile finale și nu mai rămân draft-uri (`is_completed: false`) — asta verifică și §B de mai jos.
+
+### Pas 2 — Verificare Supabase (rezolvă §B din „Verificări restante" mai jos)
+Loghează-te în Supabase Studio → Table Editor:
+1. Caută tabelele `waitlist_leads` și `demo_sessions`. NU există? → copiază SQL-ul din `supabase/migrations/20260718_lead_capture.sql` în SQL Editor și rulează-l tu (owner-ul, nu Claude). EXISTĂ deja? → bifează rândul din §B, nu mai trebuie rulat.
+2. Deschide tabelul `course_steps` → Columns. Caută `is_completed` (boolean) și `status` (text, cu valoarea posibilă `'draft'`). NU există? → feature-ul de draft/resume din 7 aug (`f3cb0f0`..`a5e7e0e`) eșuează silențios de o săptămână; trebuie scrisă o migrație nouă (`ALTER TABLE course_steps ADD COLUMN ...`) înainte de orice altceva pe F2 — spune-mi și o scriu, dar TU o rulezi. EXISTĂ deja? → bifează, era doar schemă mai veche nedocumentată.
+3. Raportează rezultatul celor 2 verificări (există/nu există) ca să pot actualiza tabelul §B și, dacă lipsește ceva, să scriu migrația corectă.
+
+### Pas 3 — Abia acum, reia implementarea F2
+Planul formal e la F2 (`§ Task-uri pe faze → F2`). F2-T2 e `IN_PROGRESS` cu progres real (2 commit-uri, 8 aug: `f13d6b9`, `060adcb` — sterilizare prompturi + fallback-uri de limbă). Rămân, **în ordinea asta**:
+
+1. **F2-T1** — `localizedLabels`: inventar complet al string-urilor localizabile din prompturi/renderere + promptul A.4.1 + migrație `courses.localized_labels jsonb` + fallback EN static + generare la crearea cursului.
+   - **Atenție, nu reinventa**: există deja un mecanism separat, `GoldenModuleData.localizedLabels` (`prompts/golden-master.ts`, `types.ts`) — dar e **cod mort confirmat** (`renderToMarkdown` are 0 apelanți, vezi `§D-011`). Nu-l „descoperi" din nou ca pe ceva de integrat — fie îl ștergi la F10, fie construiești infrastructura NOUĂ de la zero, dar nu presupune că e deja folosit.
+   - Migrația de schemă intră sub regula `CLAUDE.md § 1`: scrii `.sql`, o postezi complet în chat, owner-ul o rulează manual, marchezi „așteaptă deploy owner" până la confirmare — **exact ca la Pas 2 de mai sus**, ca să nu repetăm gaura cu `lead_capture.sql`.
+2. **F2-T3** — Validare de limbă uniformă: elimină `skipAiValidation` complet (căutat, e folosit inconsistent azi — unele apeluri `true` implicit, altele `false` explicit, vezi `callLLM`/`generateWorkbookContent`/etc.); detectorul de limbă (`LANG_SIGNATURES`, azi ~linia 972) rulează pe orice output >400 caractere; extins la toate limbile din `src/languages.ts` (azi acoperă doar RO/EN/FR/DE/ES/IT parțial — verifică la implementare); maximum 1 retry, apoi warning (nu blocare).
+3. **F2-T4** — Meta-instrucțiuni EN, conținut verbatim (regula A.1 din planul v2.0).
+4. **F2-T5** — `src/tests/languagePurity.test.ts`: pe etalonul EN → 0 apariții headere RO și 0 diacritice; pe RO → 0 headere EN. (Nu poate fi RULAT decât cu Node — scrie-l pe laptopul personal, nu aici.)
+
+Detalii complete ale fiecărui task, plus tot ce s-a descoperit pe parcurs (rutare Golden vs Legacy, cod mort, bug-uri de fallback corectate) sunt în `§ Task-uri pe faze → F2` și `§ Descoperiri → D-008, D-009, D-011` mai jos. Jurnalul de sesiune (`§ Jurnal de sesiune`) are cronologia completă dacă ai nevoie de context suplimentar despre CE s-a decis și DE CE.
+
+---
+
 ## Borne (M0–M10)
 
 | Bornă | Faza | Livrabil verificabil | Status |
