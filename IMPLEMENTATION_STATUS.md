@@ -92,8 +92,8 @@ Dacă ceva pică, spune exact ce — nu presupune că a mers doar pentru că nim
 
 | Verificat (data) | Commit-uri | Ce conțin |
 |---|---|---|
-| ☐ | `f3cb0f0`..`a5e7e0e` (7 aug) | Draft save/resume în `GenerationProgressModal` — cea mai riscantă bucată nouă, logică de upsert/state |
-| ☐ | `f13d6b9`, `060adcb` (8 aug) | Sterilizare prompturi F2-T2 — text-only în template literals, risc mic, dar tot netestat |
+| ☑ 2026-08-08 | `f3cb0f0`..`a5e7e0e` (7 aug) | Draft save/resume în `GenerationProgressModal` — cea mai riscantă bucată nouă, logică de upsert/state. Typecheck a picat inițial (2 variabile fără tip); reparat, vezi D-013. |
+| ☑ 2026-08-08 | `f13d6b9`, `060adcb` (8 aug) | Sterilizare prompturi F2-T2 — text-only în template literals, risc mic. Typecheck/test verde, fără probleme găsite în acest cod. |
 
 ### B. Migrații SQL scrise dar fără confirmare scrisă că au fost rulate manual
 Regula corectă (deja în `CLAUDE.md § 1`, respectată de aici înainte): Claude scrie `.sql` sub `supabase/migrations/` + postează SQL-ul complet în chat; **numai owner-ul** îl copiază în Supabase Studio → SQL Editor și confirmă. Lista de mai jos = ce există în `supabase/migrations/` sau e presupus de cod, fără o confirmare scrisă aici că a rulat.
@@ -319,3 +319,14 @@ Reprodus și pe HEAD-ul curat (înainte de modificările F0), deci defectul e pr
 6. If Supabase is available, inspect `course_steps` rows for draft entries with `is_completed = false` and final `status = generat`.
 
 **Status impact.** This is a local-environment blocker for direct repro in this session, not a code-completion blocker. The implementation and database-safe fallback work were still completed in code inspection.
+
+### D-013 — Prima rulare locală (Pas 1, 2026-08-08): 2 defecte reale găsite și reparate, sub aprobare owner
+**Context.** Runbook-ul „REIA DE AICI" (scris în sesiunea anterioară, vezi D-012) a cerut explicit ca prima sesiune cu Node/npm să ruleze `npm run typecheck && npm test` înainte de orice altceva pe F2. Rulat azi pentru prima dată — a confirmat exact avertismentul din §A: codul din 7-8 aug nu fusese verificat de compilator.
+
+**Defect 1 — typecheck roșu, 12 erori TS7034/TS7005.** `src/components/GenerationProgressModal.tsx`, în ambele funcții de sincronizare (`handleFinalize`/logica de salvare finală și `handleSaveDraft`), liniile ~1486-1487 și ~1599-1600: `const toUpdate = []; const toInsert = [];` fără tip → TypeScript nu poate infera `any[]` în ramurile ulterioare unde sunt populate/citite (upsert/insert Supabase). Cauzează DoD-ul F2 (typecheck verde per commit, `CLAUDE.md § 3`). **Fix** (plafon respectat: 1 fișier, adnotare de tip, zero schimbare de logică): `const toUpdate: any[] = []` / `const toInsert: any[] = []` în ambele locuri, consistent cu restul fișierului care folosește deja `as any` pe scară largă în aceeași funcție.
+
+**Defect 2 — test roșu, nou, neconsemnat până acum.** `src/__tests__/chatLocalizer.test.ts` → `detectChatLanguage(undefined, undefined)` aștepta `'en'`, primea `'ro'`. Cauză: `src/lib/chatLocalizer.ts` cădea, în lipsa `courseLanguage`/`appLanguage`, pe `navigator.language` (activ prin flagul `languageDetector: true` din `src/config/featureFlags.ts`) — pe Node 25.4.0/Windows cu locale românesc, acest global reflectă limba sistemului de operare, nu un default fix. Testul documentează intenția corectă („defaults to en when none provided") — comportamentul de fallback pe locale-ul mașinii nu era acoperit de nicio cerință scrisă și e non-determinist (depinde de OS-ul dezvoltatorului/utilizatorului final, nu de cursul sau aplicația CourseCopilot). **Fix** (plafon respectat: 1 fișier, 3 linii eliminate): scoasă ramura `navigator.language`, `detectChatLanguage` cade direct pe `'en'` când nici cursul, nici aplicația nu specifică o limbă.
+
+**Verificare.** `npm run typecheck` → verde (0 erori). `npm test` → 12/13 verde; singurul eșec rămas e `e2e_generation.test.ts`, excepția pre-existentă D-003, ignorată explicit conform `CLAUDE.md § 3`.
+
+**Fișiere atinse:** `src/components/GenerationProgressModal.tsx`, `src/lib/chatLocalizer.ts`. Ambele reparate sub aprobare explicită owner (întrebare pusă înainte de a scrie cod), plafon respectat (≤2 fișiere, zero schimbare de schemă, reversibil într-un commit).
