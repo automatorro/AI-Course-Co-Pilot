@@ -3132,6 +3132,27 @@ serve(async (req) => {
         return new Response(JSON.stringify({ content: result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    if (action === 'generate_exercises_part') {
+        const { course, module_data, module_index } = body;
+        const targetModuleId = await resolveModuleId(supabase, course.id, module_data, module_index);
+        const result = await handleGoldenStep(supabase, course, targetModuleId, 'exercises');
+        return new Response(JSON.stringify({ content: result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    if (action === 'generate_examples_part') {
+        const { course, module_data, module_index } = body;
+        const targetModuleId = await resolveModuleId(supabase, course.id, module_data, module_index);
+        const result = await handleGoldenStep(supabase, course, targetModuleId, 'examples_and_stories');
+        return new Response(JSON.stringify({ content: result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    if (action === 'generate_manual_part') {
+        const { course, module_data, module_index } = body;
+        const targetModuleId = await resolveModuleId(supabase, course.id, module_data, module_index);
+        const result = await handleGoldenStep(supabase, course, targetModuleId, 'facilitator_manual');
+        return new Response(JSON.stringify({ content: result }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     // ============================================================
     // ACTION: backfill_key_takeaways
     // One-time backfill for legacy courses missing key_takeaways.
