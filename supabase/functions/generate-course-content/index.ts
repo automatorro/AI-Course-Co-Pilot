@@ -814,6 +814,11 @@ class GeminiProvider implements IAIProvider {
       if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
           throw new Error(`Invalid response from Gemini (${model}): ${JSON.stringify(data)}`);
       }
+      _lastCallUsage = {
+        inputTokens: data.usageMetadata?.promptTokenCount ?? 0,
+        outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
+        model
+      };
       return data.candidates[0].content.parts[0].text;
     } catch (e: any) {
       throw new Error(`Gemini Call Failed (${model}): ${e.message} [Key: ${maskedKey}]`);
@@ -869,7 +874,11 @@ class MoonshotProvider implements IAIProvider {
       if (data.error) {
         throw new Error(`Moonshot API Error: ${data.error.message} [Key: ${maskedKey}]`);
       }
-      
+      _lastCallUsage = {
+        inputTokens: data.usage?.prompt_tokens ?? 0,
+        outputTokens: data.usage?.completion_tokens ?? 0,
+        model: 'moonshot-v1-8k'
+      };
       return data.choices[0].message.content;
     } catch (e: any) {
       throw new Error(`Moonshot Call Failed: ${e.message} [Key: ${maskedKey}]`);
@@ -911,6 +920,43 @@ class AIOrchestrator {
 
 // Global Orchestrator Instance
 const orchestrator = new AIOrchestrator();
+
+// ==========================================
+// COST TRACKING
+// ==========================================
+
+// Module-level usage capture — populated by each provider after a successful call.
+let _lastCallUsage = { inputTokens: 0, outputTokens: 0, model: 'unknown' };
+// Set once per request from the auth header; read by callLLM for logging.
+let _requestUserId = '';
+
+async function logUsageFireAndForget(userId: string, inputTokens: number, outputTokens: number, model: string): Promise<void> {
+  try {
+    const supabaseUrl = Config.SUPABASE_URL;
+    const serviceKey = Config.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceKey || !userId) return;
+
+    await fetch(`${supabaseUrl}/rest/v1/user_usage`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': serviceKey,
+        'Authorization': `Bearer ${serviceKey}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        model,
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        total_tokens: inputTokens + outputTokens,
+        action: 'generate'
+      })
+    });
+  } catch (_e) {
+    // Fire-and-forget — never let logging failures surface to caller
+  }
+}
 
 // ==========================================
 // POST-PROCESSOR & VALIDATION
@@ -1119,6 +1165,11 @@ function containsBannedPhrases(content: string, language: string = 'ro'): boolea
 async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean = false, skipAiValidation: boolean = false): Promise<string> {
   let response = await orchestrator.execute(prompt);
 
+  // Log token usage fire-and-forget after each successful AI call
+  if (_requestUserId && _lastCallUsage.inputTokens > 0) {
+    logUsageFireAndForget(_requestUserId, _lastCallUsage.inputTokens, _lastCallUsage.outputTokens, _lastCallUsage.model);
+  }
+
   // Phase 1: Fast Static Check
   if (containsBannedPhrases(response, language)) {
     if (isRetry) {
@@ -1155,7 +1206,7 @@ async function retryWithStrictInstructions(prompt: string, language: string, err
     \n\n
     *** CRITICAL INSTRUCTION - STRICT MODE ***
     The previous output was REJECTED because: ${errorReason || "It contained apologetic or meta-conversational phrases."}
-    
+
     YOU MUST FOLLOW THESE RULES:
     1. **LANGUAGE FIX**: Ensure ALL content is in **${language}**. Do NOT mix languages.
        - If ${language} is Romanian, NO English sentences allowed.
@@ -1165,10 +1216,10 @@ async function retryWithStrictInstructions(prompt: string, language: string, err
        - DO NOT say "I hope this helps".
        - DO NOT provide a "skeleton".
     3. **IMPERATIVE ONLY**: For instructions, use commands ("Do this"), not descriptions ("The user should do this").
-    
+
     GENERATE THE CORRECTED CONTENT NOW.
     `;
-    
+
     return callLLM(prompt + strictInstruction, language, true, skipAiValidation);
 }
 
@@ -2944,6 +2995,7 @@ serve(async (req) => {
             authHeader.replace('Bearer ', '')
           );
           if (authUser?.id) {
+            _requestUserId = authUser.id;
             const { data: creditStatus } = await supabase.rpc('get_ai_credit_status', {
               p_user_id: authUser.id,
             });
