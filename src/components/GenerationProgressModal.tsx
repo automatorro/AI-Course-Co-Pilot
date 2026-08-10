@@ -1064,6 +1064,115 @@ export const GenerationProgressModal: React.FC<GenerationProgressModalProps> = (
                  }
             }
 
+            // --- Helper: Client-Side Iteration for per-module steps (Exercises, Examples, Manual) ---
+            const runPerModuleIteration = async (
+                actionName: string,
+                cacheKey: string,
+                contextStepTypes: TrainerStepType[]
+            ): Promise<boolean> => {
+                const iterSummary = buildContextSummary(accumulatedContentRef.current || []);
+                let modulesToProcess: any[] | undefined = course.blueprint?.modules;
+                if ((!modulesToProcess || modulesToProcess.length === 0) && iterSummary.modules.length > 0) {
+                    modulesToProcess = iterSummary.modules.map((t: string, idx: number) => ({
+                        id: `generated-mod-${idx}`,
+                        title: t,
+                        learning_objective: 'See content.',
+                        sections: []
+                    }));
+                }
+                if (!modulesToProcess || modulesToProcess.length === 0) return false;
+
+                console.log(`[GenerationProgressModal] Client-Side Iteration for ${actionName}`);
+                let parts: string[] = [];
+                try {
+                    const cached = localStorage.getItem(cacheKey);
+                    if (cached) parts = JSON.parse(cached);
+                } catch (e) { console.error(e); }
+
+                const iterAllowed = new Set(contextStepTypes);
+                const iterPrevContext = (accumulatedContentRef.current || [])
+                    .filter((s: any) => iterAllowed.has(s.step_type))
+                    .map((s: any) => ({ step_type: s.step_type, content: String(s.content || '').slice(0, 2000) }));
+
+                for (let i = parts.length; i < modulesToProcess.length; i++) {
+                    if (isStoppedRef.current) break;
+                    let modContent = '';
+                    let retries = 0;
+                    while (retries < 3 && !modContent) {
+                        try {
+                            const { data: modData, error: modErr } = await invokeWithTimeout({
+                                action: actionName,
+                                course: getMinimalCourse(course),
+                                module_data: modulesToProcess[i],
+                                module_index: i,
+                                previous_steps: iterPrevContext
+                            });
+                            if (modErr) throw modErr;
+                            modContent = modData?.content;
+                            if (!modContent) throw new Error('Empty content from server');
+                        } catch (e) {
+                            console.warn(`[${actionName}] Module ${i} error, retry ${retries}`, e);
+                            retries++;
+                            await new Promise(r => setTimeout(r, 1500));
+                        }
+                    }
+                    if (!modContent) modContent = `## Module ${i + 1}: ${modulesToProcess[i].title}\n\n(Generation failed for this module.)`;
+                    parts.push(modContent);
+                    try { localStorage.setItem(cacheKey, JSON.stringify(parts)); } catch (_e) { /* ignore */ }
+                }
+
+                if (isStoppedRef.current) {
+                    setIsGenerating(false);
+                    return true;
+                }
+                localStorage.removeItem(cacheKey);
+
+                const finalContent = parts.join('\n\n---\n\n');
+                accumulatedContentRef.current.push({ step_type: step.type, content: finalContent });
+                setCompletedSteps(prev => {
+                    const newSet = new Set([...prev, step.type]);
+                    const newArr = Array.from(newSet);
+                    saveProgressToCache(newArr, accumulatedContentRef.current);
+                    return newArr;
+                });
+                try {
+                    await saveStepDraft(step.key, finalContent, index + 1);
+                } catch (e) {
+                    console.warn(`[GenerationProgressModal] Non-fatal: failed to persist ${actionName} draft`, e);
+                }
+                return false;
+            };
+
+            if (step.type === TrainerStepType.Exercises) {
+                const stopped = await runPerModuleIteration(
+                    'generate_exercises_part',
+                    `exercises_partial_${course.id}`,
+                    [TrainerStepType.CourseDNA, TrainerStepType.Structure]
+                );
+                if (!stopped) await processStep(index + 1);
+                return;
+            }
+
+            if (step.type === TrainerStepType.ExamplesAndStories) {
+                const stopped = await runPerModuleIteration(
+                    'generate_examples_part',
+                    `examples_partial_${course.id}`,
+                    [TrainerStepType.CourseDNA, TrainerStepType.Structure]
+                );
+                if (!stopped) await processStep(index + 1);
+                return;
+            }
+
+            if (step.type === TrainerStepType.FacilitatorManual) {
+                const stopped = await runPerModuleIteration(
+                    'generate_manual_part',
+                    `manual_partial_${course.id}`,
+                    [TrainerStepType.CourseDNA, TrainerStepType.Structure, TrainerStepType.TimingAndFlow, TrainerStepType.Exercises]
+                );
+                if (!stopped) await processStep(index + 1);
+                return;
+            }
+
             const contextMap: Record<TrainerStepType, TrainerStepType[]> = {
                 [TrainerStepType.CourseDNA]: [],
                 [TrainerStepType.PerformanceObjectives]: [TrainerStepType.CourseDNA],
