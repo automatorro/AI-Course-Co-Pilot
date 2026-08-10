@@ -4942,9 +4942,9 @@ function fillPromptTemplate(template: string, variables: Record<string, any>): s
 // ==========================================
 
 async function resolveModuleId(supabase: any, courseId: string, moduleData: any, moduleIndex: number): Promise<string> {
-  if (moduleData && moduleData.id) {
-    // Optimistic return if we have an ID, but we should verify it exists if we want to be 100% safe.
-    // However, for performance, we trust the ID if provided, or let handleGoldenStep fail if it's invalid.
+  // Only trust the ID if it looks like a real UUID (not a synthetic frontend ID like 'generated-mod-0')
+  const isRealUuid = moduleData?.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(moduleData.id);
+  if (isRealUuid) {
     return moduleData.id;
   }
   
