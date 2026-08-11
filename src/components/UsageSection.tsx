@@ -114,9 +114,6 @@ const UsageSection: React.FC<Props> = ({ userId }) => {
     ? new Date(credits.reset_at).toLocaleDateString('ro-RO', { day: 'numeric', month: 'long' })
     : '—';
 
-  const totalMonthlyCost = monthly[0]?.cost_total_usd ?? 0;
-  const totalMonthlyTokens = monthly[0]?.total_tokeni ?? 0;
-
   return (
     <div className="space-y-6">
 
