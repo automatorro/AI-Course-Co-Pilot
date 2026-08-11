@@ -613,7 +613,18 @@ class Config {
   }
 
   static get SUPABASE_SERVICE_ROLE_KEY(): string {
-    return Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    // Try legacy key first (still injected by Supabase for backward compat)
+    const legacy = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    if (legacy) return legacy;
+    // New JWT Signing Keys system: SUPABASE_SECRET_KEYS is a JSON dict
+    const secretKeys = Deno.env.get('SUPABASE_SECRET_KEYS') || '';
+    if (secretKeys) {
+      try {
+        const parsed = JSON.parse(secretKeys);
+        return parsed.service_role || parsed.default || '';
+      } catch { return ''; }
+    }
+    return '';
   }
 
   static get GEMINI_API_KEY(): string | undefined {
@@ -947,27 +958,30 @@ async function logUsageFireAndForget(userId: string, inputTokens: number, output
   try {
     const supabaseUrl = Config.SUPABASE_URL;
     const serviceKey = Config.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !serviceKey || !userId) return;
-
-    await fetch(`${supabaseUrl}/rest/v1/user_usage`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': serviceKey,
-        'Authorization': `Bearer ${serviceKey}`,
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({
-        user_id: userId,
-        model,
-        input_tokens: inputTokens,
-        output_tokens: outputTokens,
-        total_tokens: inputTokens + outputTokens,
-        action,
-      })
+    if (!supabaseUrl || !userId) {
+      Logger.warn('[logUsage] Missing supabaseUrl or userId — skipping');
+      return;
+    }
+    if (!serviceKey) {
+      Logger.warn('[logUsage] SUPABASE_SERVICE_ROLE_KEY is empty — cannot write usage');
+      return;
+    }
+    const client = createClient(supabaseUrl, serviceKey);
+    const { error } = await client.from('user_usage').insert({
+      user_id: userId,
+      model,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      total_tokens: inputTokens + outputTokens,
+      action,
     });
-  } catch (_e) {
-    // Fire-and-forget — never let logging failures surface to caller
+    if (error) {
+      Logger.warn(`[logUsage] Insert failed: ${error.message} (code: ${error.code})`);
+    } else {
+      Logger.info(`[logUsage] Logged ${inputTokens}+${outputTokens} tokens for action=${action}`);
+    }
+  } catch (e) {
+    Logger.warn(`[logUsage] Unexpected error: ${e}`);
   }
 }
 
