@@ -942,16 +942,24 @@ let _lastCallUsage = { inputTokens: 0, outputTokens: 0, model: 'unknown' };
 let _requestUserId = '';
 let _requestAction = 'generate';
 
-// Cost in AI operations per action type (mirrors creditService.ts OPERATION_COSTS)
+// Cost in AI operations per action type — derived from actual frontend action names
 const ACTION_OPERATION_COSTS: Record<string, number> = {
-  generate_module_context: 1,
+  // Actual action names sent by frontend (GenerationProgressModal, etc.)
+  generate_workbook_part: 2,
+  generate_manual_part: 2,
+  generate_slides_part: 1,
+  generate_exercises_part: 1,
+  generate_examples_part: 1,
+  generate_step_content: 1,
+  generate_blueprint: 1,
+  generate_learning_objectives: 1,
+  backfill_key_takeaways: 1,
+  // Legacy names (kept for backward compat)
   generate_workbook: 2,
   generate_manual: 2,
   generate_slides: 0,
   generate_exercises: 1,
-  generate_video_script: 2,
-  generate_lesson_content: 1,
-  backfill_key_takeaways: 1,
+  generate_module_context: 1,
 };
 
 async function logUsageFireAndForget(userId: string, inputTokens: number, outputTokens: number, model: string, action: string): Promise<void> {
