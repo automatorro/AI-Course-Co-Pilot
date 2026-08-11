@@ -567,7 +567,7 @@
   "landing.problem.item3.body": "Trei săptămâni de pregătire pentru opt ore de livrare — asta e raportul din industrie. Nu mai are ce căuta în calendarul tău.",
 
   "landing.how.eyebrow": "Cum funcționează",
-  "landing.how.title": "Un schimb de specifice — nu de prompturi.",
+  "landing.how.title": "Tu dai detalii concrete. El construiește cursul.",
   "landing.how.provideEyebrow": "Tu oferi",
   "landing.how.receiveEyebrow": "Primești",
   "landing.how.callout": "Peniţa rămâne la tine. El o ascute.",
@@ -577,17 +577,17 @@
   "landing.provide.item3": "Durata — câte ore, împărțite cum",
   "landing.provide.item4": "Mediul — sală de curs sau atelier online",
   "landing.provide.item5": "Vocea ta — tonul, metaforele, subiectele interzise",
-  "landing.provide.item6": "Opțional: materiale existente de moștenit",
+  "landing.provide.item6": "Opțional: materiale pe care le ai deja",
 
   "landing.receive.item1": "Un ghid al trainerului — scripturi cuvânt cu cuvânt, timing, tranziții",
   "landing.receive.item2": "Un manual pentru participanți — teorie, exerciții, întrebări de reflecție",
-  "landing.receive.item3": "O prezentare — un singur fișier, structurat pe layere pentru editare",
+  "landing.receive.item3": "O prezentare — un singur fișier, structurat pe straturi, gata de editat",
   "landing.receive.item4": "Fișe de exerciții — bazate pe scenarii, gata pentru debrief",
   "landing.receive.item5": "Un flux al trainerului — coregrafia sesiunii tale",
 
   "landing.output.eyebrow": "Ce primești",
   "landing.output.title": "Cinci artefacte. Gata pentru sală.",
-  "landing.output.body": "Nu un bloc de Markdown. Fișiere numite, fiecare cu o treabă — pe layere, editabile, exportate cu un click când le aprobi.",
+  "landing.output.body": "Nu un perete de text. Fișiere distincte, fiecare cu rolul lui — pe straturi, editabile, exportate dintr-un clic când le aprobi.",
   "landing.output.previewLabel": "Previzualizare · editabil",
 
   "landing.output.trainer_guide.title": "Ghidul trainerului",
@@ -612,7 +612,7 @@
 
   "landing.finalCta.eyebrow": "Invitația",
   "landing.finalCta.title": "Construit de traineri, pentru traineri care iau munca în serios.",
-  "landing.finalCta.body": "Locurile sunt limitate. Auzi de la noi o singură dată, când deschidem ușa. Fără newsletter. Fără drip. Fără zgomot.",
+  "landing.finalCta.body": "Locurile sunt limitate. Auzi de la noi o singură dată, când deschidem ușa. Fără liste de email. Fără mesaje în serie. Fără zgomot.",
   "landing.finalCta.cta": "Rezervă-mi un loc",
   "landing.finalCta.demoCta": "Încearcă demo gratuit",
 
@@ -629,7 +629,7 @@
   "landing.earlyAccess.submit": "Trimite",
   "landing.earlyAccess.confirmedEyebrow": "Ești pe listă",
   "landing.earlyAccess.confirmedTitle": "Îți scriem când e gata.",
-  "landing.earlyAccess.confirmedBody": "Fără newsletter, fără drip. Un singur email, când deschidem ușa.",
+  "landing.earlyAccess.confirmedBody": "Fără liste de email, fără mesaje în serie. Un singur mesaj, când deschidem ușa.",
   "landing.earlyAccess.errorInvalidEmail": "Adresa de email pare greșită — verifică pentru typo-uri.",
   "landing.earlyAccess.errorGeneric": "Ceva a mers prost. Te rog încearcă din nou.",
   "landing.earlyAccess.errorFallback": "Lista de așteptare nu este încă deschisă. Între timp îți poți crea cont direct.",
