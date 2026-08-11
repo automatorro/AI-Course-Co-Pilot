@@ -7,6 +7,7 @@ import { PRICING_PLANS } from '../constants';
 import { Plan } from '../types';
 import { Loader2, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import UsageSection from '../components/UsageSection';
 
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
@@ -98,7 +99,8 @@ const ProfilePage: React.FC = () => {
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 animate-fade-in-up">
       <h1 className="text-3xl font-bold text-center mb-12">{t('profile.title')}</h1>
-      <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         
         <div className="space-y-8">
           <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg border dark:border-gray-700">
@@ -173,6 +175,14 @@ const ProfilePage: React.FC = () => {
               )}
            </div>
         </div>
+      </div>
+
+      {/* Consum tokeni și costuri */}
+      <div>
+        <h2 className="text-xl font-bold mb-4">Consum AI</h2>
+        <UsageSection userId={user.id} />
+      </div>
+
       </div>
     </div>
   );

@@ -929,8 +929,21 @@ const orchestrator = new AIOrchestrator();
 let _lastCallUsage = { inputTokens: 0, outputTokens: 0, model: 'unknown' };
 // Set once per request from the auth header; read by callLLM for logging.
 let _requestUserId = '';
+let _requestAction = 'generate';
 
-async function logUsageFireAndForget(userId: string, inputTokens: number, outputTokens: number, model: string): Promise<void> {
+// Cost in AI operations per action type (mirrors creditService.ts OPERATION_COSTS)
+const ACTION_OPERATION_COSTS: Record<string, number> = {
+  generate_module_context: 1,
+  generate_workbook: 2,
+  generate_manual: 2,
+  generate_slides: 0,
+  generate_exercises: 1,
+  generate_video_script: 2,
+  generate_lesson_content: 1,
+  backfill_key_takeaways: 1,
+};
+
+async function logUsageFireAndForget(userId: string, inputTokens: number, outputTokens: number, model: string, action: string): Promise<void> {
   try {
     const supabaseUrl = Config.SUPABASE_URL;
     const serviceKey = Config.SUPABASE_SERVICE_ROLE_KEY;
@@ -950,7 +963,7 @@ async function logUsageFireAndForget(userId: string, inputTokens: number, output
         input_tokens: inputTokens,
         output_tokens: outputTokens,
         total_tokens: inputTokens + outputTokens,
-        action: 'generate'
+        action,
       })
     });
   } catch (_e) {
@@ -1167,7 +1180,7 @@ async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean
 
   // Log token usage fire-and-forget after each successful AI call
   if (_requestUserId && _lastCallUsage.inputTokens > 0) {
-    logUsageFireAndForget(_requestUserId, _lastCallUsage.inputTokens, _lastCallUsage.outputTokens, _lastCallUsage.model);
+    logUsageFireAndForget(_requestUserId, _lastCallUsage.inputTokens, _lastCallUsage.outputTokens, _lastCallUsage.model, _requestAction);
   }
 
   // Phase 1: Fast Static Check
@@ -2996,19 +3009,40 @@ serve(async (req) => {
           );
           if (authUser?.id) {
             _requestUserId = authUser.id;
-            const { data: creditStatus } = await supabase.rpc('get_ai_credit_status', {
-              p_user_id: authUser.id,
-            });
-            if (creditStatus && creditStatus.is_over_limit) {
-              Logger.warn(`[CreditGate] User ${authUser.id} is over limit: ${creditStatus.used}/${creditStatus.limit}`);
-              return new Response(JSON.stringify({
-                error: 'credit_limit_exceeded',
-                message: `Ai atins limita lunară de ${creditStatus.limit} operații AI. Utilizate: ${creditStatus.used}. Te rugăm să aștepți resetarea lunară sau să upgradezi planul.`,
-                credit_status: creditStatus,
-              }), {
-                status: 402,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            _requestAction = action;
+            const opCost = ACTION_OPERATION_COSTS[action] ?? 1;
+            if (opCost > 0) {
+              const { data: creditResult } = await supabase.rpc('increment_ai_operations', {
+                p_user_id: authUser.id,
+                p_amount: opCost,
               });
+              if (creditResult && !creditResult.allowed) {
+                Logger.warn(`[CreditGate] User ${authUser.id} is over limit: ${creditResult.used}/${creditResult.limit}`);
+                return new Response(JSON.stringify({
+                  error: 'credit_limit_exceeded',
+                  message: `Ai atins limita lunară de ${creditResult.limit} operații AI. Utilizate: ${creditResult.used}. Te rugăm să aștepți resetarea lunară sau să upgradezi planul.`,
+                  credit_status: creditResult,
+                }), {
+                  status: 402,
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+              }
+            } else {
+              // Cost-zero action — just verify user hasn't exceeded limit without consuming
+              const { data: creditStatus } = await supabase.rpc('get_ai_credit_status', {
+                p_user_id: authUser.id,
+              });
+              if (creditStatus && creditStatus.is_over_limit) {
+                Logger.warn(`[CreditGate] User ${authUser.id} is over limit (cost-zero action): ${creditStatus.used}/${creditStatus.limit}`);
+                return new Response(JSON.stringify({
+                  error: 'credit_limit_exceeded',
+                  message: `Ai atins limita lunară de ${creditStatus.limit} operații AI. Utilizate: ${creditStatus.used}. Te rugăm să aștepți resetarea lunară sau să upgradezi planul.`,
+                  credit_status: creditStatus,
+                }), {
+                  status: 402,
+                  headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                });
+              }
             }
           }
         }
