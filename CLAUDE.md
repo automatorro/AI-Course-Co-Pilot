@@ -2,6 +2,85 @@
 
 Fișier citit automat la începutul fiecărei sesiuni. Se aplică indiferent de task.
 
+## 0. Protocol OBLIGATORIU de start/final de sesiune
+
+Acesta e primul și ultimul lucru din orice sesiune. Nu e opțional.
+
+**La început, înainte de orice altă acțiune:**
+1. Citește `IMPLEMENTATION_STATUS.md`, secțiunea `▶ REIA DE AICI`.
+2. Execută pașii de acolo (verificări de mediu, sincronizare) înainte să atingi cod.
+3. Nu presupune că știi unde a rămas lucrul din conversații anterioare — sursa de
+   adevăr e mereu fișierul, niciodată memoria conversației.
+
+**La final, dacă s-a lucrat la cod (chiar și parțial sau blocat):**
+1. Rescrie secțiunea `▶ REIA DE AICI` cu: task-ul exact la care s-a lucrat,
+   ce e gata, ce e blocat (și de ce), și pasul concret imediat următor.
+2. Fă asta ÎNAINTE de commit-ul final, ca parte a aceluiași commit.
+3. **`git push`, nu doar commit.** Lucrul se face pe mașini diferite (vezi
+   jurnalul de sesiuni) — dacă rămâne doar local, sesiunea următoare, pornită
+   de pe altă mașină, nu are acces la el.
+4. Dacă sesiunea s-a terminat fără să se ajungă la un punct de oprire natural
+   (context epuizat, întrerupere), scrie asta explicit — "sesiune întreruptă la
+   X, nu s-a apucat de Y" e mai util decât tăcere.
+
+**În timpul sesiunii, nu doar la final:** la fiecare punct natural de oprire
+(un task terminat, un fișier stabil), fă un commit mic și actualizează
+`▶ REIA DE AICI` pe loc, nu aștepta finalul sesiunii. Dacă sesiunea se termină
+abrupt (pană de curent, închidere forțată), tot ce nu e commis + push-uit local
+riscă să rămână izolat pe acea mașină — checkpoint-urile Claude Code nu
+înlocuiesc git.
+
+**Dacă IMPLEMENTATION_STATUS.md nu reflectă realitatea codului** (de ex. pare
+că un task e DONE dar codul arată altfel), oprește-te și semnalează owner-ului
+înainte să continui — nu "repara" tăcut discrepanța.
+
+## 1. Un singur fișier de status, mereu (regulă anti-proliferare)
+
+`IMPLEMENTATION_STATUS.md` (root) e **singurul** document de status/plan activ
+al proiectului. Nu există și nu se creează altele.
+
+- **Fișiere root vechi, NU sursă de adevăr — nu le citi ca ghid curent, nu le
+  actualiza:** `PHASE_1_PLAN.md`, `STATUS-UPDATE-2025-12-02.md`. Sunt istoric
+  dintr-o etapă anterioară a proiectului (inițiativa "blueprint"/onboarding
+  inteligent, respectiv statusul din dec. 2025). Dacă ceva din ele pare relevant
+  azi, se citează explicit ca atare — nu se tratează ca plan curent.
+- **`docs/_archive/`** (inclusiv `docs/_archive/trae-legacy/`, jurnalul unui
+  tool care nu mai e folosit) — istoric arhivat. Niciodată ghid de acțiune.
+- **Regulă pentru orice inițiativă/fază nouă:** se adaugă ca secțiune nouă în
+  `IMPLEMENTATION_STATUS.md` (sau ca fișier nou în `docs/`, dacă e un plan
+  amplu de tip "faza următoare" — dar atunci vechiul plan activ se mută în
+  `docs/_archive/` **în același commit**, nu rămâne "pe undeva prin root").
+  Niciodată nu se creează un al doilea `STATUS-*.md` sau `PLAN-*.md` la root.
+
+## 2. Structură proiect (orientare rapidă)
+
+```
+src/
+  components/       — UI (inclusiv components/editor/)
+  pages/             — pagini/rute
+  services/          — integrări API (ex. geminiService.ts)
+  lib/                — utilitare, inclusiv lib/pptx/ (export PPTX)
+  contexts/, config/, constants/, schemas/, types/, data/, styles/
+  tests/ (+ fixtures/)  — vitest; fixtures sunt TS, nu edge functions
+  __tests__/          — alt set de teste (verifică care e activ înainte de a adăuga)
+supabase/
+  functions/
+    generate-course-content/  — logica principală de generare (prompts/, utils/,
+                                 tests/, README_ARCHITECTURE.md — citește-l pentru
+                                 arhitectura internă a acestei funcții)
+    analyze-slide/, unsplash-search/
+  migrations/         — SQL; vezi regula de deploy manual de mai jos
+docs/
+  CURATENIE-SI-MODERNIZARE-CourseCopilot.md  — planul activ v2.0 (11 faze)
+  AUDIT-CourseCopilot-2026-07-18.md           — diagnostic (nu se repară direct din el)
+  QUALITY_RUBRIC.md, golden-references/, baseline/
+  _archive/           — istoric, nu ghid
+```
+
+Regulă generală: nu presupune calea unui fișier din memoria conversației sau
+din nume "plauzibile" — verifică cu Glob/Grep/`find` înainte să o referențiezi
+sau să o modifici, mai ales după o sesiune lungă sau după compactare automată.
+
 ## Reguli owner (nenegociabile)
 
 ### 1. Supabase — deploy manual, numai de owner
@@ -21,7 +100,9 @@ Fișier citit automat la începutul fiecărei sesiuni. Se aplică indiferent de 
   scrii, arăți SQL-ul în chat, aștepți confirmare.
 
 ### 2. Sursa de adevăr a refactor-ului
-- `IMPLEMENTATION_STATUS.md` (root) — starea per task, borne M0–M10, Descoperiri.
+- `IMPLEMENTATION_STATUS.md` (root) — **singura** stare curentă: per task, borne
+  M0–M10, Descoperiri, secțiunea `▶ REIA DE AICI`. Vezi regula 1 de mai sus
+  pentru ce NU e sursă de adevăr.
 - `docs/CURATENIE-SI-MODERNIZARE-CourseCopilot.md` — planul v2.0 (11 faze); e
   singurul plan activ. Documentele din `docs/_archive/` sunt istoric, nu ghid.
 - `docs/AUDIT-CourseCopilot-2026-07-18.md` — diagnosticul; nu se repară nimic
@@ -89,3 +170,6 @@ efectiv fluxurile. Regula de mai jos e ca să nu bulverseze planul de 11 faze.
   aceeași cauză, semnalezi, nu te apuci să repari secretele.
 - **Fișierele fixture** (`src/tests/fixtures/*.ts`) sunt TypeScript pentru
   vitest, nu edge functions. Nu au impact asupra Supabase.
+- **La compactare automată (context aproape plin):** păstrează întotdeauna
+  conținutul integral al secțiunii `▶ REIA DE AICI`, task-ul ID curent, și
+  lista fișierelor modificate în sesiune — restul poate fi rezumat.
