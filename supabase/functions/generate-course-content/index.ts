@@ -1049,12 +1049,15 @@ const BANNED_PHRASES: Record<string, string[]> = {
  * that appear VERY frequently in a language but rarely in others.
  * These are based on common letter combinations, diacritics, and
  * function word fragments.
+ *
+ * For non-Latin-script languages, see NON_LATIN_SCRIPTS below which
+ * uses Unicode range detection (more reliable than n-gram counting).
  */
 const LANG_SIGNATURES: Record<string, string[]> = {
   ro: [
-    'ș', 'ț', 'ă', 'â', 'î',          // Romanian diacritics
-    'ul', 'ului', 'ilor', 'ând',       // Romanian morpheme endings
-    ' și ', ' în ', ' cu ', ' de ',   // common Romanian prepositions/conjunctions
+    'ș', 'ț', 'ă', 'â', 'î',
+    'ul', 'ului', 'ilor', 'ând',
+    ' și ', ' în ', ' cu ', ' de ',
     ' că ', ' la ', ' pe ', ' se ',
     'ează', 'esc', 'ești', 'ică',
     'pentru', 'care', 'este', 'sunt', 'prin',
@@ -1088,6 +1091,68 @@ const LANG_SIGNATURES: Record<string, string[]> = {
     'ción', 'ando', 'iendo', 'mente',
     'á', 'é', 'í', 'ó', 'ú', 'ñ',
   ],
+  it: [
+    ' il ', ' la ', ' le ', ' di ',
+    ' e ', ' in ', ' che ', ' per ',
+    ' un ', ' una ', ' con ', ' del ',
+    'zione', 'ità', 'mente', 'endo', 'ando',
+    'à', 'è', 'é', 'ì', 'ò', 'ù',
+  ],
+  pt: [
+    ' o ', ' a ', ' os ', ' de ',
+    ' e ', ' em ', ' que ', ' do ',
+    ' da ', ' um ', ' uma ', ' com ',
+    'ção', 'ões', 'mente', 'ando', 'endo',
+    'ã', 'õ', 'á', 'é', 'ê', 'ó', 'ú',
+  ],
+  nl: [
+    ' de ', ' het ', ' een ', ' van ',
+    ' in ', ' is ', ' en ', ' dat ',
+    ' te ', ' op ', ' zijn ', ' met ',
+    'ing', 'lijk', 'heid', 'tje', 'sch',
+  ],
+  pl: [
+    ' i ', ' w ', ' się ', ' na ',
+    ' z ', ' że ', ' to ', ' nie ',
+    ' do ', ' go ', ' jak ', ' ale ',
+    'ość', 'anie', 'enie', 'owy',
+    'ą', 'ć', 'ę', 'ł', 'ń', 'ó', 'ś', 'ź', 'ż',
+  ],
+};
+
+/**
+ * Non-Latin script detection via Unicode ranges.
+ * For these languages, the presence of even a few script-specific
+ * characters is definitive proof of the correct language — much
+ * more reliable than n-gram counting.
+ */
+const NON_LATIN_SCRIPTS: Record<string, RegExp> = {
+  ru: /[Ѐ-ӿ]/,
+  uk: /[Ѐ-ӿ]/,
+  bg: /[Ѐ-ӿ]/,
+  sr: /[Ѐ-ӿ]/,
+  ar: /[؀-ۿݐ-ݿ]/,
+  he: /[֐-׿יִ-ﭏ]/,
+  zh: /[一-鿿㐀-䶿]/,
+  'zh-TW': /[一-鿿㐀-䶿]/,
+  ja: /[぀-ゟ゠-ヿ一-鿿]/,
+  ko: /[가-힯ᄀ-ᇿ]/,
+  el: /[Ͱ-Ͽἀ-῿]/,
+  hi: /[ऀ-ॿ]/,
+  bn: /[ঀ-৿]/,
+  th: /[฀-๿]/,
+  ka: /[Ⴀ-ჿ]/,
+  am: /[ሀ-፿]/,
+  km: /[ក-៿]/,
+  lo: /[຀-໿]/,
+  my: /[က-႟]/,
+  si: /[඀-෿]/,
+  ta: /[஀-௿]/,
+  te: /[ఀ-౿]/,
+  kn: /[ಀ-೿]/,
+  ml: /[ഀ-ൿ]/,
+  gu: /[઀-૿]/,
+  pa: /[਀-੿]/,
 };
 
 /**
@@ -1105,6 +1170,23 @@ function detectLanguageDeterministically(
   content: string,
   targetLanguage: string
 ): { valid: boolean; reason?: string; confidence: number } {
+
+  // Skip check for short outputs — not enough signal (raw content < 400 chars)
+  if (content.length < 400) return { valid: true, confidence: 1.0 };
+
+  // Non-Latin script check: if the target has a known script, verify its presence
+  const scriptRe = NON_LATIN_SCRIPTS[targetLanguage];
+  if (scriptRe) {
+    const hasScript = scriptRe.test(content);
+    if (!hasScript) {
+      return {
+        valid: false,
+        reason: `Expected ${targetLanguage} script characters but found none — content is likely in a different language.`,
+        confidence: 0,
+      };
+    }
+    return { valid: true, confidence: 0.9 };
+  }
 
   // 1. Strip JSON keys ("key":), XML tags (<tag>), code blocks (```...```)
   const stripped = content
@@ -1197,7 +1279,7 @@ function containsBannedPhrases(content: string, language: string = 'ro'): boolea
 }
 
 // Helper wrapper for existing business logic with RETRY & CLEANUP
-async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean = false, skipAiValidation: boolean = false): Promise<string> {
+async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean = false): Promise<string> {
   let response = await orchestrator.execute(prompt);
 
   // Log token usage fire-and-forget after each successful AI call
@@ -1212,22 +1294,17 @@ async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean
       return response;
     }
     Logger.warn(`Banned phrases detected (Static Check - Lang: ${language}). Retrying...`);
-    return retryWithStrictInstructions(prompt, language, "Contains banned phrases (e.g. English words in Romanian text).", skipAiValidation);
-  }
-
-  if (skipAiValidation) {
-    Logger.info("[callLLM] Skipping Phase 2 language check as requested.");
-    return response;
+    return retryWithStrictInstructions(prompt, language, "Contains banned phrases (e.g. English words in Romanian text).");
   }
 
   // Phase 2: Deterministic Language Detector (replaces LLM Judge — zero extra AI calls)
   const langCheck = detectLanguageDeterministically(response, language);
   if (!langCheck.valid) {
     if (isRetry) {
-      Logger.error(`[CRITICAL] Deterministic language check rejected RETRY attempt: ${langCheck.reason}. Returning anyway to avoid loop.`);
+      Logger.warn(`[callLLM] Language check rejected RETRY attempt: ${langCheck.reason}. Returning best effort.`);
     } else {
       Logger.warn(`[callLLM] Language mismatch detected (confidence: ${Math.round((langCheck.confidence || 0) * 100)}%): ${langCheck.reason}. Retrying with strict instructions.`);
-      return retryWithStrictInstructions(prompt, language, langCheck.reason, skipAiValidation);
+      return retryWithStrictInstructions(prompt, language, langCheck.reason);
     }
   } else {
     Logger.info(`[callLLM] Language OK (confidence: ${Math.round((langCheck.confidence || 0.5) * 100)}% ${language}).`);
@@ -1236,7 +1313,7 @@ async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean
   return response;
 }
 
-async function retryWithStrictInstructions(prompt: string, language: string, errorReason?: string, skipAiValidation: boolean = false): Promise<string> {
+async function retryWithStrictInstructions(prompt: string, language: string, errorReason?: string): Promise<string> {
     const strictInstruction = `
     \n\n
     *** CRITICAL INSTRUCTION - STRICT MODE ***
@@ -1255,7 +1332,7 @@ async function retryWithStrictInstructions(prompt: string, language: string, err
     GENERATE THE CORRECTED CONTENT NOW.
     `;
 
-    return callLLM(prompt + strictInstruction, language, true, skipAiValidation);
+    return callLLM(prompt + strictInstruction, language, true);
 }
 
 // ==========================================
@@ -2640,7 +2717,7 @@ function generateCostZeroSlides(lesson: any, lang: string = 'ro'): string {
 }
 
 /** Generate participant workbook markdown for a module */
-async function generateWorkbookContent(course: Course, ctx: ModuleContext, dna: DNABlocks, skipAiValidation: boolean = true): Promise<string> {
+async function generateWorkbookContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
   const lang = ctx.language || course.language || 'ro';
   const isOnline = ctx.environment === 'ONLINE';
   const specsObj = getDepthSpecs(lang, isOnline ? 'online' : 'live');
@@ -2670,7 +2747,7 @@ async function generateWorkbookContent(course: Course, ctx: ModuleContext, dna: 
     objectiveLabel: (lang || '').startsWith('ro') ? 'Obiectiv' : 'Objective',
   });
 
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
   return result;
 }
 
@@ -2679,7 +2756,6 @@ async function generateManualContent(
   course: Course,
   ctx: ModuleContext,
   dna: DNABlocks,
-  skipAiValidation: boolean = true,
   supabase?: any
 ): Promise<string> {
   const lang = ctx.language || course.language || 'ro';
@@ -2729,7 +2805,7 @@ async function generateManualContent(
     envRules,
   });
 
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
   return result;
 }
 
@@ -2781,12 +2857,12 @@ async function generateSlidesContent(course: Course, ctx: ModuleContext, dna: DN
     slideCount,
   });
 
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
   return result;
 }
 
 /** Generate exercise sheets markdown for a module */
-async function generateExercisesContent(course: Course, ctx: ModuleContext, dna: DNABlocks, skipAiValidation: boolean = true): Promise<string> {
+async function generateExercisesContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
   const lang = ctx.language || course.language || 'ro';
   const isOnline = ctx.environment === 'ONLINE';
   const specsObj = getDepthSpecs(lang, isOnline ? 'online' : 'live', 80);
@@ -2809,12 +2885,12 @@ async function generateExercisesContent(course: Course, ctx: ModuleContext, dna:
     objectiveLabel: (lang || '').startsWith('ro') ? 'Obiectiv' : 'Objective',
   });
 
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
   return result;
 }
 
 /** Generate video scripts markdown for an online module */
-async function generateVideoScriptContent(course: Course, ctx: ModuleContext, dna: DNABlocks, skipAiValidation: boolean = true): Promise<string> {
+async function generateVideoScriptContent(course: Course, ctx: ModuleContext, dna: DNABlocks): Promise<string> {
   const lang = ctx.language || course.language || 'ro';
 
   const prompt = fillPromptTemplate(VIDEO_SCRIPT_PROMPT, {
@@ -2827,7 +2903,7 @@ async function generateVideoScriptContent(course: Course, ctx: ModuleContext, dn
     timingPlan: formatTimingPlan(ctx),
   });
 
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, skipAiValidation);
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
   return result;
 }
 
@@ -2904,7 +2980,6 @@ async function generateLessonContent(supabase: any, lessonId: string, stepType: 
   };
 
   // 6. Generate content based on stepType
-  // Note: we set skipAiValidation to false here because lesson content is small and we want strict language checks!
   switch (stepType) {
     case 'course.steps.slides':
     case 'slides':
@@ -2912,22 +2987,22 @@ async function generateLessonContent(supabase: any, lessonId: string, stepType: 
 
     case 'course.steps.workbook':
     case 'participant_workbook':
-      return generateWorkbookContent(course, ctx, dna, false);
+      return generateWorkbookContent(course, ctx, dna);
 
     case 'course.steps.manual':
     case 'facilitator_manual':
     case 'trainer_manual':
     case 'facilitator_notes':
       // Pass supabase if available in this context (for lesson_id injection)
-      return generateManualContent(course, ctx, dna, false, (typeof supabase !== 'undefined' ? supabase : undefined));
+      return generateManualContent(course, ctx, dna, (typeof supabase !== 'undefined' ? supabase : undefined));
 
     case 'course.steps.exercises':
     case 'exercises':
-      return generateExercisesContent(course, ctx, dna, false);
+      return generateExercisesContent(course, ctx, dna);
 
     case 'course.steps.video_scripts':
     case 'video_scripts':
-      return generateVideoScriptContent(course, ctx, dna, false);
+      return generateVideoScriptContent(course, ctx, dna);
 
     case 'course.steps.examples':
     case 'examples_and_stories':
@@ -2962,8 +3037,7 @@ Use this format (headers below are shown in English for the developer reading th
 
 Write ALL in **${lang}**. No preamble.
 `;
-  // Skip AI validation for examples generation to prevent Gateway Timeout (504)
-  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang, false, true);
+  const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
   return result;
 }
 
