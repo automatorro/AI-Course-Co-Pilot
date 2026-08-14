@@ -1841,13 +1841,13 @@ For EACH section in the timing plan, use this structure:
    - BAD: "The trainer should explain the concept."
    - GOOD: "Explain the concept using the following analogy: ..."
 2. **NO META-COMMENTARY**: Do NOT describe what a section is. Write actual instructions and scripts.
-3. **LANGUAGE**: ALL content (including scripts) in **{{language}}**. This includes every section header, table column, and bracketed label in this template — they're written in English/Romanian here only for the developer reading this prompt; translate each one into {{language}} in your output.
+3. **LANGUAGE**: ALL content (including scripts) in **{{language}}**. This includes every section header, table column, and bracketed label in this template — they're written in English here only for the developer reading this prompt; translate each one into {{language}} in your output.
 4. **VERBATIM SCRIPTS**: Must be long enough to fill the time. For a 15-min section, write 400+ words of script.
 5. **SPECIFICITY**: Never write "Ask a question about the topic." Write: "Ask: '[Exact question]?' (pause 20 seconds)"
 6. **ENVIRONMENT**: {{envRules}}
 
 ### OUTPUT FORMAT
-Pure Markdown. Start with the module header (# Modul: {{moduleTitle}}). No preamble.
+Pure Markdown. Begin with the module title as a level-1 heading in {{language}}. No preamble.
 `;
 
 /**

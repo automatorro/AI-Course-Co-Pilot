@@ -11,15 +11,20 @@ Convenții:
 
 ---
 
-## ▶ REIA DE AICI (scris 2026-08-14, sesiunea S06)
+## ▶ REIA DE AICI (scris 2026-08-14, sesiunea S06 — actualizat după F2-T4)
 
-**Stare curentă:** F2-T3 DONE în această sesiune. Typecheck verde. Rămâne în F2: F2-T1, F2-T4, F2-T5. Verificarea Supabase (§B) încă în așteptarea confirmării owner-ului.
+**Stare curentă:** F2-T3 DONE + F2-T4 DONE în această sesiune. Typecheck verde. Rămâne în F2: F2-T1, F2-T5. Verificarea Supabase (§B) încă în așteptarea confirmării owner-ului.
 
-### Task următor: F2-T4 — Meta-instrucțiuni EN, conținut verbatim
+### Task următor: F2-T5 — Test puritate lingvistică
 
-Regula A.1 din planul v2.0: prompturile de generare trebuie să fie în EN (meta-limbaj), dar să ceară explicit conținut în `{{language}}`. Verificat că unele prompturi (WORKBOOK_PROMPT, MANUAL_PROMPT, EXERCISES_PROMPT, VIDEO_SCRIPT_PROMPT) au fost deja curățate în F2-T2; F2-T4 face inventarul complet și uniformizează stilul meta-instrucțiunilor.
+De scris `src/tests/languagePurity.test.ts`. Pe etalonul EN: 0 apariții headere RO și 0 diacritice; pe RO: 0 headere EN. Node disponibil (Node 22), deci poate fi scris și rulat direct cu `npm run test`.
 
-Fișier de modificat: `supabase/functions/generate-course-content/index.ts`, secțiunea de prompturi.
+### F2-T4 — ce s-a făcut
+
+Inventar complet al prompturilor din `index.ts` pentru meta-instrucțiuni în română. Singurele probleme găsite au fost în MANUAL_PROMPT:
+- `English/Romanian here only` → `English here only` (regula A.1: meta-limbajul e EN, nu RO)
+- `# Modul: {{moduleTitle}}` → `Begin with the module title as a level-1 heading in {{language}}` (eliminat hardcoding RO în OUTPUT FORMAT)
+Toate celelalte prompturi (MODULE_CONTEXT_PROMPT, WORKBOOK_PROMPT, SLIDES_PROMPT, EXERCISES_PROMPT, VIDEO_SCRIPT_PROMPT, toate inline-urile) erau deja în EN. Codul mort (D-011: GOLDEN_SAMPLES) ignorat conform planului.
 
 ### Verificare Supabase restantă (§B de mai jos)
 
@@ -130,7 +135,7 @@ Regula corectă (deja în `CLAUDE.md § 1`, respectată de aici înainte): Claud
   - Nu s-a putut rula typecheck local (fără Node/npm, D-005) — verificare manuală, diff simetric, backtick-uri verificate pereche cu pereche.
   - Rămas TODO: prompturile globale rămase (structure/blueprint în afara celor verificate), inventarul complet cerut de F2-T1 pentru migrația spre `{{label_*}}`.
 - **F2-T3** [DONE 2026-08-14] Validare de limbă uniformă: `skipAiValidation` eliminat complet (parametru șters din `callLLM`, `retryWithStrictInstructions` și toate cele 5 funcții generatoare — `generateWorkbookContent`, `generateManualContent`, `generateExercisesContent`, `generateVideoScriptContent`, `generateExamplesContent`); detectorul rulează acum pe orice output ≥400 chars (prag pe conținut raw, nu pe sample); `LANG_SIGNATURES` extins cu `it`, `pt`, `nl`, `pl`; adăugat `NON_LATIN_SCRIPTS` (regex Unicode) pentru 26 limbi cu scripturi non-latine (ar, he, ru, uk, bg, sr, zh, zh-TW, ja, ko, el, hi, bn, th, ka, am, km, lo, my, si, ta, te, kn, ml, gu, pa) — detecție fiabilă fără n-gram counting. Maximum 1 retry deja implementat (neschimbat). Typecheck verde.
-- **F2-T4** [TODO] Meta-instrucțiuni EN, conținut verbatim (regula A.1)
+- **F2-T4** [DONE 2026-08-14] Meta-instrucțiuni EN, conținut verbatim (regula A.1) — MANUAL_PROMPT: eliminat "Romanian" din CRITICAL RULES + eliminat "# Modul:" hardcodat din OUTPUT FORMAT
 - **F2-T5** [TODO] `src/tests/languagePurity.test.ts`: pe etalonul EN → 0 apariții headere RO și 0 diacritice; pe RO → 0 headere EN
 - **DoD F2:** M2 — testul verde pe EN și RO; inspecție manuală fără amestec
 
@@ -294,7 +299,7 @@ Reprodus și pe HEAD-ul curat (înainte de modificările F0), deci defectul e pr
 | 2026-08-08 | S04 | F2-T2 IN_PROGRESS | Pornit F2 (următorul pas logic după reconciliere). Verificat rutare Golden/Legacy (§D-011): `EXERCISES_PROMPT`/`WORKBOOK_PROMPT`/`MANUAL_PROMPT`/`VIDEO_SCRIPT_PROMPT` sunt calea vie sub `contractPipeline: true`, nu cod mort. Corectat headerele/etichetele hardcodate în română din toate cele 4 (Manual era cel mai afectat); `SLIDES_PROMPT` era deja curat. Adăugată regulă explicită de traducere a etichetelor la fiecare prompt. Nu s-a putut rula typecheck local (fără Node/npm, D-005) — verificare făcută prin citire atentă + diff linie-cu-linie (55 inserții/55 ștergeri, fără backtick-uri noi, fără drift de linii). |
 | 2026-08-08 | S04 (continuare) | F2-T2 tot IN_PROGRESS | Scanare exhaustivă a fișierului pentru text hardcodat RO rămas. Corectat: `COST_ZERO_SLIDES_LABELS` (fallback greșit → RO pentru orice non-EN, inclusiv DE/FR/ES/IT; acum RO doar pentru RO), typo `STRUCTURĂ` în `getDepthSpecs`, headere hardcodate în `generateExamplesContent` și prompt-ul `discussion_guide`, și 5 fallback-uri de eroare/parsare (`buildFallbackModuleContext`, obiective, `handleChatOnboarding` ×2, workbook intro/outro) care ignorau `lang`/`course.language` deja disponibil în scope. Confirmat definitiv cod mort (§D-011 update): `renderToMarkdown` are 0 apelanți, `golden-master.ts` neimportat — subsistemul `GoldenModuleData` întreg + majoritatea `GOLDEN_SAMPLES` sunt candidați F10, nu bug-uri F2 active. Exclus intenționat din scope: mesajul `credit_limit_exceeded` (nivel aplicație, nu conținut curs). Rămas: inventarul complet F2-T1, F2-T3 (validare de limbă uniformă), F2-T4, F2-T5 (test puritate lingvistică). |
 | 2026-08-10–11 | S05 (ad-hoc, fără faze) | Fix-uri audit + features | 9 commit-uri nedocumentate (PRs #21-23 + fix-uri directe): per-modul iterare client-side (Exercises/Examples/Manual), token usage logging, fix resolveModuleId, i18n landing, UsageSection UI, TS fix, SUPABASE_SECRET_KEYS fallback, ACTION_OPERATION_COSTS corectat. Niciuna din F2–F10 formal. Typecheck verde la finalul sesiunii. |
-| 2026-08-14 | S06 | F2-T3 DONE · status actualizat | Pornit cu typecheck+test verde (Node 22 disponibil în mediu remote — nu mai e limitarea D-012). Documentate commit-urile S05 nedocumentate. F2-T3 implementat: `skipAiValidation` eliminat din toate call-site-urile (15 ocurențe), prag 400 chars pe conținut raw, `LANG_SIGNATURES` extins (+it/pt/nl/pl), `NON_LATIN_SCRIPTS` adăugat (26 limbi cu scripturi non-latine via regex Unicode). Typecheck verde. |
+| 2026-08-14 | S06 | F2-T3 DONE · F2-T4 DONE · status actualizat | Pornit cu typecheck+test verde (Node 22 disponibil în mediu remote — nu mai e limitarea D-012). Documentate commit-urile S05 nedocumentate. F2-T3 implementat: `skipAiValidation` eliminat din toate call-site-urile (15 ocurențe), prag 400 chars pe conținut raw, `LANG_SIGNATURES` extins (+it/pt/nl/pl), `NON_LATIN_SCRIPTS` adăugat (26 limbi cu scripturi non-latine via regex Unicode). F2-T4: inventar complet prompturi — singurele probleme în MANUAL_PROMPT: "English/Romanian" → "English" + "# Modul:" hardcodat eliminat. Typecheck verde per commit. |
 
 ### D-012 — Local terminal lacks Node/npm; cannot execute local repro here
 **Notă de renumerotare (2026-08-08).** Acest discovery a fost scris inițial cu ID-ul `D-005`, care era deja folosit (vezi `D-005` mai jos, despre eșecul CI-ului de deploy Supabase — acela e cel referit din `CLAUDE.md § Convenții de lucru → CI`). Renumerotat aici la `D-012` ca să nu mai existe două intrări cu același ID. Dacă mai găsești referințe vechi la „D-005 = lipsă Node" în alte note, înlocuiește-le cu D-012.
