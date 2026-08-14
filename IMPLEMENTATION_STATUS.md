@@ -11,46 +11,46 @@ Convenții:
 
 ---
 
-## ▶ REIA DE AICI (scris 2026-08-08, sesiune încheiată pe laptopul de serviciu)
+## ▶ REIA DE AICI (scris 2026-08-14, sesiunea S06 — actualizat după F2-T4)
 
-**De ce există secțiunea asta.** Sesiunea de pe laptopul de serviciu nu are Node/npm și nu atinge Supabase direct (regulă permanentă, nu limitare temporară — vezi `CLAUDE.md § 1`). Munca se oprește aici; următoarea sesiune (laptop personal) trebuie să facă 3 lucruri, ÎN ORDINEA ASTA, înainte de a scrie cod nou. Nu sări peste pasul 1-2 ca să ajungi mai repede la implementare — exact asta a cerut owner-ul să nu se mai întâmple.
+**Stare curentă:** F2-T3 DONE + F2-T4 DONE în această sesiune. Typecheck verde. Rămâne în F2: F2-T1, F2-T5. Verificarea Supabase (§B) încă în așteptarea confirmării owner-ului.
 
-### Pas 0 — sincronizare repo
-```
-cd "CourseCopilot"          # sau calea locală a clonei tale
-git checkout main
-git pull origin main
-git log --oneline -1        # trebuie să arate: 000560f docs(status): add Node/npm and Supabase-migration tracking checklists
-```
-Dacă commit-ul de mai sus nu e cel mai recent, ceva nu s-a sincronizat — oprește-te și investighează înainte de orice altceva (nu presupune că e ok).
+### Task următor: F2-T5 — Test puritate lingvistică
 
-### Pas 1 — Verificare Node/npm (rezolvă §A din „Verificări restante" mai jos)
-```
-npm install
-npm run typecheck
-npm test
-```
-- Dacă typecheck/test pică: raportează exact eroarea (fișier + linie + mesaj). NU repara orbește și NU continua la Pas 3 până nu e verde — codul din §A de mai jos a fost scris fără nicio verificare de compilare.
-- Dacă totul e verde: bifează manual cele 2 rânduri din tabelul §A (adaugă data lângă ☑) și, dacă vrei, fă un commit `docs(status): confirm local typecheck/test green for <commit hash>`.
-- Test manual suplimentar recomandat (din D-012): generează un curs, închide și redeschide modalul de generare (verifică resume), confirmă că la final `course_steps` are rândurile finale și nu mai rămân draft-uri (`is_completed: false`) — asta verifică și §B de mai jos.
+De scris `src/tests/languagePurity.test.ts`. Pe etalonul EN: 0 apariții headere RO și 0 diacritice; pe RO: 0 headere EN. Node disponibil (Node 22), deci poate fi scris și rulat direct cu `npm run test`.
 
-### Pas 2 — Verificare Supabase (rezolvă §B din „Verificări restante" mai jos)
-Loghează-te în Supabase Studio → Table Editor:
-1. Caută tabelele `waitlist_leads` și `demo_sessions`. NU există? → copiază SQL-ul din `supabase/migrations/20260718_lead_capture.sql` în SQL Editor și rulează-l tu (owner-ul, nu Claude). EXISTĂ deja? → bifează rândul din §B, nu mai trebuie rulat.
-2. Deschide tabelul `course_steps` → Columns. Caută `is_completed` (boolean) și `status` (text, cu valoarea posibilă `'draft'`). NU există? → feature-ul de draft/resume din 7 aug (`f3cb0f0`..`a5e7e0e`) eșuează silențios de o săptămână; trebuie scrisă o migrație nouă (`ALTER TABLE course_steps ADD COLUMN ...`) înainte de orice altceva pe F2 — spune-mi și o scriu, dar TU o rulezi. EXISTĂ deja? → bifează, era doar schemă mai veche nedocumentată.
-3. Raportează rezultatul celor 2 verificări (există/nu există) ca să pot actualiza tabelul §B și, dacă lipsește ceva, să scriu migrația corectă.
+### F2-T4 — ce s-a făcut
 
-### Pas 3 — Abia acum, reia implementarea F2
-Planul formal e la F2 (`§ Task-uri pe faze → F2`). F2-T2 e `IN_PROGRESS` cu progres real (2 commit-uri, 8 aug: `f13d6b9`, `060adcb` — sterilizare prompturi + fallback-uri de limbă). Rămân, **în ordinea asta**:
+Inventar complet al prompturilor din `index.ts` pentru meta-instrucțiuni în română. Singurele probleme găsite au fost în MANUAL_PROMPT:
+- `English/Romanian here only` → `English here only` (regula A.1: meta-limbajul e EN, nu RO)
+- `# Modul: {{moduleTitle}}` → `Begin with the module title as a level-1 heading in {{language}}` (eliminat hardcoding RO în OUTPUT FORMAT)
+Toate celelalte prompturi (MODULE_CONTEXT_PROMPT, WORKBOOK_PROMPT, SLIDES_PROMPT, EXERCISES_PROMPT, VIDEO_SCRIPT_PROMPT, toate inline-urile) erau deja în EN. Codul mort (D-011: GOLDEN_SAMPLES) ignorat conform planului.
 
-1. **F2-T1** — `localizedLabels`: inventar complet al string-urilor localizabile din prompturi/renderere + promptul A.4.1 + migrație `courses.localized_labels jsonb` + fallback EN static + generare la crearea cursului.
-   - **Atenție, nu reinventa**: există deja un mecanism separat, `GoldenModuleData.localizedLabels` (`prompts/golden-master.ts`, `types.ts`) — dar e **cod mort confirmat** (`renderToMarkdown` are 0 apelanți, vezi `§D-011`). Nu-l „descoperi" din nou ca pe ceva de integrat — fie îl ștergi la F10, fie construiești infrastructura NOUĂ de la zero, dar nu presupune că e deja folosit.
-   - Migrația de schemă intră sub regula `CLAUDE.md § 1`: scrii `.sql`, o postezi complet în chat, owner-ul o rulează manual, marchezi „așteaptă deploy owner" până la confirmare — **exact ca la Pas 2 de mai sus**, ca să nu repetăm gaura cu `lead_capture.sql`.
-2. **F2-T3** — Validare de limbă uniformă: elimină `skipAiValidation` complet (căutat, e folosit inconsistent azi — unele apeluri `true` implicit, altele `false` explicit, vezi `callLLM`/`generateWorkbookContent`/etc.); detectorul de limbă (`LANG_SIGNATURES`, azi ~linia 972) rulează pe orice output >400 caractere; extins la toate limbile din `src/languages.ts` (azi acoperă doar RO/EN/FR/DE/ES/IT parțial — verifică la implementare); maximum 1 retry, apoi warning (nu blocare).
-3. **F2-T4** — Meta-instrucțiuni EN, conținut verbatim (regula A.1 din planul v2.0).
-4. **F2-T5** — `src/tests/languagePurity.test.ts`: pe etalonul EN → 0 apariții headere RO și 0 diacritice; pe RO → 0 headere EN. (Nu poate fi RULAT decât cu Node — scrie-l pe laptopul personal, nu aici.)
+### Verificare Supabase restantă (§B de mai jos)
 
-Detalii complete ale fiecărui task, plus tot ce s-a descoperit pe parcurs (rutare Golden vs Legacy, cod mort, bug-uri de fallback corectate) sunt în `§ Task-uri pe faze → F2` și `§ Descoperiri → D-008, D-009, D-011` mai jos. Jurnalul de sesiune (`§ Jurnal de sesiune`) are cronologia completă dacă ai nevoie de context suplimentar despre CE s-a decis și DE CE.
+Încă neconfirmată de owner — verifică în Studio:
+1. `waitlist_leads` și `demo_sessions` există?
+2. `course_steps.is_completed` și `course_steps.status` există?
+
+### F2-T5 — Test puritate lingvistică
+
+De scris `src/tests/languagePurity.test.ts`. Node disponibil în mediul remote (Node 22), deci poate fi scris și rulat direct.
+
+---
+
+**Sesiuni S05 nedocumentate (10-11 aug, lucru ad-hoc în afara fazelor):**
+- 599dd5a — fix iterare per-modul (Exercises, Examples, Manual) în `GenerationProgressModal` + acțiuni server noi
+- 4bef20f — feat: log token usage (Gemini/Moonshot) în `user_usage` fire-and-forget
+- 2989956 — fix `resolveModuleId`: rejectează ID-uri sintetice frontend, verifică mereu prin DB
+- 9f2cb92 — fix i18n: anglicisme înlocuite în landing page (RO)
+- 88d5459 — feat: UsageSection UI (gauge credite AI, cost lunar) în ProfilePage
+- 352c217 — fix: unused vars in UsageSection (TS6133)
+- f2d2296 — fix: SUPABASE_SECRET_KEYS fallback + supabase client în logUsage
+- 65ff9ce — fix: ACTION_OPERATION_COSTS cu numele reale de acțiuni
+- bfb9813 — docs: arhivare fișiere Trae sub `docs/_archive/trae-legacy/`
+- 9788ca9 — Update CLAUDE.md (sesiune owner, 14 aug)
+
+Niciuna din cele de mai sus nu e parte din F2–F10 formal. Sunt fix-uri/features ad-hoc confirmate de owner. Nu modifică starea bornelor M0–M10.
 
 ---
 
@@ -134,8 +134,8 @@ Regula corectă (deja în `CLAUDE.md § 1`, respectată de aici înainte): Claud
   - **Verificat și exclus din scope** (documentat, neatins): `GOLDEN_SAMPLES.structure_online`/`exercises_live` și întregul subsistem `GoldenModuleData`/`GOLDEN_MASTER_PROMPT`/`renderToMarkdown`/`renderWorkbookSection` etc. — cod mort confirmat, zero apelanți (`renderToMarkdown` nu e apelat de nicăieri; `prompts/golden-master.ts` nu e importat în `index.ts`) — vezi D-011. Mesajul de „credit_limit_exceeded" (linia ~2954) rămâne hardcodat RO — e nivel de aplicație/utilizator, nu conținut de curs, deci în afara scope-ului F2 (candidat pentru o localizare separată a UI-ului de eroare, nu a materialelor generate).
   - Nu s-a putut rula typecheck local (fără Node/npm, D-005) — verificare manuală, diff simetric, backtick-uri verificate pereche cu pereche.
   - Rămas TODO: prompturile globale rămase (structure/blueprint în afara celor verificate), inventarul complet cerut de F2-T1 pentru migrația spre `{{label_*}}`.
-- **F2-T3** [TODO] Validare de limbă uniformă: elimină `skipAiValidation` complet; detectorul rulează pe orice output >400 caractere; `LANG_SIGNATURES` extins la toate limbile din `src/languages.ts`; maximum 1 retry, apoi warning
-- **F2-T4** [TODO] Meta-instrucțiuni EN, conținut verbatim (regula A.1)
+- **F2-T3** [DONE 2026-08-14] Validare de limbă uniformă: `skipAiValidation` eliminat complet (parametru șters din `callLLM`, `retryWithStrictInstructions` și toate cele 5 funcții generatoare — `generateWorkbookContent`, `generateManualContent`, `generateExercisesContent`, `generateVideoScriptContent`, `generateExamplesContent`); detectorul rulează acum pe orice output ≥400 chars (prag pe conținut raw, nu pe sample); `LANG_SIGNATURES` extins cu `it`, `pt`, `nl`, `pl`; adăugat `NON_LATIN_SCRIPTS` (regex Unicode) pentru 26 limbi cu scripturi non-latine (ar, he, ru, uk, bg, sr, zh, zh-TW, ja, ko, el, hi, bn, th, ka, am, km, lo, my, si, ta, te, kn, ml, gu, pa) — detecție fiabilă fără n-gram counting. Maximum 1 retry deja implementat (neschimbat). Typecheck verde.
+- **F2-T4** [DONE 2026-08-14] Meta-instrucțiuni EN, conținut verbatim (regula A.1) — MANUAL_PROMPT: eliminat "Romanian" din CRITICAL RULES + eliminat "# Modul:" hardcodat din OUTPUT FORMAT
 - **F2-T5** [TODO] `src/tests/languagePurity.test.ts`: pe etalonul EN → 0 apariții headere RO și 0 diacritice; pe RO → 0 headere EN
 - **DoD F2:** M2 — testul verde pe EN și RO; inspecție manuală fără amestec
 
@@ -298,6 +298,8 @@ Reprodus și pe HEAD-ul curat (înainte de modificările F0), deci defectul e pr
 | 2026-08-07 | S03 | Reconciliere `main` ↔ branch de refactor | Cherry-pick `7b6f8c3` (fix onboarding: label mediu localizat + cursă de randare) și `81add01` (protocol D-007 în CLAUDE.md) pe `main`. F1-T5 (elimină CourseDNA) NU adus — verificat că DNA nu e mort, decizie owner: rămâne, simplificare mutată la F3-T1 (§D-008). Documentat firul ad-hoc `contractPipeline`/draft-resume din 31 iul–7 aug, nereflectat până acum în borne (§D-009). F1-T4 rămâne BLOCKED — nicio confirmare de smoke test primită încă. F2 nu a început. |
 | 2026-08-08 | S04 | F2-T2 IN_PROGRESS | Pornit F2 (următorul pas logic după reconciliere). Verificat rutare Golden/Legacy (§D-011): `EXERCISES_PROMPT`/`WORKBOOK_PROMPT`/`MANUAL_PROMPT`/`VIDEO_SCRIPT_PROMPT` sunt calea vie sub `contractPipeline: true`, nu cod mort. Corectat headerele/etichetele hardcodate în română din toate cele 4 (Manual era cel mai afectat); `SLIDES_PROMPT` era deja curat. Adăugată regulă explicită de traducere a etichetelor la fiecare prompt. Nu s-a putut rula typecheck local (fără Node/npm, D-005) — verificare făcută prin citire atentă + diff linie-cu-linie (55 inserții/55 ștergeri, fără backtick-uri noi, fără drift de linii). |
 | 2026-08-08 | S04 (continuare) | F2-T2 tot IN_PROGRESS | Scanare exhaustivă a fișierului pentru text hardcodat RO rămas. Corectat: `COST_ZERO_SLIDES_LABELS` (fallback greșit → RO pentru orice non-EN, inclusiv DE/FR/ES/IT; acum RO doar pentru RO), typo `STRUCTURĂ` în `getDepthSpecs`, headere hardcodate în `generateExamplesContent` și prompt-ul `discussion_guide`, și 5 fallback-uri de eroare/parsare (`buildFallbackModuleContext`, obiective, `handleChatOnboarding` ×2, workbook intro/outro) care ignorau `lang`/`course.language` deja disponibil în scope. Confirmat definitiv cod mort (§D-011 update): `renderToMarkdown` are 0 apelanți, `golden-master.ts` neimportat — subsistemul `GoldenModuleData` întreg + majoritatea `GOLDEN_SAMPLES` sunt candidați F10, nu bug-uri F2 active. Exclus intenționat din scope: mesajul `credit_limit_exceeded` (nivel aplicație, nu conținut curs). Rămas: inventarul complet F2-T1, F2-T3 (validare de limbă uniformă), F2-T4, F2-T5 (test puritate lingvistică). |
+| 2026-08-10–11 | S05 (ad-hoc, fără faze) | Fix-uri audit + features | 9 commit-uri nedocumentate (PRs #21-23 + fix-uri directe): per-modul iterare client-side (Exercises/Examples/Manual), token usage logging, fix resolveModuleId, i18n landing, UsageSection UI, TS fix, SUPABASE_SECRET_KEYS fallback, ACTION_OPERATION_COSTS corectat. Niciuna din F2–F10 formal. Typecheck verde la finalul sesiunii. |
+| 2026-08-14 | S06 | F2-T3 DONE · F2-T4 DONE · status actualizat | Pornit cu typecheck+test verde (Node 22 disponibil în mediu remote — nu mai e limitarea D-012). Documentate commit-urile S05 nedocumentate. F2-T3 implementat: `skipAiValidation` eliminat din toate call-site-urile (15 ocurențe), prag 400 chars pe conținut raw, `LANG_SIGNATURES` extins (+it/pt/nl/pl), `NON_LATIN_SCRIPTS` adăugat (26 limbi cu scripturi non-latine via regex Unicode). F2-T4: inventar complet prompturi — singurele probleme în MANUAL_PROMPT: "English/Romanian" → "English" + "# Modul:" hardcodat eliminat. Typecheck verde per commit. |
 
 ### D-012 — Local terminal lacks Node/npm; cannot execute local repro here
 **Notă de renumerotare (2026-08-08).** Acest discovery a fost scris inițial cu ID-ul `D-005`, care era deja folosit (vezi `D-005` mai jos, despre eșecul CI-ului de deploy Supabase — acela e cel referit din `CLAUDE.md § Convenții de lucru → CI`). Renumerotat aici la `D-012` ca să nu mai existe două intrări cu același ID. Dacă mai găsești referințe vechi la „D-005 = lipsă Node" în alte note, înlocuiește-le cu D-012.
