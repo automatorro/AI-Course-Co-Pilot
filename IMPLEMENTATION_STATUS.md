@@ -11,13 +11,36 @@ Convenții:
 
 ---
 
-## ▶ REIA DE AICI (scris 2026-08-14, sesiunea S06 — actualizat după F2-T4)
+## ▶ REIA DE AICI (scris 2026-08-15, sesiunea S07 — F3-T1 DONE)
 
-**Stare curentă:** F2 DONE complet (T1+T2+T3+T4+T5 + SQL confirmat owner 2026-08-14). M1 DONE. M2 DONE. CI deploy funcțional.
+**Stare curentă:** F2 DONE complet. M1 DONE. M2 DONE. CI deploy funcțional. F3-T1 DONE (commit `85ca4e7`).
 
-### Task următor: F3 — Arhitectura de prompturi + contractul de modul
+### Task următor: F3-T2 — Cele 7 fișiere de prompt
 
-F3-T1: `buildPrompt(layers)` + `buildTonePreamble`. Șterge arhetipurile Mentor/Coach/Buddy, `narrativeUniverse`, `learningPhilosophy`, `masterTimeline`. `DNAEditModal` → 3 câmpuri.
+Crează în `supabase/functions/generate-course-content/prompts/` fișierele:
+- `localized-labels.ts` (A.4.1)
+- `module-contract.ts` (A.4.2)
+- `participant-manual.ts` (A.4.3)
+- `exercise-sheet.ts` (A.4.4)
+- `trainer-guide.ts` (A.4.5)
+- `slides-copy.ts` (A.4.6)
+- `trainer-flow-polish.ts` (A.4.7)
+- `PROMPT_CHANGELOG.md` cu intrarea „v1 instalată"
+
+Scheletele sunt definite în `docs/CURATENIE-SI-MODERNIZARE-CourseCopilot.md § A.4`.
+
+### Ce s-a făcut în F3-T1 (2026-08-15)
+
+- `buildPrompt(layers)` adăugat în `index.ts` — asamblare prompt din straturi (null/undefined skip)
+- `buildTonePreamble(course, lang)` adăugat — preambul 4-secțiuni: VOICE (userToneText verbatim sau voiceProfile structurat), TERMINOLOGY, DELIVERY ENVIRONMENT, LANGUAGE
+- `CourseDNA` tip actualizat: eliminat `narrativeUniverse`, `masterTimeline`, `learningPhilosophy`; adăugat `voiceProfile.userToneText?: string`
+- `buildDNABlocks()`: eliminat `philosophyBlock` (T3)
+- `hasMinimalCourseDNA()`: înlocuit verificarea protagonistului cu verificarea `terminology.participant || voiceProfile`
+- Promptul de generare DNA: actualizat output format (fără narrative/philosophy/timeline)
+- Fallback JSON DNA: curățat de câmpurile eliminate
+- `course_macro_structure` și `agenda_table`: nu mai citesc `dna.masterTimeline` — derivă din blueprint
+- `DNAEditModal`: eliminat secțiunea Narrative (protagoniști); adăugat câmp `userToneText` textarea
+- typecheck verde; 20/21 teste verzi (e2e_generation.test.ts e pre-existent rupt, D-003)
 
 ### F2-T4 — ce s-a făcut
 
@@ -141,7 +164,7 @@ Regula corectă (deja în `CLAUDE.md § 1`, respectată de aici înainte): Claud
 - **DoD F2:** M2 — testul verde pe EN și RO; inspecție manuală fără amestec
 
 ### F3 — Instalarea arhitecturii de prompturi + contractul de modul (3 zile) · Risc: mare, izolat
-- **F3-T1** [TODO] `buildPrompt(layers)` + `buildTonePreamble` (A.1, A.3). Șterge din cod arhetipurile Mentor/Coach/Buddy, `narrativeUniverse`, `learningPhilosophy`, `masterTimeline`. `DNAEditModal` → 3 câmpuri
+- **F3-T1** [DONE 2026-08-15] `buildPrompt(layers)` + `buildTonePreamble` (A.1, A.3). Eliminat `narrativeUniverse`, `learningPhilosophy`, `masterTimeline` din tip, cod și prompturi. `DNAEditModal`: secțiunea protagoniști eliminată, câmp `userToneText` adăugat. Typecheck ✔, 20/21 teste ✔
 - **F3-T2** [TODO] Cele 7 fișiere de prompt (A.4) + `PROMPT_CHANGELOG.md` cu intrarea „v1 instalată"
 - **F3-T3** [TODO] Schema `ModuleContract` (server types + Zod client) — obiectiv/blocks/exerciseSpec/transitions
 - **F3-T4** [TODO] `validateModuleContract()` determinist: ≥1 ACT+DEM+APP; sumă minute = durată (±5); APP ≥40% la bloomLevel≥APPLY; niciun bloc >25 min fără schimbare de fază; BREAK la module ≥90 min; verbi Bloom din dicționar per limbă. Eșec → 1 re-apel → apoi eroare
