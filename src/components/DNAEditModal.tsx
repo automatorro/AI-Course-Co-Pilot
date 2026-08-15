@@ -70,7 +70,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, course, onClos
             let dataToSave = formData;
 
             // Auto-generate if empty and course is available
-            if ((!dataToSave.terminology || !dataToSave.narrativeUniverse) && course) {
+            if ((!dataToSave.terminology || !dataToSave.voiceProfile) && course) {
                 setIsSaving(true); // Show saving/processing state
                 try {
                     const { data, error } = await supabase.functions.invoke('generate-course-content', {
@@ -96,7 +96,7 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, course, onClos
             }
             
             // Basic validation
-            if (!dataToSave.terminology || !dataToSave.narrativeUniverse) {
+            if (!dataToSave.terminology || !dataToSave.voiceProfile) {
                 throw new Error(t('dna.edit.error.structure') || "Invalid DNA structure.");
             }
 
@@ -266,6 +266,22 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, course, onClos
                             <h3 className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-4 border-b pb-2">
                                 {t('dna.edit.section.voice')}
                             </h3>
+                            {/* Verbatim tone text — injected as-is into every prompt */}
+                            <div className="mb-4">
+                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    {t('dna.edit.field.toneText') || 'Tone (verbatim — describe your voice in your own words)'}
+                                </label>
+                                <textarea
+                                    rows={3}
+                                    value={formData.voiceProfile?.userToneText || ''}
+                                    onChange={(e) => setFormData({
+                                        ...formData,
+                                        voiceProfile: { ...formData.voiceProfile!, userToneText: e.target.value }
+                                    })}
+                                    placeholder='e.g. "Direct, warm, no corporate jargon; use «tu»; light humor; banned: «synergy», «paradigm»"'
+                                    className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm p-2 resize-none"
+                                />
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -424,159 +440,6 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, course, onClos
                             </div>
                         </section>
 
-                        {/* Narrative Section */}
-                        <section>
-                            <div className="flex items-center justify-between mb-4 border-b pb-2">
-                                <h3 className="text-sm uppercase tracking-wider text-gray-500 font-semibold">
-                                    {t('dna.edit.section.narrative')}
-                                </h3>
-                                <button
-                                    onClick={() => {
-                                        const currentProtagonists = formData.narrativeUniverse?.protagonists || [];
-                                        const newProtagonists = [
-                                            ...currentProtagonists,
-                                            { name: '', role: '', personality: '', arc: '' }
-                                        ];
-                                        setFormData({
-                                            ...formData,
-                                            narrativeUniverse: {
-                                                ...(formData.narrativeUniverse || {}),
-                                                protagonists: newProtagonists
-                                            }
-                                        });
-                                    }}
-                                    className="text-xs flex items-center gap-1 text-indigo-600 hover:text-indigo-700 font-medium"
-                                >
-                                    <Plus size={14} />
-                                    {t('dna.edit.protagonist.add')}
-                                </button>
-                            </div>
-                            
-                            <div className="space-y-4">
-                                {(formData.narrativeUniverse?.protagonists || []).map((protagonist, index) => (
-                                    <div key={index} className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 relative group">
-                                        <button
-                                            onClick={() => {
-                                                const newProtagonists = [...(formData.narrativeUniverse?.protagonists || [])];
-                                                newProtagonists.splice(index, 1);
-                                                setFormData({
-                                                    ...formData,
-                                                    narrativeUniverse: {
-                                                        ...(formData.narrativeUniverse || {}),
-                                                        protagonists: newProtagonists
-                                                    }
-                                                });
-                                            }}
-                                            className="absolute top-2 right-2 text-gray-400 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            title={t('dna.edit.protagonist.remove')}
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                                            <div>
-                                                <label className="block text-xs font-medium text-gray-500 mb-1">
-                                                    {t('dna.edit.protagonist.name')}
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={protagonist.name}
-                                                    onChange={(e) => {
-                                                        const newProtagonists = [...(formData.narrativeUniverse?.protagonists || [])];
-                                                        newProtagonists[index] = { ...protagonist, name: e.target.value };
-                                                        setFormData({
-                                                            ...formData,
-                                                            narrativeUniverse: { ...(formData.narrativeUniverse || {}), protagonists: newProtagonists }
-                                                        });
-                                                    }}
-                                                    className="w-full rounded border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-sm p-1.5"
-                                                    placeholder="Ex: Ana Popescu"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-xs font-medium text-gray-500 mb-1">
-                                                    {t('dna.edit.protagonist.role')}
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={protagonist.role}
-                                                    onChange={(e) => {
-                                                        const newProtagonists = [...(formData.narrativeUniverse?.protagonists || [])];
-                                                        newProtagonists[index] = { ...protagonist, role: e.target.value };
-                                                        setFormData({
-                                                            ...formData,
-                                                            narrativeUniverse: { ...(formData.narrativeUniverse || {}), protagonists: newProtagonists }
-                                                        });
-                                                    }}
-                                                    className="w-full rounded border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-sm p-1.5"
-                                                    placeholder="Ex: Manager Vânzări"
-                                                />
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="mb-3">
-                                            <label className="block text-xs font-medium text-gray-500 mb-1">
-                                                {t('dna.edit.protagonist.personality')}
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={protagonist.personality}
-                                                onChange={(e) => {
-                                                    const newProtagonists = [...(formData.narrativeUniverse?.protagonists || [])];
-                                                    newProtagonists[index] = { ...protagonist, personality: e.target.value };
-                                                    setFormData({
-                                                        ...formData,
-                                                        narrativeUniverse: { ...(formData.narrativeUniverse || {}), protagonists: newProtagonists }
-                                                    });
-                                                }}
-                                                className="w-full rounded border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-sm p-1.5"
-                                                placeholder="Ex: Ambițioasă, orientată spre rezultate..."
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 mb-1">
-                                                {t('dna.edit.protagonist.arc')}
-                                            </label>
-                                            <textarea
-                                                value={protagonist.arc}
-                                                onChange={(e) => {
-                                                    const newProtagonists = [...(formData.narrativeUniverse?.protagonists || [])];
-                                                    newProtagonists[index] = { ...protagonist, arc: e.target.value };
-                                                    setFormData({
-                                                        ...formData,
-                                                        narrativeUniverse: { ...(formData.narrativeUniverse || {}), protagonists: newProtagonists }
-                                                    });
-                                                }}
-                                                rows={2}
-                                                className="w-full rounded border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-sm p-1.5 resize-none"
-                                                placeholder="Ex: Învață să delege și să aibă încredere în echipă..."
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
-                                
-                                {(!formData.narrativeUniverse?.protagonists || formData.narrativeUniverse.protagonists.length === 0) && (
-                                    <div className="text-center p-8 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-dashed border-gray-300 dark:border-gray-700">
-                                        <p className="text-sm text-gray-500 mb-2">Nu există protagoniști definiți.</p>
-                                        <button
-                                            onClick={() => {
-                                                setFormData({
-                                                    ...formData,
-                                                    narrativeUniverse: {
-                                                        ...(formData.narrativeUniverse || {}),
-                                                        protagonists: [{ name: '', role: '', personality: '', arc: '' }]
-                                                    }
-                                                });
-                                            }}
-                                            className="text-sm text-indigo-600 hover:underline"
-                                        >
-                                            + {t('dna.edit.protagonist.add')}
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </section>
                     </div>
                 </div>
 
@@ -608,8 +471,8 @@ const DNAEditModal: React.FC<DNAEditModalProps> = ({ isOpen, dna, course, onClos
                             disabled={isSaving || isGenerating}
                             className="btn-primary flex items-center gap-2"
                         >
-                            {isSaving || isGenerating ? <span className="animate-spin">⏳</span> : ((!formData.terminology && !formData.narrativeUniverse && course) ? <Wand2 size={18} /> : <Save size={18} />)}
-                            {(!formData.terminology && !formData.narrativeUniverse && course) ? t('dna.edit.generate_save') : t('dna.edit.save')}
+                            {isSaving || isGenerating ? <span className="animate-spin">⏳</span> : ((!formData.terminology && !formData.voiceProfile && course) ? <Wand2 size={18} /> : <Save size={18} />)}
+                            {(!formData.terminology && !formData.voiceProfile && course) ? t('dna.edit.generate_save') : t('dna.edit.save')}
                         </button>
                     </div>
                 </div>

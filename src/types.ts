@@ -69,41 +69,12 @@ export interface CourseDNA {
       firstMention?: string;
     }>;
   };
-  narrativeUniverse: {
-    protagonists: Array<{
-      name: string;
-      role: string;
-      personality: string;
-      arc: string;
-    }>;
-    bannedNames?: string[];
-    bannedNamesByLanguage?: Record<string, string[]>;
-  };
-  masterTimeline: {
-    totalDuration: number; // minutes
-    bufferPerModule: number; // minutes
-    modules: Array<{
-      id: string;
-      title: string;
-      duration: number; // minutes
-      startTime?: string; // "09:00"
-      endTime?: string;   // "10:30"
-      activities: Array<{
-        type: 'theory' | 'exercise' | 'break' | 'debrief';
-        duration: number;
-        description: string;
-      }>
-    }>;
-  };
   voiceProfile: {
     formality: 'buddy' | 'professional' | 'academic';
     humorLevel: 'none' | 'light' | 'heavy';
     forbiddenPhrases: string[];
     signaturePhrases: string[];
-  };
-  learningPhilosophy?: {
-    manifesto?: string[];
-    rules_of_engagement?: string[];
+    userToneText?: string; // verbatim tone text from the course author — injected as-is into buildTonePreamble
   };
   domainContext?: {
     industryTerms: Record<string, string>;
