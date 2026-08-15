@@ -26,11 +26,11 @@ Inventar complet al prompturilor din `index.ts` pentru meta-instrucțiuni în ro
 - `# Modul: {{moduleTitle}}` → `Begin with the module title as a level-1 heading in {{language}}` (eliminat hardcoding RO în OUTPUT FORMAT)
 Toate celelalte prompturi (MODULE_CONTEXT_PROMPT, WORKBOOK_PROMPT, SLIDES_PROMPT, EXERCISES_PROMPT, VIDEO_SCRIPT_PROMPT, toate inline-urile) erau deja în EN. Codul mort (D-011: GOLDEN_SAMPLES) ignorat conform planului.
 
-### Verificare Supabase restantă (§B de mai jos)
+### Verificare Supabase (§B) — CONFIRMATĂ 2026-08-14
 
-Încă neconfirmată de owner — verifică în Studio:
-1. `waitlist_leads` și `demo_sessions` există?
-2. `course_steps.is_completed` și `course_steps.status` există?
+Owner a confirmat în chat că toate există:
+- ✅ `waitlist_leads` și `demo_sessions` — tabelele există
+- ✅ `course_steps.is_completed` și `course_steps.status` — coloanele există
 
 ### F2-T5 — Test puritate lingvistică
 
