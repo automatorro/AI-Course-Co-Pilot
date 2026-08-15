@@ -2743,8 +2743,8 @@ async function generateWorkbookContent(course: Course, ctx: ModuleContext, dna: 
     goldenSamples,
     participantTerm: course.dna?.terminology?.participant || 'Participant',
     trainerTerm: course.dna?.terminology?.trainer || 'Trainer',
-    exerciseTerm: course.dna?.terminology?.exercise || 'Exercise',
-    objectiveLabel: (lang || '').startsWith('ro') ? 'Obiectiv' : 'Objective',
+    exerciseTerm: course.dna?.terminology?.exercise || getLabel('activity', lang),
+    objectiveLabel: getLabel('objective', lang),
   });
 
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
@@ -2881,8 +2881,8 @@ async function generateExercisesContent(course: Course, ctx: ModuleContext, dna:
     depthSpecs: specsObj.exercises,
     envConstraints: dna.envConstraints,
     envRules,
-    exerciseTerm: course.dna?.terminology?.exercise || 'Exercise',
-    objectiveLabel: (lang || '').startsWith('ro') ? 'Obiectiv' : 'Objective',
+    exerciseTerm: course.dna?.terminology?.exercise || getLabel('activity', lang),
+    objectiveLabel: getLabel('objective', lang),
   });
 
   const result = await callLLM(`${buildMandatoryContext(course)}\n\n${prompt}`, lang);
@@ -3672,28 +3672,79 @@ function isValidGoldenData(data: any): boolean {
   return true;
 }
 
-function getDefaultEnglishLabels(): Record<string, string> {
-  // Default English
-  return {
-    duration: "Duration",
-    format: "Format",
-    section: "Section",
-    theory: "Theory & Concepts",
-    keyTakeaways: "Key Takeaways",
-    actionPlan: "Action Plan",
-    reflection: "Reflection",
-    trainerInstructions: "Trainer Instructions",
-    method: "Method",
-    logistics: "Logistics",
-    script: "Script",
-    activity: "Activity",
-    objective: "Objective",
-    instructionsParticipant: "Participant Instructions",
+// F2-T1: Static label maps for the 6 popular languages.
+// All other languages fall back to EN — never to RO.
+// Keys match GoldenModuleData.localizedLabels and the {{objectiveLabel}} template var.
+const STATIC_LABELS: Record<string, Record<string, string>> = {
+  en: {
+    duration: "Duration", format: "Format", section: "Section",
+    theory: "Theory & Concepts", keyTakeaways: "Key Takeaways",
+    actionPlan: "Action Plan", reflection: "Reflection",
+    trainerInstructions: "Trainer Instructions", method: "Method",
+    logistics: "Logistics", script: "Script", activity: "Activity",
+    objective: "Objective", instructionsParticipant: "Participant Instructions",
     instructionsFacilitator: "Facilitator Instructions",
-    debrief: "Debrief Questions",
-    example: "Example",
-    videoScript: "Video Script"
-  };
+    debrief: "Debrief Questions", example: "Example", videoScript: "Video Script",
+  },
+  ro: {
+    duration: "Durată", format: "Format", section: "Secțiunea",
+    theory: "Teorie & Concepte", keyTakeaways: "Idei Principale",
+    actionPlan: "Plan de Acțiune", reflection: "Reflecție",
+    trainerInstructions: "Instrucțiuni Trainer", method: "Metodă",
+    logistics: "Logistică", script: "Script", activity: "Activitate",
+    objective: "Obiectiv", instructionsParticipant: "Instrucțiuni Participant",
+    instructionsFacilitator: "Instrucțiuni Facilitator",
+    debrief: "Întrebări Debrief", example: "Exemplu", videoScript: "Script Video",
+  },
+  es: {
+    duration: "Duración", format: "Formato", section: "Sección",
+    theory: "Teoría y Conceptos", keyTakeaways: "Puntos Clave",
+    actionPlan: "Plan de Acción", reflection: "Reflexión",
+    trainerInstructions: "Instrucciones del Formador", method: "Método",
+    logistics: "Logística", script: "Guión", activity: "Actividad",
+    objective: "Objetivo", instructionsParticipant: "Instrucciones del Participante",
+    instructionsFacilitator: "Instrucciones del Facilitador",
+    debrief: "Preguntas de Debriefing", example: "Ejemplo", videoScript: "Guión de Video",
+  },
+  fr: {
+    duration: "Durée", format: "Format", section: "Section",
+    theory: "Théorie & Concepts", keyTakeaways: "Points Clés",
+    actionPlan: "Plan d'Action", reflection: "Réflexion",
+    trainerInstructions: "Instructions du Formateur", method: "Méthode",
+    logistics: "Logistique", script: "Script", activity: "Activité",
+    objective: "Objectif", instructionsParticipant: "Instructions du Participant",
+    instructionsFacilitator: "Instructions du Facilitateur",
+    debrief: "Questions de Debriefing", example: "Exemple", videoScript: "Script Vidéo",
+  },
+  de: {
+    duration: "Dauer", format: "Format", section: "Abschnitt",
+    theory: "Theorie & Konzepte", keyTakeaways: "Wichtigste Erkenntnisse",
+    actionPlan: "Aktionsplan", reflection: "Reflexion",
+    trainerInstructions: "Trainer-Anweisungen", method: "Methode",
+    logistics: "Logistik", script: "Skript", activity: "Aktivität",
+    objective: "Ziel", instructionsParticipant: "Teilnehmer-Anweisungen",
+    instructionsFacilitator: "Moderator-Anweisungen",
+    debrief: "Debriefing-Fragen", example: "Beispiel", videoScript: "Videoskript",
+  },
+  it: {
+    duration: "Durata", format: "Formato", section: "Sezione",
+    theory: "Teoria e Concetti", keyTakeaways: "Punti Chiave",
+    actionPlan: "Piano d'Azione", reflection: "Riflessione",
+    trainerInstructions: "Istruzioni del Formatore", method: "Metodo",
+    logistics: "Logistica", script: "Copione", activity: "Attività",
+    objective: "Obiettivo", instructionsParticipant: "Istruzioni del Partecipante",
+    instructionsFacilitator: "Istruzioni del Facilitatore",
+    debrief: "Domande di Debriefing", example: "Esempio", videoScript: "Copione Video",
+  },
+};
+
+function getLabel(key: string, lang: string): string {
+  const langKey = (lang || 'en').toLowerCase().split('-')[0];
+  return (STATIC_LABELS[langKey] ?? STATIC_LABELS['en'])[key] ?? STATIC_LABELS['en'][key] ?? key;
+}
+
+function getDefaultEnglishLabels(): Record<string, string> {
+  return STATIC_LABELS['en'];
 }
 
 function getLivrableDbKey(stepType: string): string | null {

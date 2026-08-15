@@ -13,11 +13,20 @@ Convenții:
 
 ## ▶ REIA DE AICI (scris 2026-08-14, sesiunea S06 — actualizat după F2-T4)
 
-**Stare curentă:** F2-T3 + F2-T4 + F2-T5 DONE. Rămâne în F2: F2-T1 (localizedLabels + SQL — necesită owner). M1 DONE. CI deploy funcțional.
+**Stare curentă:** F2 DONE (T1+T2+T3+T4+T5). M1 DONE. CI deploy funcțional. Migrație SQL F2-T1 AȘTEAPTĂ confirmare owner.
 
-### Task următor: F2-T1 — localizedLabels
+### Task următor: F3 — Arhitectura de prompturi + contractul de modul
 
-Inventar complet de string-uri localizabile + coloană SQL `courses.localized_labels jsonb` + fallback static EN. Necesită migrație SQL — owner aplică după ce postez SQL-ul în chat.
+Sau: confirmă că ai rulat SQL-ul din F2-T1, ca să bifăm M2 complet.
+
+### SQL neconfirmat — F2-T1 (courses.localized_labels)
+
+```sql
+ALTER TABLE courses
+  ADD COLUMN IF NOT EXISTS localized_labels jsonb DEFAULT NULL;
+```
+
+Rulat în Studio? Dacă da, confirmă în chat.
 
 ### F2-T4 — ce s-a făcut
 
@@ -136,6 +145,7 @@ Regula corectă (deja în `CLAUDE.md § 1`, respectată de aici înainte): Claud
   - Rămas TODO: prompturile globale rămase (structure/blueprint în afara celor verificate), inventarul complet cerut de F2-T1 pentru migrația spre `{{label_*}}`.
 - **F2-T3** [DONE 2026-08-14] Validare de limbă uniformă: `skipAiValidation` eliminat complet (parametru șters din `callLLM`, `retryWithStrictInstructions` și toate cele 5 funcții generatoare — `generateWorkbookContent`, `generateManualContent`, `generateExercisesContent`, `generateVideoScriptContent`, `generateExamplesContent`); detectorul rulează acum pe orice output ≥400 chars (prag pe conținut raw, nu pe sample); `LANG_SIGNATURES` extins cu `it`, `pt`, `nl`, `pl`; adăugat `NON_LATIN_SCRIPTS` (regex Unicode) pentru 26 limbi cu scripturi non-latine (ar, he, ru, uk, bg, sr, zh, zh-TW, ja, ko, el, hi, bn, th, ka, am, km, lo, my, si, ta, te, kn, ml, gu, pa) — detecție fiabilă fără n-gram counting. Maximum 1 retry deja implementat (neschimbat). Typecheck verde.
 - **F2-T4** [DONE 2026-08-14] Meta-instrucțiuni EN, conținut verbatim (regula A.1) — MANUAL_PROMPT: eliminat "Romanian" din CRITICAL RULES + eliminat "# Modul:" hardcodat din OUTPUT FORMAT
+- **F2-T1** [DONE 2026-08-14, AȘTEAPTĂ SQL OWNER] `STATIC_LABELS` + `getLabel()` — traduceri statice pentru 6 limbi (en/ro/es/fr/de/it); switch-urile binare `isRo→Obiectiv/Objective` înlocuite cu `getLabel('objective', lang)` în workbook+exercises generators; migrație `20260814_courses_localized_labels.sql` scrisă — **owner aplică SQL în Studio**
 - **F2-T5** [DONE 2026-08-14] `src/tests/languagePurity.test.ts`: 8 teste verzi — EN fără diacritice RO, EN fără headere RO, RO fără headere EN unambigue, cross-contamination checks
 - **DoD F2:** M2 — testul verde pe EN și RO; inspecție manuală fără amestec
 
