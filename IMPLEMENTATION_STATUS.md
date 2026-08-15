@@ -11,23 +11,39 @@ Convenții:
 
 ---
 
-## ▶ REIA DE AICI (scris 2026-08-15, sesiunea S07 — F3-T1 DONE)
+## ▶ REIA DE AICI (scris 2026-08-15, sesiunea S07 — F3-T1 + F3-T2 DONE)
 
-**Stare curentă:** F2 DONE complet. M1 DONE. M2 DONE. CI deploy funcțional. F3-T1 DONE (commit `85ca4e7`).
+**Stare curentă:** F2 DONE complet. M1, M2 DONE. CI deploy funcțional.
+F3-T1 DONE (`85ca4e7`), F3-T2 DONE (`8f9faa3`). **M3 atins** (prompts/ + preambul de ton + changelog).
 
-### Task următor: F3-T2 — Cele 7 fișiere de prompt
+### Task următor: F3-T3 — Schema `ModuleContract`
 
-Crează în `supabase/functions/generate-course-content/prompts/` fișierele:
-- `localized-labels.ts` (A.4.1)
-- `module-contract.ts` (A.4.2)
-- `participant-manual.ts` (A.4.3)
-- `exercise-sheet.ts` (A.4.4)
-- `trainer-guide.ts` (A.4.5)
-- `slides-copy.ts` (A.4.6)
-- `trainer-flow-polish.ts` (A.4.7)
-- `PROMPT_CHANGELOG.md` cu intrarea „v1 instalată"
+Definește schema contractului de modul, în două locuri:
+- **server** (`supabase/functions/generate-course-content/`): tipul TypeScript
+- **client** (`src/schemas/`): validare Zod
 
-Scheletele sunt definite în `docs/CURATENIE-SI-MODERNIZARE-CourseCopilot.md § A.4`.
+Câmpuri: `objective` (statement + bloomLevel), `blocks[]` (id, title, type
+ACTIVATION/DEMONSTRATION/APPLICATION/INTEGRATION/BREAK, durationMinutes, keyPoints[],
+exerciseSpec?), `exerciseSpec` (scenarioSeed, characters[] ca ROLURI, evidenceOfLearning,
+debriefBloomVerb, durationMinutes), `transitions[]`.
+
+Referință: `docs/CURATENIE-SI-MODERNIZARE-CourseCopilot.md § A.4.2` (ce cere promptul) +
+`prompts/module-contract.ts` (promptul deja scris — schema trebuie să se potrivească cu el).
+Verifică întâi ce există în `src/schemas/` înainte să adaugi.
+
+**Atenție la F3-T5** (2 task-uri mai încolo): migrație SQL `course_modules.contract jsonb` +
+`contract_version` — se scrie fișierul, se postează SQL-ul în chat, **owner-ul îl rulează**.
+
+### Ce s-a făcut în F3-T2 (2026-08-15)
+
+Cele 7 schelete din § A.4 instalate în `prompts/`, plus `types.ts` (`PromptSkeleton`) și
+`PROMPT_CHANGELOG.md`. Fișierele conțin DOAR straturile fixe (role/task/format/quality);
+straturile 2–4 (ton, context curs, context unitate) rămân construite la runtime în `index.ts`.
+`LABEL_KEYS` din `localized-labels.ts` oglindește `STATIC_LABELS['en']` din F2-T1 ca să nu
+diverge tăcut. Fără few-shot-uri în v1.
+
+**Nu sunt cablate în orchestrator** — asta se întâmplă în F4-T2. Până atunci sunt artefacte
+inerte, deci commit-ul nu poate schimba comportamentul producției.
 
 ### Ce s-a făcut în F3-T1 (2026-08-15)
 
@@ -84,7 +100,7 @@ Niciuna din cele de mai sus nu e parte din F2–F10 formal. Sunt fix-uri/feature
 | M0 | F0 | Tag + status file + baseline „before" + fixture etalon | DONE (baseline SKIPPED prin decizie owner — vezi F0-T3) |
 | M1 | F1 | Cod mort șters (butoane editor, ProtagonistEnforcer, fixes/); build verde | DONE (2026-08-14 — deploy edge function verde, CI funcțional) |
 | M2 | F2 | Test puritate lingvistică verde (EN fără RO, RO fără EN) | DONE (2026-08-14 — 8/8 teste verzi, SQL confirmat owner) |
-| M3 | F3 | Arhitectura de prompturi instalată: prompts/ + changelog + preambul de ton | TODO |
+| M3 | F3 | Arhitectura de prompturi instalată: prompts/ + changelog + preambul de ton | DONE (2026-08-15 — `buildTonePreamble` în F3-T1, cele 7 schelete + changelog în F3-T2) |
 | M4 | F4 | Contracte de modul valide pe etalon; **aprobate de owner** (poarta umană 1) | TODO |
 | M5 | F5 | Cele 5 livrabile randate din contract, validare deterministă verde | TODO |
 | M6 | F6 | **Rubrica ≥ prag pe cursul-etalon (RO+EN)** — poarta de calitate (poarta umană 2) | TODO |
@@ -165,7 +181,7 @@ Regula corectă (deja în `CLAUDE.md § 1`, respectată de aici înainte): Claud
 
 ### F3 — Instalarea arhitecturii de prompturi + contractul de modul (3 zile) · Risc: mare, izolat
 - **F3-T1** [DONE 2026-08-15] `buildPrompt(layers)` + `buildTonePreamble` (A.1, A.3). Eliminat `narrativeUniverse`, `learningPhilosophy`, `masterTimeline` din tip, cod și prompturi. `DNAEditModal`: secțiunea protagoniști eliminată, câmp `userToneText` adăugat. Typecheck ✔, 20/21 teste ✔
-- **F3-T2** [TODO] Cele 7 fișiere de prompt (A.4) + `PROMPT_CHANGELOG.md` cu intrarea „v1 instalată"
+- **F3-T2** [DONE 2026-08-15] Cele 7 fișiere de prompt (A.4) + `PROMPT_CHANGELOG.md` cu intrarea „v1 instalată". Formă comună `PromptSkeleton` (role/task/format/quality = straturile 1,5,6,7; 2,3,4 rămân runtime). Fără few-shot-uri în v1. **Nu sunt încă cablate în orchestrator** — cablarea e F4-T2. `deno check` verde pe toate 8 fișierele
 - **F3-T3** [TODO] Schema `ModuleContract` (server types + Zod client) — obiectiv/blocks/exerciseSpec/transitions
 - **F3-T4** [TODO] `validateModuleContract()` determinist: ≥1 ACT+DEM+APP; sumă minute = durată (±5); APP ≥40% la bloomLevel≥APPLY; niciun bloc >25 min fără schimbare de fază; BREAK la module ≥90 min; verbi Bloom din dicționar per limbă. Eșec → 1 re-apel → apoi eroare
 - **F3-T5** [TODO] Persistență: migrație `course_modules.contract jsonb` + `contract_version`; `is_dirty` invalidează; cache
