@@ -59,7 +59,7 @@ Niciuna din cele de mai sus nu e parte din F2–F10 formal. Sunt fix-uri/feature
 | Bornă | Faza | Livrabil verificabil | Status |
 |---|---|---|---|
 | M0 | F0 | Tag + status file + baseline „before" + fixture etalon | DONE (baseline SKIPPED prin decizie owner — vezi F0-T3) |
-| M1 | F1 | Cod mort șters (butoane editor, ProtagonistEnforcer, fixes/); build verde | ALMOST (cod șters + typecheck verde; F1-T4 smoke live așteaptă owner-ul) |
+| M1 | F1 | Cod mort șters (butoane editor, ProtagonistEnforcer, fixes/); build verde | DONE (2026-08-14 — deploy edge function verde, CI funcțional) |
 | M2 | F2 | Test puritate lingvistică verde (EN fără RO, RO fără EN) | TODO |
 | M3 | F3 | Arhitectura de prompturi instalată: prompts/ + changelog + preambul de ton | TODO |
 | M4 | F4 | Contracte de modul valide pe etalon; **aprobate de owner** (poarta umană 1) | TODO |
@@ -120,7 +120,7 @@ Regula corectă (deja în `CLAUDE.md § 1`, respectată de aici înainte): Claud
 - **F1-T1** [DONE] Butoanele Generate/Rafinează din editor — ștergere completă (commit `ecac06b`)
 - **F1-T2** [DONE] `ProtagonistEnforcer` + folderul `fixes/` — șters integral (commit `bbab569`)
 - **F1-T3** [DONE] Conceptul de protagonist global — șters: `inferProtagonistFromAudience`, `getOrCreateStoryArc`, `story_arc`, blocul `narrative` din `ModuleContext`, toate placeholder-ele; P4 (personaje locale) în EXERCISES_PROMPT (commit `85b548b`)
-- **F1-T4** [BLOCKED(owner runs smoke)] Smoke test pe etalon RO după deploy edge function; instrucțiuni în §Smoke F1 mai jos
+- **F1-T4** [DONE 2026-08-14] Deploy edge function verde (CI reparat — SUPABASE_ACCESS_TOKEN actualizat, proiect reactivat); toate funcțiile deployate: generate-course-content, analyze-slide, unsplash-search
 - **DoD F1:** M1 parțial — typecheck ✔, 12/12 teste (D-003), grep `ProtagonistEnforcer|refineCourseContent|editorRefineButton|inferProtagonistFromAudience|getOrCreateStoryArc|story_arc` în src/+supabase/ → 0 ✔. Rămâne smoke-ul live la owner.
 
 ### F2 — Fundația de localizare (2 zile) · Risc: mediu
