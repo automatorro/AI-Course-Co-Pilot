@@ -13,20 +13,11 @@ Convenții:
 
 ## ▶ REIA DE AICI (scris 2026-08-14, sesiunea S06 — actualizat după F2-T4)
 
-**Stare curentă:** F2 DONE (T1+T2+T3+T4+T5). M1 DONE. CI deploy funcțional. Migrație SQL F2-T1 AȘTEAPTĂ confirmare owner.
+**Stare curentă:** F2 DONE complet (T1+T2+T3+T4+T5 + SQL confirmat owner 2026-08-14). M1 DONE. M2 DONE. CI deploy funcțional.
 
 ### Task următor: F3 — Arhitectura de prompturi + contractul de modul
 
-Sau: confirmă că ai rulat SQL-ul din F2-T1, ca să bifăm M2 complet.
-
-### SQL neconfirmat — F2-T1 (courses.localized_labels)
-
-```sql
-ALTER TABLE courses
-  ADD COLUMN IF NOT EXISTS localized_labels jsonb DEFAULT NULL;
-```
-
-Rulat în Studio? Dacă da, confirmă în chat.
+F3-T1: `buildPrompt(layers)` + `buildTonePreamble`. Șterge arhetipurile Mentor/Coach/Buddy, `narrativeUniverse`, `learningPhilosophy`, `masterTimeline`. `DNAEditModal` → 3 câmpuri.
 
 ### F2-T4 — ce s-a făcut
 
@@ -69,7 +60,7 @@ Niciuna din cele de mai sus nu e parte din F2–F10 formal. Sunt fix-uri/feature
 |---|---|---|---|
 | M0 | F0 | Tag + status file + baseline „before" + fixture etalon | DONE (baseline SKIPPED prin decizie owner — vezi F0-T3) |
 | M1 | F1 | Cod mort șters (butoane editor, ProtagonistEnforcer, fixes/); build verde | DONE (2026-08-14 — deploy edge function verde, CI funcțional) |
-| M2 | F2 | Test puritate lingvistică verde (EN fără RO, RO fără EN) | TODO |
+| M2 | F2 | Test puritate lingvistică verde (EN fără RO, RO fără EN) | DONE (2026-08-14 — 8/8 teste verzi, SQL confirmat owner) |
 | M3 | F3 | Arhitectura de prompturi instalată: prompts/ + changelog + preambul de ton | TODO |
 | M4 | F4 | Contracte de modul valide pe etalon; **aprobate de owner** (poarta umană 1) | TODO |
 | M5 | F5 | Cele 5 livrabile randate din contract, validare deterministă verde | TODO |
@@ -309,7 +300,7 @@ Reprodus și pe HEAD-ul curat (înainte de modificările F0), deci defectul e pr
 | 2026-08-08 | S04 | F2-T2 IN_PROGRESS | Pornit F2 (următorul pas logic după reconciliere). Verificat rutare Golden/Legacy (§D-011): `EXERCISES_PROMPT`/`WORKBOOK_PROMPT`/`MANUAL_PROMPT`/`VIDEO_SCRIPT_PROMPT` sunt calea vie sub `contractPipeline: true`, nu cod mort. Corectat headerele/etichetele hardcodate în română din toate cele 4 (Manual era cel mai afectat); `SLIDES_PROMPT` era deja curat. Adăugată regulă explicită de traducere a etichetelor la fiecare prompt. Nu s-a putut rula typecheck local (fără Node/npm, D-005) — verificare făcută prin citire atentă + diff linie-cu-linie (55 inserții/55 ștergeri, fără backtick-uri noi, fără drift de linii). |
 | 2026-08-08 | S04 (continuare) | F2-T2 tot IN_PROGRESS | Scanare exhaustivă a fișierului pentru text hardcodat RO rămas. Corectat: `COST_ZERO_SLIDES_LABELS` (fallback greșit → RO pentru orice non-EN, inclusiv DE/FR/ES/IT; acum RO doar pentru RO), typo `STRUCTURĂ` în `getDepthSpecs`, headere hardcodate în `generateExamplesContent` și prompt-ul `discussion_guide`, și 5 fallback-uri de eroare/parsare (`buildFallbackModuleContext`, obiective, `handleChatOnboarding` ×2, workbook intro/outro) care ignorau `lang`/`course.language` deja disponibil în scope. Confirmat definitiv cod mort (§D-011 update): `renderToMarkdown` are 0 apelanți, `golden-master.ts` neimportat — subsistemul `GoldenModuleData` întreg + majoritatea `GOLDEN_SAMPLES` sunt candidați F10, nu bug-uri F2 active. Exclus intenționat din scope: mesajul `credit_limit_exceeded` (nivel aplicație, nu conținut curs). Rămas: inventarul complet F2-T1, F2-T3 (validare de limbă uniformă), F2-T4, F2-T5 (test puritate lingvistică). |
 | 2026-08-10–11 | S05 (ad-hoc, fără faze) | Fix-uri audit + features | 9 commit-uri nedocumentate (PRs #21-23 + fix-uri directe): per-modul iterare client-side (Exercises/Examples/Manual), token usage logging, fix resolveModuleId, i18n landing, UsageSection UI, TS fix, SUPABASE_SECRET_KEYS fallback, ACTION_OPERATION_COSTS corectat. Niciuna din F2–F10 formal. Typecheck verde la finalul sesiunii. |
-| 2026-08-14 | S06 | F2-T3 DONE · F2-T4 DONE · status actualizat | Pornit cu typecheck+test verde (Node 22 disponibil în mediu remote — nu mai e limitarea D-012). Documentate commit-urile S05 nedocumentate. F2-T3 implementat: `skipAiValidation` eliminat din toate call-site-urile (15 ocurențe), prag 400 chars pe conținut raw, `LANG_SIGNATURES` extins (+it/pt/nl/pl), `NON_LATIN_SCRIPTS` adăugat (26 limbi cu scripturi non-latine via regex Unicode). F2-T4: inventar complet prompturi — singurele probleme în MANUAL_PROMPT: "English/Romanian" → "English" + "# Modul:" hardcodat eliminat. Typecheck verde per commit. |
+| 2026-08-14 | S06 | F2 DONE COMPLET · M1+M2 DONE | Pornit cu typecheck+test verde (Node 22 în mediu remote). S05 documentat. F2-T3: `skipAiValidation` eliminat (15 ocurențe), `LANG_SIGNATURES` extins (+it/pt/nl/pl), `NON_LATIN_SCRIPTS` (26 limbi). F2-T4: MANUAL_PROMPT curățat. F2-T5: 8 teste puritate lingvistică verzi. F2-T1: `STATIC_LABELS` + `getLabel()` pentru 6 limbi, switch-uri binare `isRo` înlocuite, migrație SQL `courses.localized_labels` confirmată de owner. CI deploy reparat (billing Supabase rezolvat + token actualizat). M2 DONE. |
 
 ### D-012 — Local terminal lacks Node/npm; cannot execute local repro here
 **Notă de renumerotare (2026-08-08).** Acest discovery a fost scris inițial cu ID-ul `D-005`, care era deja folosit (vezi `D-005` mai jos, despre eșecul CI-ului de deploy Supabase — acela e cel referit din `CLAUDE.md § Convenții de lucru → CI`). Renumerotat aici la `D-012` ca să nu mai existe două intrări cu același ID. Dacă mai găsești referințe vechi la „D-005 = lipsă Node" în alte note, înlocuiește-le cu D-012.
