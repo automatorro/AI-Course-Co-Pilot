@@ -11,30 +11,34 @@ Convenții:
 
 ---
 
-## ▶ REIA DE AICI (scris 2026-08-14, sesiunea S06 — actualizat după F2-T4)
+## ▶ REIA DE AICI (scris 2026-08-17, sesiunea S07 — audit de status pe `main`)
 
-**Stare curentă:** F2-T3 DONE + F2-T4 DONE în această sesiune. Typecheck verde. Rămâne în F2: F2-T1, F2-T5. Verificarea Supabase (§B) încă în așteptarea confirmării owner-ului.
+**Stare curentă:** F2 e la T1 TODO · T2 IN_PROGRESS · T3 DONE · T4 DONE · T5 TODO. M2 rămâne TODO.
+Verificat pe cod în S07 (nu doar pe memorie): typecheck verde (0 erori), `npx vitest run` → 12/13
+verde, singurul eșec e `e2e_generation.test.ts` (D-003, pre-existent, ignorat conform `CLAUDE.md § 3`).
+Verificarea Supabase §B e **confirmată de owner** (2026-08-14) — tabelul §B e bifat, nu mai e coadă
+deschisă. **Noutatea majoră a lui S07: CI-ul s-a reparat și edge function-ul e deployat live — vezi D-014.**
 
-### Task următor: F2-T5 — Test puritate lingvistică
+### Blocantul #1 — smoke-ul F1-T4 (owner, ~15 min)
 
-De scris `src/tests/languagePurity.test.ts`. Pe etalonul EN: 0 apariții headere RO și 0 diacritice; pe RO: 0 headere EN. Node disponibil (Node 22), deci poate fi scris și rulat direct cu `npm run test`.
+Nu mai e blocat de deploy. `generate-course-content` rulează live exact codul de pe `main`
+(D-014), deci pasul 1 din §Smoke F1 e **făcut**; owner-ul începe direct de la pasul 2 (login →
+creează cursul-etalon RO → generează complet → cele 3 verificări). Când confirmi „F1 smoke OK",
+M1 devine DONE. Până atunci M1 rămâne ALMOST și F1-T4 rămâne BLOCKED — nu se bifează pe presupunere.
 
-### F2-T4 — ce s-a făcut
+### Task următor de cod: F2-T5 — Test puritate lingvistică
+
+De scris `src/tests/languagePurity.test.ts`. Pe etalonul EN: 0 apariții headere RO și 0 diacritice;
+pe RO: 0 headere EN. Node 22 e disponibil în mediul remote, deci se scrie și se rulează direct.
+**Atenție la comandă:** `npm test` e `vitest` în **watch mode** — blochează la infinit într-o
+sesiune neinteractivă. Rulează `npx vitest run` (vezi nota din §A).
+
+### F2-T4 — ce s-a făcut (S06)
 
 Inventar complet al prompturilor din `index.ts` pentru meta-instrucțiuni în română. Singurele probleme găsite au fost în MANUAL_PROMPT:
 - `English/Romanian here only` → `English here only` (regula A.1: meta-limbajul e EN, nu RO)
 - `# Modul: {{moduleTitle}}` → `Begin with the module title as a level-1 heading in {{language}}` (eliminat hardcoding RO în OUTPUT FORMAT)
 Toate celelalte prompturi (MODULE_CONTEXT_PROMPT, WORKBOOK_PROMPT, SLIDES_PROMPT, EXERCISES_PROMPT, VIDEO_SCRIPT_PROMPT, toate inline-urile) erau deja în EN. Codul mort (D-011: GOLDEN_SAMPLES) ignorat conform planului.
-
-### Verificare Supabase (§B) — CONFIRMATĂ 2026-08-14
-
-Owner a confirmat în chat că toate există:
-- ✅ `waitlist_leads` și `demo_sessions` — tabelele există
-- ✅ `course_steps.is_completed` și `course_steps.status` — coloanele există
-
-### F2-T5 — Test puritate lingvistică
-
-De scris `src/tests/languagePurity.test.ts`. Node disponibil în mediul remote (Node 22), deci poate fi scris și rulat direct.
 
 ---
 
@@ -59,7 +63,7 @@ Niciuna din cele de mai sus nu e parte din F2–F10 formal. Sunt fix-uri/feature
 | Bornă | Faza | Livrabil verificabil | Status |
 |---|---|---|---|
 | M0 | F0 | Tag + status file + baseline „before" + fixture etalon | DONE (baseline SKIPPED prin decizie owner — vezi F0-T3) |
-| M1 | F1 | Cod mort șters (butoane editor, ProtagonistEnforcer, fixes/); build verde | ALMOST (cod șters + typecheck verde; F1-T4 smoke live așteaptă owner-ul) |
+| M1 | F1 | Cod mort șters (butoane editor, ProtagonistEnforcer, fixes/); build verde | ALMOST (cod șters + typecheck verde + **deploy live confirmat**, D-014; rămâne DOAR smoke-ul manual F1-T4 la owner) |
 | M2 | F2 | Test puritate lingvistică verde (EN fără RO, RO fără EN) | TODO |
 | M3 | F3 | Arhitectura de prompturi instalată: prompts/ + changelog + preambul de ton | TODO |
 | M4 | F4 | Contracte de modul valide pe etalon; **aprobate de owner** (poarta umană 1) | TODO |
@@ -78,16 +82,26 @@ Niciuna din cele de mai sus nu e parte din F2–F10 formal. Sunt fix-uri/feature
 
 ## Verificări restante (owner — verifică la fiecare reluare, nu sări peste)
 
-Sesiunile de-aici (acest IDE) nu au Node/npm instalat (D-012) și **nu rulează niciodată** SQL pe Supabase (regulă nenegociabilă, `CLAUDE.md § 1`). Cele două liste de mai jos sunt cozile corespunzătoare. O intrare se bifează DOAR de owner, după verificare reală pe o mașină cu Node / cu acces la Supabase Studio — nu se șterge o intrare doar pentru că a trecut timp sau pentru că „probabil e ok".
+**Actualizat 2026-08-17 (S07).** Premisa inițială a acestei secțiuni („sesiunile de-aici nu au Node/npm",
+D-012) **nu mai e valabilă în mediul remote**: Node 22 + npm 10.9.7 sunt disponibile, typecheck și teste
+se rulează direct din sesiune. Coada §A e deci închisă (ambele intrări bifate). Ce rămâne permanent
+valabil: sesiunile **nu rulează niciodată** SQL pe Supabase (regulă nenegociabilă, `CLAUDE.md § 1`),
+deci coada §B se bifează DOAR de owner, după verificare reală în Supabase Studio — nu se șterge o
+intrare doar pentru că a trecut timp sau pentru că „probabil e ok". D-012 rămâne ca istoric: descrie
+un mediu local (IDE-ul de atunci) fără Node, nu mediul curent.
 
-### A. Cod scris fără typecheck/test local (fără Node/npm aici)
-De rulat pe laptopul personal (Node 18+):
+### A. Cod scris fără typecheck/test local — ÎNCHISĂ (ambele intrări verificate)
+Comenzile de verificare:
 ```
 cd CourseCopilot
-npm install
+npm ci                # sau npm install
 npm run typecheck
-npm test
+npx vitest run        # NU `npm test`
 ```
+**De ce `npx vitest run` și nu `npm test`:** scriptul `test` din `package.json` e `vitest` simplu, adică
+**watch mode** — într-o sesiune neinteractivă (CI, agent) nu se termină niciodată și pare că a înghețat.
+Constatat pe viu în S07. Dacă se adaugă vreodată un script `test:run`, se actualizează și aici.
+
 Dacă ceva pică, spune exact ce — nu presupune că a mers doar pentru că nimeni nu s-a plâns.
 
 | Verificat (data) | Commit-uri | Ce conțin |
@@ -100,10 +114,14 @@ Regula corectă (deja în `CLAUDE.md § 1`, respectată de aici înainte): Claud
 
 | Rulat manual? | Ce | Semnal |
 |---|---|---|
-| ☐ | `supabase/migrations/20260718_lead_capture.sql` — tabelele `waitlist_leads`, `demo_sessions` | Commit `683605c` (19 iul) a adăugat explicit un fallback în UI „pentru cazul în care tabela nu există încă" — deci la acea dată sigur nu era rulată. Nicio confirmare ulterioară găsită. |
-| ⚠️ de verificat direct în Supabase Studio | Coloanele `course_steps.is_completed` / `course_steps.status` (valoarea `'draft'`) | Feature-ul de draft/resume (`f3cb0f0`, 7 aug) le scrie prin upsert, dar **nu există nicio migrație** în `supabase/migrations/` care să le adauge pe `course_steps`. Fie există deja din schema de bază (creată direct în Studio, înainte de convenția de migrații), fie feature-ul eșuează silențios (are try/catch cu `console.warn`, deci nu vezi eroare vizibilă — doar lipsă de date). |
+| ☑ confirmat de owner 2026-08-14 | `supabase/migrations/20260718_lead_capture.sql` — tabelele `waitlist_leads`, `demo_sessions` | Owner a verificat în Supabase Studio: **ambele tabele există**. Semnalul inițial (commit `683605c`, 19 iul, adăugase un fallback în UI „pentru cazul în care tabela nu există încă") e depășit — migrația a fost rulată între timp. |
+| ☑ confirmat de owner 2026-08-14 | Coloanele `course_steps.is_completed` / `course_steps.status` (valoarea `'draft'`) | Owner a verificat în Supabase Studio: **ambele coloane există**. Confirmă ipoteza „există din schema de bază, creată direct în Studio înainte de convenția de migrații" — nu există migrație în repo care să le adauge, și nu e nevoie de una. Feature-ul de draft/resume (`f3cb0f0`) scrie deci în coloane reale, nu eșuează silențios. |
 
-**Cum verifici B rapid:** Supabase Studio → Table Editor → caută `waitlist_leads` și `demo_sessions` (există?); deschide `course_steps` → Columns → caută `is_completed` și `status`. Raportează ce găsești, ca să pot bifa/corecta lista.
+**Coada §B e goală la 2026-08-17.** Se redeschide la prima migrație nouă scrisă de aici: se adaugă un
+rând cu ☐, se postează SQL-ul complet în chat, se bifează doar după confirmarea scrisă a owner-ului
+(`CLAUDE.md § Reguli owner → 1`).
+
+**Cum verifici B rapid (procedura, pentru intrări viitoare):** Supabase Studio → Table Editor → caută tabela; pentru coloane, deschide tabela → Columns. Raportează ce găsești, ca să pot bifa/corecta lista.
 
 ---
 
@@ -120,8 +138,8 @@ Regula corectă (deja în `CLAUDE.md § 1`, respectată de aici înainte): Claud
 - **F1-T1** [DONE] Butoanele Generate/Rafinează din editor — ștergere completă (commit `ecac06b`)
 - **F1-T2** [DONE] `ProtagonistEnforcer` + folderul `fixes/` — șters integral (commit `bbab569`)
 - **F1-T3** [DONE] Conceptul de protagonist global — șters: `inferProtagonistFromAudience`, `getOrCreateStoryArc`, `story_arc`, blocul `narrative` din `ModuleContext`, toate placeholder-ele; P4 (personaje locale) în EXERCISES_PROMPT (commit `85b548b`)
-- **F1-T4** [BLOCKED(owner runs smoke)] Smoke test pe etalon RO după deploy edge function; instrucțiuni în §Smoke F1 mai jos
-- **DoD F1:** M1 parțial — typecheck ✔, 12/12 teste (D-003), grep `ProtagonistEnforcer|refineCourseContent|editorRefineButton|inferProtagonistFromAudience|getOrCreateStoryArc|story_arc` în src/+supabase/ → 0 ✔. Rămâne smoke-ul live la owner.
+- **F1-T4** [BLOCKED(owner runs smoke)] Smoke test pe etalon RO. **Deploy-ul e făcut** (D-014, 15 aug) — owner-ul începe direct de la pasul 2 din §Smoke F1 mai jos
+- **DoD F1:** M1 parțial — typecheck ✔, 12/12 teste (D-003), deploy live ✔ (D-014). Grep `ProtagonistEnforcer|refineCourseContent|editorRefineButton|inferProtagonistFromAudience|getOrCreateStoryArc|story_arc` în src/+supabase/ → **2 rezultate, ambele acceptabile** (verificat 2026-08-17; formularea „→ 0" de dinainte era inexactă): ambele sunt în `supabase/migrations/20240128000001_add_story_arc_to_courses.sql`, migrația istorică ce a adăugat coloana `courses.story_arc`. Migrațiile deja rulate nu se rescriu — sunt istoric, nu cod viu. În `src/` și în `supabase/functions/` grep-ul dă efectiv 0. **Consecință de reținut:** coloana `courses.story_arc` probabil încă există în DB deși conceptul a fost șters din cod → intră în „migrația de curățare" din F10-T4. Rămâne smoke-ul live la owner.
 
 ### F2 — Fundația de localizare (2 zile) · Risc: mediu
 - **F2-T1** [TODO] `localizedLabels`: inventar complet + promptul A.4.1 + migrație `courses.localized_labels jsonb` + fallback EN static + generare la crearea cursului. Notă 2026-08-08: există deja un mecanism separat, paralel — `GoldenModuleData.localizedLabels` (schema `types.ts`, generat de `GOLDEN_MASTER_PROMPT`) — AI-generat per apel, fără migrație/fallback static. F2-T1, când se face, trebuie să decidă dacă înlocuiește sau se construiește peste acest mecanism existent, nu să-l ignore.
@@ -132,7 +150,7 @@ Regula corectă (deja în `CLAUDE.md § 1`, respectată de aici înainte): Claud
   - `generateExamplesContent`, prompt-ul `discussion_guide`: headere hardcodate RO în prompturi altfel în engleză.
   - `buildFallbackModuleContext`, fallback-ul final din generarea obiectivelor, fallback-urile de eroare din `handleChatOnboarding` (analiză + blueprint), `generateWorkbookIntro`/`generateWorkbookOutro`: toate aveau text hardcodat RO în ramuri de fallback/eroare, folosit indiferent de `course.language`/`lang` — deși variabila de limbă era deja disponibilă în scope. Corectate cu ramificare pe limbă (RO explicit, altfel EN).
   - **Verificat și exclus din scope** (documentat, neatins): `GOLDEN_SAMPLES.structure_online`/`exercises_live` și întregul subsistem `GoldenModuleData`/`GOLDEN_MASTER_PROMPT`/`renderToMarkdown`/`renderWorkbookSection` etc. — cod mort confirmat, zero apelanți (`renderToMarkdown` nu e apelat de nicăieri; `prompts/golden-master.ts` nu e importat în `index.ts`) — vezi D-011. Mesajul de „credit_limit_exceeded" (linia ~2954) rămâne hardcodat RO — e nivel de aplicație/utilizator, nu conținut de curs, deci în afara scope-ului F2 (candidat pentru o localizare separată a UI-ului de eroare, nu a materialelor generate).
-  - Nu s-a putut rula typecheck local (fără Node/npm, D-005) — verificare manuală, diff simetric, backtick-uri verificate pereche cu pereche.
+  - Nu s-a putut rula typecheck local (fără Node/npm, D-012) — verificare manuală, diff simetric, backtick-uri verificate pereche cu pereche. (Rulat ulterior: typecheck verde, vezi D-013.)
   - Rămas TODO: prompturile globale rămase (structure/blueprint în afara celor verificate), inventarul complet cerut de F2-T1 pentru migrația spre `{{label_*}}`.
 - **F2-T3** [DONE 2026-08-14] Validare de limbă uniformă: `skipAiValidation` eliminat complet (parametru șters din `callLLM`, `retryWithStrictInstructions` și toate cele 5 funcții generatoare — `generateWorkbookContent`, `generateManualContent`, `generateExercisesContent`, `generateVideoScriptContent`, `generateExamplesContent`); detectorul rulează acum pe orice output ≥400 chars (prag pe conținut raw, nu pe sample); `LANG_SIGNATURES` extins cu `it`, `pt`, `nl`, `pl`; adăugat `NON_LATIN_SCRIPTS` (regex Unicode) pentru 26 limbi cu scripturi non-latine (ar, he, ru, uk, bg, sr, zh, zh-TW, ja, ko, el, hi, bn, th, ka, am, km, lo, my, si, ta, te, kn, ml, gu, pa) — detecție fiabilă fără n-gram counting. Maximum 1 retry deja implementat (neschimbat). Typecheck verde.
 - **F2-T4** [DONE 2026-08-14] Meta-instrucțiuni EN, conținut verbatim (regula A.1) — MANUAL_PROMPT: eliminat "Romanian" din CRITICAL RULES + eliminat "# Modul:" hardcodat din OUTPUT FORMAT
@@ -204,12 +222,13 @@ Regula corectă (deja în `CLAUDE.md § 1`, respectată de aici înainte): Claud
 
 ## Smoke F1 (instrucțiuni owner pentru F1-T4)
 
-Ștergerile F1 ating edge function-ul `generate-course-content`. Ele sunt pe branch, dar nu pe Supabase live decât după deploy. Aplicația live rulează încă versiunea veche (cu ProtagonistEnforcer + protagonist global) până când:
+Ștergerile F1 ating edge function-ul `generate-course-content`, deci contau doar după un deploy reușit.
 
-1. **Deploy edge function.** Fie repari CI-ul din `deploy-supabase-functions.yml` (secret expirat — vezi D-005), fie faci deploy manual din clona ta locală:
-   ```
-   npx supabase functions deploy generate-course-content --project-ref <PROJECT_REF>
-   ```
+1. ~~**Deploy edge function.**~~ **FĂCUT — 2026-08-15 10:56 UTC** (vezi D-014). CI-ul a fost reparat și
+   run-ul #26 a deployat `generate-course-content` de pe commit-ul `9765afd`. Între `9765afd` și HEAD-ul
+   lui `main` nu s-a mai schimbat niciun fișier sub `supabase/functions/`, deci **live rulează exact
+   codul de pe `main`**: fără ProtagonistEnforcer, fără protagonist global, cu F2-T2/T3/T4 incluse.
+   Nu mai e nevoie de deploy manual. Începe direct de la pasul 2.
 2. **Loghează-te în UI, creează cursul-etalon** cu parametrii din `src/tests/fixtures/etalonCourse.ts` (RO). Tonul rămâne un preset (Mentor/Coach/Buddy) — asta nu se schimbă până la F3-T1.
 3. **Generează complet.** Toate step-urile din STEPS_ORDER (17).
 4. **Verifică rapid:**
@@ -219,13 +238,47 @@ Regula corectă (deja în `CLAUDE.md § 1`, respectată de aici înainte): Claud
 5. **Dacă smoke-ul trece:** îmi zici „F1 smoke OK", marchez M1 DONE, pornim F2 în sesiunea următoare.
 6. **Dacă apare regresie:** îmi zici ce vezi (paste cu output-ul problematic); rollback la commit-ul `pre-refactor-2026-07` e trivial (`git revert 85b548b bbab569 ecac06b` sau, extrem, `git reset pre-refactor-2026-07`).
 
-Notă: CI-ul `Deploy Supabase Functions` va încerca automat deploy-ul la primul push care atinge `supabase/functions/**` — F1-T3 e prima modificare de acest fel. Dacă failure-ul din 6 iulie (D-005) se repetă, e semnalul că trebuie reparat token-ul de acces înainte de F2.
+Notă (istorică, rezolvată): CI-ul `Deploy Supabase Functions` eșua consecvent din 19 iunie până pe 11 august, ceea ce a ținut aceste ștergeri nedeployate ~4 săptămâni. Reparat de owner pe 15 august — detalii și dovezi în D-014.
 
 ---
 
 ## Descoperiri
 
 Notează aici orice descoperire sau nelămurire care apare în timpul execuției, cu propunere. Owner-ul decide.
+
+### D-014 — CI-ul de deploy s-a reparat pe 15 aug; edge function-ul E live cu codul de pe `main`
+**Context.** Toate notele anterioare din acest fișier și din `CLAUDE.md § Convenții de lucru → CI`
+presupun că workflow-ul `Deploy Supabase Functions` e roșu („eșuează consecutiv din 6 iulie, cauza
+rădăcină e la owner — secrete Supabase") și că, prin urmare, aplicația live rulează încă versiunea
+veche a edge function-ului. **Presupunerea nu mai e adevărată.** Verificat pe 2026-08-17 prin API-ul
+GitHub Actions, pe toate cele 26 de run-uri ale workflow-ului:
+
+- Run-urile **#1 → #24** (19 iunie → 11 august) — toate `failure`, attempt 1. Confirmă seria lungă de eșecuri.
+- Run **#25** (`65ff9ce`) — `success`, dar la **attempt 3**, pornit pe **15 august**.
+- Run **#26** (`9765afd`, merge PR #24 = F2-T3 + F2-T4) — `success` la **attempt 5**, pornit
+  **15 august 10:55 UTC**, terminat 10:56. Step-ul „Deploy Edge Functions" a rulat efectiv 18 secunde
+  și a ieșit `success` — nu a fost sărit.
+
+Interpretare: owner-ul a reparat secretele (`SUPABASE_ACCESS_TOKEN` / `SUPABASE_PROJECT_ID`) pe 15
+august și a re-rulat manual ultimele două run-uri eșuate. Nu există nicio urmă a acestei reparații în
+repo — de aceea a fost invizibilă până acum.
+
+**Consecința importantă.** `git diff 9765afd..52feda2` (HEAD-ul lui `main`) atinge **un singur fișier,
+`IMPLEMENTATION_STATUS.md`** — zero fișiere sub `supabase/functions/`. Deci funcția deployată e
+**identică** cu codul de pe `main`: fără `ProtagonistEnforcer`, fără protagonist global (F1-T1…T3), cu
+sterilizarea de limbă F2-T2, cu validarea uniformă F2-T3 și meta-instrucțiunile EN din F2-T4. Cele trei
+funcții (`generate-course-content`, `analyze-slide`, `unsplash-search`) se deployează toate în același job.
+
+**Impact pe borne.** Pasul 1 din §Smoke F1 („Deploy edge function") e îndeplinit; F1-T4 nu mai e blocat
+de infrastructură, ci doar de rularea manuală a smoke-ului de către owner. M1 rămâne ALMOST până la
+confirmarea scrisă „F1 smoke OK" — **nu se bifează pe baza deploy-ului**, pentru că DoD-ul F1 cere
+verificarea comportamentală (personaje distincte per exercițiu, zero cuvinte sparte de tip `[a-zăîâșț]Alex`),
+nu doar prezența codului pe server.
+
+**Efect secundar de reținut.** Ștergerile F1 au stat nedeployate ~4 săptămâni (18 iulie → 15 august) fără
+ca cineva să observe, pentru că nimic nu semnala starea CI-ului în fluxul de lucru. Recomandare pentru
+owner: la fiecare sesiune care atinge `supabase/functions/**`, se verifică explicit concluzia ultimului
+run înainte de a declara task-ul închis. Nu propun automatizare acum — e în afara scope-ului F2.
 
 ### D-001 — Poziția tag-ului `pre-refactor-2026-07` și branch-ul `phase-0-safety`
 **Context.** Planul cere „tag pe main". Ramura `main` de la origin e semnificativ în urma branch-ului de lucru `claude/courscopilot-refactor-major-e45nfa` — audit-ul (`docs/AUDIT-CourseCopilot-2026-07-18.md`), planul v2.0 (`docs/CURATENIE-SI-MODERNIZARE-CourseCopilot.md`) și toată recuperarea de landing/design tokens au intrat doar pe branch-ul de lucru. Pe `main` nu există punct de referință valid pentru refactor: baza actuală de cod (cu audit + plan) e HEAD-ul branch-ului de lucru.
@@ -260,7 +313,7 @@ Notează aici orice descoperire sau nelămurire care apare în timpul execuției
 - `79fd1dc`, `21ad1f1` (1 aug) — extinde flag-ul în `DNAEditModal`; adaugă `agenda_table`, `discussion_guide`, `action_plan`, `diagnostic_questionnaire` în `GLOBAL_STEPS`.
 - `c98a59b` (1 aug) — **activează `contractPipeline: true`** (implicit ON de atunci).
 - `12bad7a` (5 aug) — hardening erori upsert/insert `course_steps`.
-- `f3cb0f0`, `c519463`, `a5e7e0e` (7 aug, azi) — funcție nouă de **salvare draft + reluare server-side a generării** în `GenerationProgressModal.tsx`. `a5e7e0e` adaugă și §D-005 (sesiunea respectivă nu a putut rula `typecheck`/`test` local — fără Node/npm în mediul acela).
+- `f3cb0f0`, `c519463`, `a5e7e0e` (7 aug, azi) — funcție nouă de **salvare draft + reluare server-side a generării** în `GenerationProgressModal.tsx`. `a5e7e0e` adaugă și descoperirea „fără Node/npm local", scrisă atunci ca §D-005 și renumerotată ulterior la **D-012** (vezi nota de renumerotare de acolo).
 
 **Decizie (owner, 2026-08-07).** Se documentează aici ca reper istoric; nu se modifică cod în cadrul reconcilierii de azi. Acest fir rămâne de reconciliat explicit cu planul quando se ajunge la F3/F4 — la momentul respectiv trebuie decis dacă flag-ul `contractPipeline` existent se înlocuiește cu arhitectura `ModuleContract` din plan sau se construiește pe el. Până atunci, `contractPipeline: true` e activ în producție și afectează comportamentul real al aplicației, deși F4 (unde ar trebui introdus formal) e încă `TODO`.
 
@@ -296,13 +349,16 @@ Reprodus și pe HEAD-ul curat (înainte de modificările F0), deci defectul e pr
 | 2026-07-18 | S02 | F0-T3 SKIPPED (owner decision) · M0 DONE · F1 pornit | CLAUDE.md adăugat (regula: owner deploy SQL). Baseline abandonat cu motiv (rubrică absolută + UI fără câmp ton verbatim). F1 începe în această sesiune. |
 | 2026-07-18 | S02 | F1-T1 · F1-T2 · F1-T3 DONE · F1-T4 BLOCKED(owner smoke live) | Editor Generate/Refine + ProtagonistEnforcer + fixes/ + protagonist global toate șterse (commits ecac06b, bbab569, 85b548b). ~1.000 linii cod mort eliminate. Placeholder-ele `{{protagonist*}}`/`{{storyStage}}` sterilizate din toate prompturile. Regula P4 (personaje locale) intră în EXERCISES_PROMPT. Typecheck verde; teste 12/12 (D-003 pre-existent). Așteaptă deploy edge function + smoke owner. |
 | 2026-08-07 | S03 | Reconciliere `main` ↔ branch de refactor | Cherry-pick `7b6f8c3` (fix onboarding: label mediu localizat + cursă de randare) și `81add01` (protocol D-007 în CLAUDE.md) pe `main`. F1-T5 (elimină CourseDNA) NU adus — verificat că DNA nu e mort, decizie owner: rămâne, simplificare mutată la F3-T1 (§D-008). Documentat firul ad-hoc `contractPipeline`/draft-resume din 31 iul–7 aug, nereflectat până acum în borne (§D-009). F1-T4 rămâne BLOCKED — nicio confirmare de smoke test primită încă. F2 nu a început. |
-| 2026-08-08 | S04 | F2-T2 IN_PROGRESS | Pornit F2 (următorul pas logic după reconciliere). Verificat rutare Golden/Legacy (§D-011): `EXERCISES_PROMPT`/`WORKBOOK_PROMPT`/`MANUAL_PROMPT`/`VIDEO_SCRIPT_PROMPT` sunt calea vie sub `contractPipeline: true`, nu cod mort. Corectat headerele/etichetele hardcodate în română din toate cele 4 (Manual era cel mai afectat); `SLIDES_PROMPT` era deja curat. Adăugată regulă explicită de traducere a etichetelor la fiecare prompt. Nu s-a putut rula typecheck local (fără Node/npm, D-005) — verificare făcută prin citire atentă + diff linie-cu-linie (55 inserții/55 ștergeri, fără backtick-uri noi, fără drift de linii). |
+| 2026-08-08 | S04 | F2-T2 IN_PROGRESS | Pornit F2 (următorul pas logic după reconciliere). Verificat rutare Golden/Legacy (§D-011): `EXERCISES_PROMPT`/`WORKBOOK_PROMPT`/`MANUAL_PROMPT`/`VIDEO_SCRIPT_PROMPT` sunt calea vie sub `contractPipeline: true`, nu cod mort. Corectat headerele/etichetele hardcodate în română din toate cele 4 (Manual era cel mai afectat); `SLIDES_PROMPT` era deja curat. Adăugată regulă explicită de traducere a etichetelor la fiecare prompt. Nu s-a putut rula typecheck local (fără Node/npm, D-012) — verificare făcută prin citire atentă + diff linie-cu-linie (55 inserții/55 ștergeri, fără backtick-uri noi, fără drift de linii). |
 | 2026-08-08 | S04 (continuare) | F2-T2 tot IN_PROGRESS | Scanare exhaustivă a fișierului pentru text hardcodat RO rămas. Corectat: `COST_ZERO_SLIDES_LABELS` (fallback greșit → RO pentru orice non-EN, inclusiv DE/FR/ES/IT; acum RO doar pentru RO), typo `STRUCTURĂ` în `getDepthSpecs`, headere hardcodate în `generateExamplesContent` și prompt-ul `discussion_guide`, și 5 fallback-uri de eroare/parsare (`buildFallbackModuleContext`, obiective, `handleChatOnboarding` ×2, workbook intro/outro) care ignorau `lang`/`course.language` deja disponibil în scope. Confirmat definitiv cod mort (§D-011 update): `renderToMarkdown` are 0 apelanți, `golden-master.ts` neimportat — subsistemul `GoldenModuleData` întreg + majoritatea `GOLDEN_SAMPLES` sunt candidați F10, nu bug-uri F2 active. Exclus intenționat din scope: mesajul `credit_limit_exceeded` (nivel aplicație, nu conținut curs). Rămas: inventarul complet F2-T1, F2-T3 (validare de limbă uniformă), F2-T4, F2-T5 (test puritate lingvistică). |
 | 2026-08-10–11 | S05 (ad-hoc, fără faze) | Fix-uri audit + features | 9 commit-uri nedocumentate (PRs #21-23 + fix-uri directe): per-modul iterare client-side (Exercises/Examples/Manual), token usage logging, fix resolveModuleId, i18n landing, UsageSection UI, TS fix, SUPABASE_SECRET_KEYS fallback, ACTION_OPERATION_COSTS corectat. Niciuna din F2–F10 formal. Typecheck verde la finalul sesiunii. |
+| 2026-08-17 | S07 | Audit de status pe `main` (fără cod de producție atins) | Sincronizat folderul local cu `main` (era deja identic; `main` local adus la zi `b84715f`→`52feda2`, ref stale `origin/claude/sync-local-folder-main-gtsn0h` curățat). Verificat statusul punct cu punct față de cod: F2-T3/T4 confirmate în cod, F2-T5 confirmat inexistent, fix-urile D-013 confirmate prezente, typecheck verde, `npx vitest run` 12/13 (D-003 singurul eșec). **Descoperit D-014: CI-ul e verde din 15 aug și edge function-ul e deployat live cu codul de pe `main`** — invalidează notele „CI roșu / live rulează versiunea veche" din tot fișierul. Corectate 7 discrepanțe de documentație: §B bifat (contrazicea §REIA), premisa „fără Node/npm" din §Verificări restante, secțiunea F2-T5 duplicată, referințele moarte la D-005 (→ D-012 / D-014), afirmația „grep → 0" din DoD F1 (real: 2 hit-uri într-o migrație istorică), capcana `npm test` = watch mode. **F1-T4 rămâne BLOCKED** — smoke-ul cere login în UI-ul live și consumă credite AI pe producție, deci îl rulează owner-ul; M1 nebifat intenționat. |
 | 2026-08-14 | S06 | F2-T3 DONE · F2-T4 DONE · status actualizat | Pornit cu typecheck+test verde (Node 22 disponibil în mediu remote — nu mai e limitarea D-012). Documentate commit-urile S05 nedocumentate. F2-T3 implementat: `skipAiValidation` eliminat din toate call-site-urile (15 ocurențe), prag 400 chars pe conținut raw, `LANG_SIGNATURES` extins (+it/pt/nl/pl), `NON_LATIN_SCRIPTS` adăugat (26 limbi cu scripturi non-latine via regex Unicode). F2-T4: inventar complet prompturi — singurele probleme în MANUAL_PROMPT: "English/Romanian" → "English" + "# Modul:" hardcodat eliminat. Typecheck verde per commit. |
 
 ### D-012 — Local terminal lacks Node/npm; cannot execute local repro here
-**Notă de renumerotare (2026-08-08).** Acest discovery a fost scris inițial cu ID-ul `D-005`, care era deja folosit (vezi `D-005` mai jos, despre eșecul CI-ului de deploy Supabase — acela e cel referit din `CLAUDE.md § Convenții de lucru → CI`). Renumerotat aici la `D-012` ca să nu mai existe două intrări cu același ID. Dacă mai găsești referințe vechi la „D-005 = lipsă Node" în alte note, înlocuiește-le cu D-012.
+**Notă de renumerotare (2026-08-08, corectată 2026-08-17).** Acest discovery a fost scris inițial cu ID-ul `D-005`, care era deja folosit informal pentru „CI-ul de deploy Supabase eșuează" — cel referit din `CLAUDE.md § Convenții de lucru → CI`. Renumerotat aici la `D-012`. **Corecție S07:** o intrare `### D-005` nu a existat niciodată în acest fișier (ID-urile prezente sunt D-001…D-004, D-007…D-009, D-011…D-014; lipsesc D-005, D-006, D-010), deci trimiterea de mai sus la „`D-005` mai jos" era o referință moartă. Toate referințele la „D-005 = lipsă Node" au fost înlocuite cu D-012, iar cele la „D-005 = CI roșu" cu **D-014**, care documentează subiectul cap-coadă, inclusiv rezolvarea. ID-urile sărite rămân sărite — nu se reciclează.
+
+**Stare 2026-08-17:** depășit pentru mediul remote (Node 22 + npm 10.9.7 disponibile; typecheck și teste rulate direct din sesiune). Rămâne valabil ca istoric pentru IDE-ul local de atunci.
 
 **Context.** The current terminal environment does not expose `node`, `npm`, `npx`, `yarn`, or `pnpm`, so this session cannot run the local JavaScript repro or execute `npm run typecheck` from the workspace.
 
