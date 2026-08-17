@@ -164,10 +164,15 @@ efectiv fluxurile. Regula de mai jos e ca să nu bulverseze planul de 11 faze.
   spun altceva. Tag-ul de siguranță `pre-refactor-2026-07` e pe origin la
   commit-ul `6b5bc9a`.
 - **CI.** Un singur workflow în `.github/workflows/deploy-supabase-functions.yml`,
-  triggered pe `paths: supabase/functions/**`. Eșuează consecutiv din 6 iulie
-  2026 (D-005) — cauza rădăcină e la owner (secrete Supabase). Se re-declanșează
-  la F1-T2 (prima modificare sub `supabase/functions/**`); dacă eșuează din
-  aceeași cauză, semnalezi, nu te apuci să repari secretele.
+  triggered pe `paths: supabase/functions/**`; deployează toate cele trei edge
+  functions. **A eșuat consecutiv din 19 iunie până pe 11 august 2026; reparat de
+  owner pe 15 august** (secrete Supabase) — ultimele două run-uri au fost re-rulate
+  manual și au ieșit verzi. Detalii și dovezi în `IMPLEMENTATION_STATUS.md § D-014`
+  (referințele mai vechi la „D-005" pentru CI trimit tot acolo). Regula rămâne:
+  dacă un run eșuează, **semnalezi owner-ului, nu te apuci să repari secretele**.
+  După orice push care atinge `supabase/functions/**`, verifică explicit concluzia
+  run-ului înainte de a declara task-ul închis — între 18 iulie și 15 august,
+  ștergerile F1 au stat nedeployate patru săptămâni fără ca nimeni să observe.
 - **Fișierele fixture** (`src/tests/fixtures/*.ts`) sunt TypeScript pentru
   vitest, nu edge functions. Nu au impact asupra Supabase.
 - **La compactare automată (context aproape plin):** păstrează întotdeauna
