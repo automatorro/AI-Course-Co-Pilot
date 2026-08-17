@@ -11,11 +11,13 @@ Convenții:
 
 ---
 
-## ▶ REIA DE AICI (scris 2026-08-17, sesiunea S07 — audit de status pe `main`)
+## ▶ REIA DE AICI (scris 2026-08-17, sesiunea S07 — audit de status + F2-T5)
 
-**Stare curentă:** F2 e la T1 TODO · T2 IN_PROGRESS · T3 DONE · T4 DONE · T5 TODO. M2 rămâne TODO.
-Verificat pe cod în S07 (nu doar pe memorie): typecheck verde (0 erori), `npx vitest run` → 12/13
-verde, singurul eșec e `e2e_generation.test.ts` (D-003, pre-existent, ignorat conform `CLAUDE.md § 3`).
+**Stare curentă:** F2 e la T1 TODO · T2 IN_PROGRESS · T3 DONE · T4 DONE · **T5 DONE**.
+M2 rămâne **TODO** — testul de puritate e verde, dar DoD-ul F2 mai cere F2-T1 (inventarul
+`localizedLabels`) și închiderea lui F2-T2. Verificat pe cod în S07 (nu pe memorie): typecheck verde
+(0 erori), `npx vitest run` → **31/32 verde**, singurul eșec e `e2e_generation.test.ts` (D-003,
+pre-existent, ignorat conform `CLAUDE.md § 3`).
 Verificarea Supabase §B e **confirmată de owner** (2026-08-14) — tabelul §B e bifat, nu mai e coadă
 deschisă. **Noutatea majoră a lui S07: CI-ul s-a reparat și edge function-ul e deployat live — vezi D-014.**
 
@@ -26,12 +28,33 @@ Nu mai e blocat de deploy. `generate-course-content` rulează live exact codul d
 creează cursul-etalon RO → generează complet → cele 3 verificări). Când confirmi „F1 smoke OK",
 M1 devine DONE. Până atunci M1 rămâne ALMOST și F1-T4 rămâne BLOCKED — nu se bifează pe presupunere.
 
-### Task următor de cod: F2-T5 — Test puritate lingvistică
+### Task următor de cod: F2-T1 (sau închiderea lui F2-T2)
 
-De scris `src/tests/languagePurity.test.ts`. Pe etalonul EN: 0 apariții headere RO și 0 diacritice;
-pe RO: 0 headere EN. Node 22 e disponibil în mediul remote, deci se scrie și se rulează direct.
+Ambele sunt ce mai lipsește din M2. F2-T1 e cel mare: inventarul complet `localizedLabels` +
+promptul A.4.1 + migrația `courses.localized_labels jsonb` + fallback EN static. **Atenție:** cere
+o migrație SQL → se scrie fișierul, se postează SQL-ul complet în chat, se așteaptă owner-ul
+(`CLAUDE.md § Reguli owner → 1`), și se decide întâi raportul cu mecanismul paralel existent
+`GoldenModuleData.localizedLabels` (vezi nota din F2-T1).
+
 **Atenție la comandă:** `npm test` e `vitest` în **watch mode** — blochează la infinit într-o
 sesiune neinteractivă. Rulează `npx vitest run` (vezi nota din §A).
+
+### F2-T5 — ce s-a făcut (DONE 2026-08-17)
+
+Două fișiere noi, zero modificări în codul de producție:
+- `src/lib/languagePurity.ts` — detector determinist (`findLanguageLeaks(text, language)`), fără AI.
+  Pus în `lib/`, nu în test, pentru că **F4-T4 cere exact această validare pe output real** — acolo se
+  refolosește ca atare. Granițele de cuvânt sunt Unicode (`\p{L}`), nu `\b`: `\b` din JS e ASCII-only
+  și nu ar găsi niciodată markerii care se termină în diacritice („Etapă", „Durată").
+- `src/tests/languagePurity.test.ts` — 19 teste, trei straturi: (1) detectorul în sine, (2) cursul-etalon
+  din fixture, (3) **regresia pe cele 6 prompturi sterilizate în F2-T2/F2-T4**, citite din sursa edge
+  function-ului prin `?raw` (import direct nu merge — e cod Deno, ar reproduce exact eșecul D-003).
+
+**Verificat că testul poate deveni roșu**, nu doar că e verde: injectat temporar `## Durată estimată:`
+și `# Modul:` în `MANUAL_PROMPT` → 2 teste pică, cu linia și extrasul în mesaj; revert curat.
+
+**Ce NU acoperă:** o generare reală prin LLM (cere chei API + Supabase). Aceea rămâne la F4-T7/F6 —
+de-aia detectorul e exportat, nu îngropat în test.
 
 ### F2-T4 — ce s-a făcut (S06)
 
@@ -154,7 +177,7 @@ rând cu ☐, se postează SQL-ul complet în chat, se bifează doar după confi
   - Rămas TODO: prompturile globale rămase (structure/blueprint în afara celor verificate), inventarul complet cerut de F2-T1 pentru migrația spre `{{label_*}}`.
 - **F2-T3** [DONE 2026-08-14] Validare de limbă uniformă: `skipAiValidation` eliminat complet (parametru șters din `callLLM`, `retryWithStrictInstructions` și toate cele 5 funcții generatoare — `generateWorkbookContent`, `generateManualContent`, `generateExercisesContent`, `generateVideoScriptContent`, `generateExamplesContent`); detectorul rulează acum pe orice output ≥400 chars (prag pe conținut raw, nu pe sample); `LANG_SIGNATURES` extins cu `it`, `pt`, `nl`, `pl`; adăugat `NON_LATIN_SCRIPTS` (regex Unicode) pentru 26 limbi cu scripturi non-latine (ar, he, ru, uk, bg, sr, zh, zh-TW, ja, ko, el, hi, bn, th, ka, am, km, lo, my, si, ta, te, kn, ml, gu, pa) — detecție fiabilă fără n-gram counting. Maximum 1 retry deja implementat (neschimbat). Typecheck verde.
 - **F2-T4** [DONE 2026-08-14] Meta-instrucțiuni EN, conținut verbatim (regula A.1) — MANUAL_PROMPT: eliminat "Romanian" din CRITICAL RULES + eliminat "# Modul:" hardcodat din OUTPUT FORMAT
-- **F2-T5** [TODO] `src/tests/languagePurity.test.ts`: pe etalonul EN → 0 apariții headere RO și 0 diacritice; pe RO → 0 headere EN
+- **F2-T5** [DONE 2026-08-17] `src/tests/languagePurity.test.ts` (19 teste) + `src/lib/languagePurity.ts` (detectorul, exportat pentru refolosire la F4-T4). Pe etalonul EN → 0 headere RO și 0 diacritice; pe RO → 0 headere EN; plus regresie pe cele 6 prompturi sterilizate în F2-T2/F2-T4 (citite prin `?raw`, nu importate — index.ts e cod Deno). Trei markeri din fixture excluși ca ambigui, cu motiv verificat pe corpus — vezi D-015. Testul a fost validat prin mutație (injectat un header RO → pică; revert → verde).
 - **DoD F2:** M2 — testul verde pe EN și RO; inspecție manuală fără amestec
 
 ### F3 — Instalarea arhitecturii de prompturi + contractul de modul (3 zile) · Risc: mare, izolat
@@ -245,6 +268,40 @@ Notă (istorică, rezolvată): CI-ul `Deploy Supabase Functions` eșua consecven
 ## Descoperiri
 
 Notează aici orice descoperire sau nelămurire care apare în timpul execuției, cu propunere. Owner-ul decide.
+
+### D-015 — Trei markeri din fixture-ul de puritate sunt inutilizabili; materialul-etalon RO conține el însuși etichete englezești
+**Context.** Fixture-ul F0-T4 (`src/tests/fixtures/etalonCourse.ts`) definește `roHeaderMarkers`
+(8 markeri) și `enHeaderMarkers` (8 markeri) pentru F2-T5. La implementarea testului, trei dintre ei
+s-au dovedit că produc fals-pozitive garantate, verificat prin numărare pe `docs/golden-references/`:
+
+| Marker | Listă | Apariții în etalonul RO | De ce e inutilizabil |
+|---|---|---|---|
+| `Debrief` | RO (detectează RO în EN) | 25 | Cuvânt englezesc uzual în facilitare („PASUL 2: Debrief"). Ar semnala orice material EN **corect** ca fiind contaminat cu română. |
+| `Facilitator` | EN (detectează EN în RO) | 12 | Cuvânt românesc identic cu cel englezesc („Instrucțiuni pentru Facilitator"). Ar semnala orice material RO **corect**. |
+| `Story` | EN (detectează EN în RO) | 12 | Folosit ca etichetă de structură chiar în etalonul RO. |
+
+**Decizie luată (reversibilă, în plafonul F2-T5).** Detectorul din `src/lib/languagePurity.ts` îi
+exclude, cu motivul scris în constanta `AMBIGUOUS_MARKERS`, iar un test dedicat verifică permanent că
+diferența față de fixture e exact aceasta — deci nu se poate strecura drift tăcut. **Fixture-ul NU a
+fost modificat**: are avertismentul „NU modifica valorile fără actualizare paralelă în plan §3 și în
+`docs/baseline/README.md`", iar decizia de a-l tăia e a owner-ului. Notă colaterală: perechea
+`Povestea`↔`Story` devine asimetrică (RO-ul rămâne detectabil, EN-ul nu) — asumat, `Povestea` nu are
+ambiguitate.
+
+**Descoperirea de fond, mai importantă decât markerii.** Materialul din `docs/golden-references/` —
+etalonul de calitate pentru nota 5 din rubrică — **amestecă el însuși limbile**: folosește etichete
+structurale englezești („(Story) Imaginează-ți că ești un bucătar-șef…", „PASUL 2: Debrief", „Hook")
+în interiorul unui conținut integral românesc. Consecințe:
+1. Golden references **nu pot fi folosite ca și corpus de test** pentru puritate — ar pica pe material
+   pe care owner-ul îl consideră etalon. De aceea F2-T5 testează fixture-ul + prompturile, nu ele.
+2. Rămâne o întrebare deschisă pentru **F6 (rubrica)**: e amestecul ăsta acceptabil stilistic (jargon
+   de traineri) sau e exact defectul pe care F2 vrea să-l elimine? Dacă e acceptabil, regula A.1 are
+   nevoie de o listă albă de etichete-jargon; dacă nu, golden references trebuie curățate înainte să
+   fie folosite ca referință de calitate.
+
+**Recomandare.** Decizia 2 se ia la **M6**, nu acum — nu blochează DoD-ul F2 (testul e verde fără ele).
+Nu am modificat golden references: sunt material scris de owner și sursa etalonului vizual (`CLAUDE.md
+§ Reguli owner → 2`).
 
 ### D-014 — CI-ul de deploy s-a reparat pe 15 aug; edge function-ul E live cu codul de pe `main`
 **Context.** Toate notele anterioare din acest fișier și din `CLAUDE.md § Convenții de lucru → CI`
@@ -352,6 +409,7 @@ Reprodus și pe HEAD-ul curat (înainte de modificările F0), deci defectul e pr
 | 2026-08-08 | S04 | F2-T2 IN_PROGRESS | Pornit F2 (următorul pas logic după reconciliere). Verificat rutare Golden/Legacy (§D-011): `EXERCISES_PROMPT`/`WORKBOOK_PROMPT`/`MANUAL_PROMPT`/`VIDEO_SCRIPT_PROMPT` sunt calea vie sub `contractPipeline: true`, nu cod mort. Corectat headerele/etichetele hardcodate în română din toate cele 4 (Manual era cel mai afectat); `SLIDES_PROMPT` era deja curat. Adăugată regulă explicită de traducere a etichetelor la fiecare prompt. Nu s-a putut rula typecheck local (fără Node/npm, D-012) — verificare făcută prin citire atentă + diff linie-cu-linie (55 inserții/55 ștergeri, fără backtick-uri noi, fără drift de linii). |
 | 2026-08-08 | S04 (continuare) | F2-T2 tot IN_PROGRESS | Scanare exhaustivă a fișierului pentru text hardcodat RO rămas. Corectat: `COST_ZERO_SLIDES_LABELS` (fallback greșit → RO pentru orice non-EN, inclusiv DE/FR/ES/IT; acum RO doar pentru RO), typo `STRUCTURĂ` în `getDepthSpecs`, headere hardcodate în `generateExamplesContent` și prompt-ul `discussion_guide`, și 5 fallback-uri de eroare/parsare (`buildFallbackModuleContext`, obiective, `handleChatOnboarding` ×2, workbook intro/outro) care ignorau `lang`/`course.language` deja disponibil în scope. Confirmat definitiv cod mort (§D-011 update): `renderToMarkdown` are 0 apelanți, `golden-master.ts` neimportat — subsistemul `GoldenModuleData` întreg + majoritatea `GOLDEN_SAMPLES` sunt candidați F10, nu bug-uri F2 active. Exclus intenționat din scope: mesajul `credit_limit_exceeded` (nivel aplicație, nu conținut curs). Rămas: inventarul complet F2-T1, F2-T3 (validare de limbă uniformă), F2-T4, F2-T5 (test puritate lingvistică). |
 | 2026-08-10–11 | S05 (ad-hoc, fără faze) | Fix-uri audit + features | 9 commit-uri nedocumentate (PRs #21-23 + fix-uri directe): per-modul iterare client-side (Exercises/Examples/Manual), token usage logging, fix resolveModuleId, i18n landing, UsageSection UI, TS fix, SUPABASE_SECRET_KEYS fallback, ACTION_OPERATION_COSTS corectat. Niciuna din F2–F10 formal. Typecheck verde la finalul sesiunii. |
+| 2026-08-17 | S07 (continuare) | **F2-T5 DONE** | PR #26 (auditul de status) merged. Scris `src/lib/languagePurity.ts` (detector determinist, exportat pentru F4-T4) + `src/tests/languagePurity.test.ts` (19 teste). Straturi: detectorul în sine, cursul-etalon din fixture, regresie pe cele 6 prompturi sterilizate în F2-T2/F2-T4 — citite prin `?raw` pentru că `index.ts` e cod Deno și importul direct ar reproduce D-003. Validat prin mutație (header RO injectat → 2 teste pică → revert). Typecheck verde; `npx vitest run` 31/32 (D-003 singurul eșec). Descoperit D-015: 3 markeri din fixture sunt inutilizabili, iar golden references amestecă ele însele limbile — decizie pentru M6. Zero cod de producție atins. **M2 rămâne TODO** (mai lipsesc F2-T1 și închiderea F2-T2). |
 | 2026-08-17 | S07 | Audit de status pe `main` (fără cod de producție atins) | Sincronizat folderul local cu `main` (era deja identic; `main` local adus la zi `b84715f`→`52feda2`, ref stale `origin/claude/sync-local-folder-main-gtsn0h` curățat). Verificat statusul punct cu punct față de cod: F2-T3/T4 confirmate în cod, F2-T5 confirmat inexistent, fix-urile D-013 confirmate prezente, typecheck verde, `npx vitest run` 12/13 (D-003 singurul eșec). **Descoperit D-014: CI-ul e verde din 15 aug și edge function-ul e deployat live cu codul de pe `main`** — invalidează notele „CI roșu / live rulează versiunea veche" din tot fișierul. Corectate 7 discrepanțe de documentație: §B bifat (contrazicea §REIA), premisa „fără Node/npm" din §Verificări restante, secțiunea F2-T5 duplicată, referințele moarte la D-005 (→ D-012 / D-014), afirmația „grep → 0" din DoD F1 (real: 2 hit-uri într-o migrație istorică), capcana `npm test` = watch mode. **F1-T4 rămâne BLOCKED** — smoke-ul cere login în UI-ul live și consumă credite AI pe producție, deci îl rulează owner-ul; M1 nebifat intenționat. |
 | 2026-08-14 | S06 | F2-T3 DONE · F2-T4 DONE · status actualizat | Pornit cu typecheck+test verde (Node 22 disponibil în mediu remote — nu mai e limitarea D-012). Documentate commit-urile S05 nedocumentate. F2-T3 implementat: `skipAiValidation` eliminat din toate call-site-urile (15 ocurențe), prag 400 chars pe conținut raw, `LANG_SIGNATURES` extins (+it/pt/nl/pl), `NON_LATIN_SCRIPTS` adăugat (26 limbi cu scripturi non-latine via regex Unicode). F2-T4: inventar complet prompturi — singurele probleme în MANUAL_PROMPT: "English/Romanian" → "English" + "# Modul:" hardcodat eliminat. Typecheck verde per commit. |
 
