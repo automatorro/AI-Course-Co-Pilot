@@ -953,6 +953,7 @@ const ACTION_OPERATION_COSTS: Record<string, number> = {
   generate_step_content: 1,
   generate_blueprint: 1,
   generate_learning_objectives: 1,
+  generate_localized_labels: 1,
   backfill_key_takeaways: 1,
   // Legacy names (kept for backward compat)
   generate_workbook: 2,
@@ -3267,6 +3268,14 @@ serve(async (req) => {
         });
     }
 
+    if (action === 'generate_localized_labels') {
+      const { course, language } = body;
+      const result = await handleGenerateLocalizedLabels(course, language);
+      return new Response(JSON.stringify({ labels: result }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (action === 'chat_onboarding') {
         const { chat_history, course } = body;
         const result = await handleChatOnboarding(chat_history, course);
@@ -4787,6 +4796,50 @@ async function handleCompleteSectionsForImport(blueprint: any, environment: stri
   `;
 
   return await callLLM(prompt);
+}
+
+const LOCALIZED_LABEL_KEYS = [
+  'duration', 'format', 'section', 'theory', 'keyTakeaways', 'actionPlan', 'reflection',
+  'trainerInstructions', 'method', 'logistics', 'script', 'activity', 'objective',
+  'instructionsParticipant', 'instructionsFacilitator', 'debrief', 'example', 'videoScript',
+] as const;
+
+type LocalizedLabels = Record<typeof LOCALIZED_LABEL_KEYS[number], string>;
+
+function getDefaultEnglishLabels(): LocalizedLabels {
+  return {
+    duration: 'Duration', format: 'Format', section: 'Section', theory: 'Theory & Concepts',
+    keyTakeaways: 'Key Takeaways', actionPlan: 'Action Plan', reflection: 'Reflection',
+    trainerInstructions: 'Trainer Instructions', method: 'Method', logistics: 'Logistics',
+    script: 'Script', activity: 'Activity', objective: 'Objective',
+    instructionsParticipant: 'Participant Instructions', instructionsFacilitator: 'Facilitator Instructions',
+    debrief: 'Debrief', example: 'Example', videoScript: 'Video Script',
+  };
+}
+
+async function handleGenerateLocalizedLabels(course: any, language: string = 'en'): Promise<LocalizedLabels> {
+  const fallback = getDefaultEnglishLabels();
+  const prompt = `
+You are a localization editor for training materials.
+Translate the 18 UI and heading labels below into ${language}.
+Return ONLY one JSON object with exactly these keys and string values. Do not add or remove keys.
+Keep the meaning concise and natural for professional training materials.
+
+Keys: ${LOCALIZED_LABEL_KEYS.join(', ')}
+Course title: ${course?.title || 'Training course'}
+Subject: ${course?.subject || 'General training'}
+`;
+
+  try {
+    const raw = await callLLM(prompt, language);
+    const parsed = repairAndParseJson<Partial<LocalizedLabels>>(raw);
+    const valid = LOCALIZED_LABEL_KEYS.every(key => typeof parsed?.[key] === 'string' && parsed[key]!.trim().length > 0);
+    if (valid) return parsed as LocalizedLabels;
+    Logger.warn('[LocalizedLabels] Invalid label set; using English fallback.');
+  } catch (error) {
+    Logger.warn('[LocalizedLabels] Generation failed; using English fallback.', error);
+  }
+  return fallback;
 }
 
 async function handleGenerateLearningObjectives(course: any): Promise<string> {
