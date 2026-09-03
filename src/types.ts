@@ -1,5 +1,6 @@
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { SlideState } from './types/slideState';
+import { LocalizedLabels } from './constants/localizedLabels';
 
 export enum Plan {
   Trial = 'Trial',
@@ -37,6 +38,7 @@ export interface Course {
   target_audience: string;
   environment: GenerationEnvironment;
   language: string;
+  localized_labels?: Partial<LocalizedLabels> | null;
   progress: number;
   learning_objectives?: string; // NEW: User-provided or AI-generated learning outcomes
   steps?: CourseStep[]; // Optional, as we might load them separately

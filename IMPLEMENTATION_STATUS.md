@@ -11,9 +11,13 @@ Convenții:
 
 ---
 
-## ▶ REIA DE AICI (scris 2026-08-17, sesiunea S07 — audit de status pe `main`)
+## ▶ REIA DE AICI (scris 2026-09-03, sesiunea S08 — F2-T5)
 
-**Stare curentă:** F2 e la T1 TODO · T2 IN_PROGRESS · T3 DONE · T4 DONE · T5 TODO. M2 rămâne TODO.
+**Stare curentă:** F2 e la T1 IN_PROGRESS · T2 IN_PROGRESS · T3 DONE · T4 DONE · T5 DONE. M2 rămâne TODO.
+În S08 a fost creat `src/tests/languagePurity.test.ts`: verifică headerele RO și diacriticele RO absente
+din output EN și headerele EN absente din output RO, folosind fixture-ul etalon. `get_errors` nu raportează
+erori în fișier. Testul a fost sincronizat în checkout-ul terminalului și a trecut 2/2; `npm run typecheck`
+a trecut fără erori. Node/npm sunt instalate local (`node v24.19.0`, `npm v11.17.0`).
 Verificat pe cod în S07 (nu doar pe memorie): typecheck verde (0 erori), `npx vitest run` → 12/13
 verde, singurul eșec e `e2e_generation.test.ts` (D-003, pre-existent, ignorat conform `CLAUDE.md § 3`).
 Verificarea Supabase §B e **confirmată de owner** (2026-08-14) — tabelul §B e bifat, nu mai e coadă
@@ -26,10 +30,14 @@ Nu mai e blocat de deploy. `generate-course-content` rulează live exact codul d
 creează cursul-etalon RO → generează complet → cele 3 verificări). Când confirmi „F1 smoke OK",
 M1 devine DONE. Până atunci M1 rămâne ALMOST și F1-T4 rămâne BLOCKED — nu se bifează pe presupunere.
 
-### Task următor de cod: F2-T5 — Test puritate lingvistică
+### Task imediat următor: continuarea F2-T1/T2
 
-De scris `src/tests/languagePurity.test.ts`. Pe etalonul EN: 0 apariții headere RO și 0 diacritice;
-pe RO: 0 headere EN. Node 22 e disponibil în mediul remote, deci se scrie și se rulează direct.
+F2-T5 este validat: `npx vitest run src/tests/languagePurity.test.ts` → 2/2 verde, iar `npm run typecheck`
+→ 0 erori. În S09 a fost adăugat contractul static `LocalizedLabels` + fallback-ul EN în
+`src/constants/localizedLabels.ts`, câmpul opțional `Course.localized_labels` și migrarea
+`supabase/migrations/20260903_add_localized_labels_to_courses.sql`. Ownerul a confirmat pe 2026-09-03
+că migrarea a fost rulată și este în ordine. Rămân inventarul complet, promptul A.4.1 și legarea
+generării/persistenței etichetelor la crearea cursului.
 **Atenție la comandă:** `npm test` e `vitest` în **watch mode** — blochează la infinit într-o
 sesiune neinteractivă. Rulează `npx vitest run` (vezi nota din §A).
 
@@ -142,7 +150,7 @@ rând cu ☐, se postează SQL-ul complet în chat, se bifează doar după confi
 - **DoD F1:** M1 parțial — typecheck ✔, 12/12 teste (D-003), deploy live ✔ (D-014). Grep `ProtagonistEnforcer|refineCourseContent|editorRefineButton|inferProtagonistFromAudience|getOrCreateStoryArc|story_arc` în src/+supabase/ → **2 rezultate, ambele acceptabile** (verificat 2026-08-17; formularea „→ 0" de dinainte era inexactă): ambele sunt în `supabase/migrations/20240128000001_add_story_arc_to_courses.sql`, migrația istorică ce a adăugat coloana `courses.story_arc`. Migrațiile deja rulate nu se rescriu — sunt istoric, nu cod viu. În `src/` și în `supabase/functions/` grep-ul dă efectiv 0. **Consecință de reținut:** coloana `courses.story_arc` probabil încă există în DB deși conceptul a fost șters din cod → intră în „migrația de curățare" din F10-T4. Rămâne smoke-ul live la owner.
 
 ### F2 — Fundația de localizare (2 zile) · Risc: mediu
-- **F2-T1** [TODO] `localizedLabels`: inventar complet + promptul A.4.1 + migrație `courses.localized_labels jsonb` + fallback EN static + generare la crearea cursului. Notă 2026-08-08: există deja un mecanism separat, paralel — `GoldenModuleData.localizedLabels` (schema `types.ts`, generat de `GOLDEN_MASTER_PROMPT`) — AI-generat per apel, fără migrație/fallback static. F2-T1, când se face, trebuie să decidă dacă înlocuiește sau se construiește peste acest mecanism existent, nu să-l ignore.
+- **F2-T1** [IN_PROGRESS 2026-09-03] `LocalizedLabels` + fallback EN static adăugate în `src/constants/localizedLabels.ts`; `Course.localized_labels` adăugat; migrarea `supabase/migrations/20260903_add_localized_labels_to_courses.sql` rulată și confirmată de owner. Rămân inventarul complet, promptul A.4.1 și generarea la crearea cursului. Mecanismul paralel `GoldenModuleData.localizedLabels` rămâne separat până la F3/F4.
 - **F2-T2** [IN_PROGRESS] Sterilizarea șabloanelor cu headere/etichete hardcodate în română, indiferent de `{{language}}`. **Verificat 2026-08-08 că bug-ul e live**: `WORKBOOK_PROMPT`, `MANUAL_PROMPT`, `EXERCISES_PROMPT`, `VIDEO_SCRIPT_PROMPT` sunt toate atinse prin `handleGoldenStep` → `generateLessonContent`/generare per-modul (calea implicită, `contractPipeline: true`) — deci NU sunt cod mort. Corectat (2 commit-uri, 2026-08-08):
   - Cele 4 șabloane de mai sus: headere/etichete traduse din română + regulă explicită de traducere adăugată. `SLIDES_PROMPT` era deja curat.
   - `COST_ZERO_SLIDES_LABELS`/`generateCostZeroSlides`: fallback-ul alegea RO pentru orice limbă ≠ EN (deci și DE/FR/ES/IT din `src/languages.ts` — ~100 limbi în `ALL_LANGUAGES` — primeau etichete românești); corectat să cadă pe EN pentru orice ≠ RO. Adăugate și 2 bullet-uri hardcodate RO lipsă din dicționar.
@@ -154,7 +162,7 @@ rând cu ☐, se postează SQL-ul complet în chat, se bifează doar după confi
   - Rămas TODO: prompturile globale rămase (structure/blueprint în afara celor verificate), inventarul complet cerut de F2-T1 pentru migrația spre `{{label_*}}`.
 - **F2-T3** [DONE 2026-08-14] Validare de limbă uniformă: `skipAiValidation` eliminat complet (parametru șters din `callLLM`, `retryWithStrictInstructions` și toate cele 5 funcții generatoare — `generateWorkbookContent`, `generateManualContent`, `generateExercisesContent`, `generateVideoScriptContent`, `generateExamplesContent`); detectorul rulează acum pe orice output ≥400 chars (prag pe conținut raw, nu pe sample); `LANG_SIGNATURES` extins cu `it`, `pt`, `nl`, `pl`; adăugat `NON_LATIN_SCRIPTS` (regex Unicode) pentru 26 limbi cu scripturi non-latine (ar, he, ru, uk, bg, sr, zh, zh-TW, ja, ko, el, hi, bn, th, ka, am, km, lo, my, si, ta, te, kn, ml, gu, pa) — detecție fiabilă fără n-gram counting. Maximum 1 retry deja implementat (neschimbat). Typecheck verde.
 - **F2-T4** [DONE 2026-08-14] Meta-instrucțiuni EN, conținut verbatim (regula A.1) — MANUAL_PROMPT: eliminat "Romanian" din CRITICAL RULES + eliminat "# Modul:" hardcodat din OUTPUT FORMAT
-- **F2-T5** [TODO] `src/tests/languagePurity.test.ts`: pe etalonul EN → 0 apariții headere RO și 0 diacritice; pe RO → 0 headere EN
+- **F2-T5** [DONE 2026-09-03] `src/tests/languagePurity.test.ts`; pe etalonul EN → 0 apariții headere RO și 0 diacritice; pe RO → 0 headere EN. Test focalizat 2/2 verde; typecheck verde.
 - **DoD F2:** M2 — testul verde pe EN și RO; inspecție manuală fără amestec
 
 ### F3 — Instalarea arhitecturii de prompturi + contractul de modul (3 zile) · Risc: mare, izolat
