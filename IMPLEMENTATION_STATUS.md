@@ -51,19 +51,37 @@ neschimbat de migrare.
   `conclusion: success`** — codul cu Claude e live. Rămân doar pașii owner de mai jos (secret +
   migrație SQL) pentru ca generarea reală să funcționeze.
 
-**Ce e BLOCAT — acțiune owner obligatorie înainte ca funcționalitatea Claude să meargă live:**
-1. **Secret nou**: adaugă manual `ANTHROPIC_API_KEY` în Supabase Dashboard → Edge Functions → Secrets
-   (la fel cum sunt gestionate azi `GEMINI_API_KEY`/`MOONSHOT_API_KEY` — CI-ul nu setează niciodată
-   secrete, conform `CLAUDE.md § Convenții/CI`). `GEMINI_API_KEY`/`MOONSHOT_API_KEY` pot fi șterse
-   ulterior, opțional, nu blocant.
-2. **Migrație SQL**: rulează manual `supabase/migrations/20260904_claude_pricing.sql` (SQL-ul complet
-   a fost postat în chat conform `CLAUDE.md § Reguli owner → 1`) — până atunci, orice cost Claude
-   logat cade pe fallback-ul de preț Flash (greșit) în `UsageSection.tsx`.
-3. **Deploy + smoke**: din S11 înainte, push-ul merge direct pe `main` (regulă nouă owner, vezi
-   `CLAUDE.md § Convenții/Git`) — verifică explicit concluzia run-ului CI
-   (`deploy-supabase-functions.yml`) după fiecare push care atinge `supabase/functions/**`. Apoi în
-   Dashboard: „Health check" arată „Claude" ca provider activ; generează un curs mic complet; confirmă
-   că `UsageSection` arată cost calculat cu prețul Claude (nu Flash).
+**Smoke test rulat 2026-09-04 (owner a confirmat: secret `ANTHROPIC_API_KEY` adăugat + migrația SQL
+rulată). Rezultat: 2 probleme reale, blocante, găsite prin apel direct la funcțiile live** (anon key
+public din `src/services/supabaseClient.ts`, acțiuni fără cost AI — `ping`/`analyze-slide` cu conținut
+de test):
+
+1. **BLOCANT — `generate-course-content` nu pornește deloc**: `{"code":"BOOT_ERROR","message":"Function
+   failed to start (please check logs)"}`, HTTP 503, reprodus consistent de 3 ori (nu e tranzitoriu).
+   `unsplash-search` funcționează normal (infrastructura CI/deploy generală e OK). **Cauza exactă
+   necunoscută** — sesiunea curentă nu are acces la logs-urile Supabase (Dashboard/Management API).
+   Ipoteză neconfirmată: `generate-course-content/index.ts` combină un import `npm:@anthropic-ai/sdk`
+   CU un import `https://esm.sh/@supabase/supabase-js@2.7.1` în același fișier — posibil conflict de
+   rezolvare de dependențe în runtime-ul Deno al Supabase. `analyze-slide` (care are DOAR importul
+   `npm:@anthropic-ai/sdk`, fără esm.sh) **pornește fără probleme** — diferența dintre cele două
+   susține (dar nu demonstrează) ipoteza. **Acțiune owner necesară**: Supabase Studio → Edge Functions
+   → `generate-course-content` → Logs, copiază eroarea exactă de boot și trimite-o aici. Dacă ipoteza
+   se confirmă, planul B e înlocuirea SDK-ului cu `fetch` brut către `api.anthropic.com/v1/messages`
+   în acest fișier (exact pattern-ul folosit înainte pentru Gemini în același fișier — zero risc nou
+   de import).
+2. **BLOCANT — cheia `ANTHROPIC_API_KEY` e de tip greșit**: `analyze-slide` PORNEȘTE corect și ajunge
+   la Claude, dar Anthropic respinge cererea: `"anthropic-workspace-id is required when authenticating
+   with an identity-linked API key; send the id of the workspace this request acts in."` — cheia
+   adăugată e una „identity-linked" (ex. generată prin login OAuth/`ant auth login`, legată de un cont
+   personal ce poate acoperi mai multe workspace-uri), nu o cheie API standard de consolă, legată de UN
+   singur workspace. **Fix simplu**: generează o cheie nouă din Claude Console →
+   Settings → API Keys → Create Key (cheie standard `sk-ant-...`, NU login OAuth), și înlocuiește
+   valoarea `ANTHROPIC_API_KEY` din Supabase cu aceasta.
+
+**Concluzie:** migrarea de cod e completă și corectă (confirmat: `analyze-slide` ajunge efectiv la
+Claude), dar generarea reală de cursuri **nu funcționează încă** — blocată de aceste 2 probleme de
+configurare/infrastructură, nu de cod. Task următor: owner trimite eroarea de boot din logs +
+înlocuiește cheia API, apoi se re-rulează smoke-ul.
 
 **Investigația de cost (cerută explicit de owner ca prioritate mare, IMPLEMENTATĂ în S11 — vezi
 secțiunea dedicată mai jos):** cele trei recomandări (deduplicare `ai_cache`, plafon global de retry,
