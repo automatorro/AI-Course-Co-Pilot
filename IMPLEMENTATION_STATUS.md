@@ -46,6 +46,10 @@ neschimbat de migrare.
   de logică reale, doar pe acest fișier de status. `IMPLEMENTATION_STATUS.md`, `DashboardPage.tsx` și
   `index.ts` s-au suprapus, dar pe zone diferite de cod — rezolvate manual, typecheck+teste re-verificate
   după merge.
+- **Push direct pe `main` făcut** (commit `a7760f3`, conform noii reguli de workflow — vezi
+  `CLAUDE.md § Convenții/Git`). **CI verificat explicit: run #28 „Deploy Supabase Functions" →
+  `conclusion: success`** — codul cu Claude e live. Rămân doar pașii owner de mai jos (secret +
+  migrație SQL) pentru ca generarea reală să funcționeze.
 
 **Ce e BLOCAT — acțiune owner obligatorie înainte ca funcționalitatea Claude să meargă live:**
 1. **Secret nou**: adaugă manual `ANTHROPIC_API_KEY` în Supabase Dashboard → Edge Functions → Secrets
