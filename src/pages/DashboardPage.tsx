@@ -41,7 +41,7 @@ const DashboardPage: React.FC = () => {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [healthLoading, setHealthLoading] = useState(false);
   const [pingOk, setPingOk] = useState<boolean | null>(null);
-  type ProviderStatus = { googleConfigured: boolean; moonshotConfigured: boolean; activeProvider: 'google' | 'moonshot' | 'none' };
+  type ProviderStatus = { claudeConfigured: boolean; activeProvider: 'claude' | 'none' };
   const [providerInfo, setProviderInfo] = useState<ProviderStatus | null>(null);
   const [loadingStates, setLoadingStates] = useState<{ [key: string]: boolean }>({});
 
@@ -94,7 +94,7 @@ const DashboardPage: React.FC = () => {
       setPingOk(ok);
       const { data: provData, error: provError } = await supabase.functions.invoke('generate-course-content', { body: { action: 'provider_status' } });
       if (!provError && provData) setProviderInfo(provData as ProviderStatus);
-      const providerName = provError || !provData ? '—' : provData.activeProvider === 'google' ? t('health.google') : provData.activeProvider === 'moonshot' ? t('health.moonshot') : '—';
+      const providerName = provError || !provData ? '—' : provData.activeProvider === 'claude' ? t('health.claude') : '—';
       if (notify) {
         const summary = `${ok ? t('health.ping.ok') : t('health.ping.fail')} • ${t('health.provider.active')}: ${providerName}`;
         showToast(summary, ok ? 'success' : 'error');
@@ -305,12 +305,12 @@ const DashboardPage: React.FC = () => {
           <span className={`px-2 py-1 text-xs rounded-full ${pingOk ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : pingOk === false ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}`}>{pingOk ? t('health.ping.ok') : pingOk === false ? t('health.ping.fail') : '...'}</span>
           {providerInfo && (
             <span className="text-sm">
-              {t('health.provider.active')}: {providerInfo.activeProvider === 'google' ? t('health.google') : providerInfo.activeProvider === 'moonshot' ? t('health.moonshot') : '—'}
+              {t('health.provider.active')}: {providerInfo.activeProvider === 'claude' ? t('health.claude') : '—'}
             </span>
           )}
           {providerInfo && (
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              Google: {providerInfo.googleConfigured ? '✓' : '—'} • Moonshot: {providerInfo.moonshotConfigured ? '✓' : '—'}
+              Claude: {providerInfo.claudeConfigured ? '✓' : '—'}
             </span>
           )}
         </div>

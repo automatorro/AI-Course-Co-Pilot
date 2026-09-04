@@ -1,49 +1,54 @@
-# Arhitectura Modulară AI Service (v3.0)
+# Arhitectura Modulară AI Service (v4.0)
 
-Acest document descrie noua arhitectură implementată pentru funcția `generate-course-content`.
+Acest document descrie arhitectura funcției `generate-course-content`, actualizată odată cu
+migrarea providerului LLM de la Google Gemini la Anthropic Claude (2026-09).
 
 ## 1. Privire de Ansamblu
 
-Noua arhitectură transformă funcția dintr-un script monolitic într-un sistem modular, orientat pe obiecte, cu responsabilități clar separate. Scopul este de a crește robustețea, testabilitatea și ușurința de întreținere.
+Funcția e organizată modular, orientat pe obiecte, cu responsabilități clar separate. Scopul este
+de a crește robustețea, testabilitatea și ușurința de întreținere.
 
 ### Componente Principale
 
 1.  **Config**: Gestionarea centralizată a variabilelor de mediu și a secretelor (API Keys).
 2.  **Logger**: Sistem unificat de logging cu prefixe de versiune și nivele (INFO, WARN, ERROR).
 3.  **IAIProvider (Interface)**: Contract standard pentru toți furnizorii de AI.
-4.  **Providers**: Implementări specifice pentru Gemini (`GeminiProvider`) și Moonshot (`MoonshotProvider`).
-5.  **AIOrchestrator**: Gestionează strategia de apelare, fallback-ul între provideri și agregarea erorilor.
-6.  **Resilient Fetch**: Wrapper peste `fetch` care adaugă automat retry (exponential backoff) și rate limiting handling.
+4.  **Providers**: `ClaudeProvider` — singurul provider AI activ (Anthropic).
+5.  **AIOrchestrator**: Gestionează strategia de apelare și agregarea erorilor (scaffolding
+    păstrat din arhitectura multi-provider anterioară, pentru cazul în care se adaugă un fallback
+    în viitor).
 
 ## 2. Detalii Tehnice
 
 ### 2.1 Configurare (`Config`)
--   Citește variabilele din `Deno.env`.
+-   Citește variabilele din `Deno.env` (`ANTHROPIC_API_KEY`).
 -   **Sanitizare**: Elimină automat spațiile și ghilimelele care pot apărea la copierea cheilor.
--   **Securitate**: Cheile nu sunt logate niciodată în clar.
+-   **Securitate**: Cheile nu sunt logate niciodată în clar (doar primele/ultimele 4 caractere,
+    pentru debugging).
 
 ### 2.2 AI Service Layer
 
-#### `fetchWithRetry`
-Un utilitar puternic care "îmbracă" orice apel de rețea:
--   **Retry Logic**: 3 încercări implicite.
--   **Exponential Backoff**: Așteaptă 1s, 2s, 4s între încercări.
--   **Rate Limiting**: Respectă header-ul `Retry-After` de la API (429).
--   **Erori 5xx**: Reîncearcă automat erorile de server temporare.
-
-#### `GeminiProvider`
--   Folosește modelul `gemini-1.5-pro` ca principal.
--   Fallback automat pe `gemini-pro` (legacy) în caz de erori specifice (404 Model Not Found, 503 Overloaded).
--   Validare strictă a răspunsului JSON.
-
-#### `MoonshotProvider`
--   Implementare standard OpenAI-compatible.
--   Folosește modelul `moonshot-v1-8k`.
+#### `ClaudeProvider`
+-   Folosește SDK-ul oficial Anthropic (`npm:@anthropic-ai/sdk`, specificator Deno).
+-   Model: `claude-sonnet-5` — ales pentru echilibrul cost/performanță (mai ieftin ȘI mai capabil
+    decât generația anterioară Sonnet 4.5/4.6).
+-   `max_tokens: 8192` — plafon explicit, obligatoriu la Claude API (spre deosebire de Gemini,
+    unde lipsa lui era un risc de cost neplafonat).
+-   Retry-ul pe erori tranzitorii (429/5xx/rețea) e gestionat intern de SDK (`max_retries`
+    implicit 2) — nu mai există un wrapper `fetchWithRetry` custom.
+-   Erori tipate din SDK (`Anthropic.AuthenticationError`, `Anthropic.RateLimitError`,
+    `Anthropic.APIError`) sunt distinse explicit pentru mesaje de eroare mai clare.
 
 #### `AIOrchestrator`
--   Iterează prin lista de provideri configurați.
--   Dacă Gemini cade (după retries interne), trece automat la Moonshot.
+-   Iterează prin lista de provideri configurați (azi: doar `ClaudeProvider`).
 -   Dacă toți cad, aruncă o eroare agregată detaliată `[v3.0-MODULAR] AI_ERROR`.
+
+**Istoric.** Până în 2026-09, arhitectura folosea Gemini (`GeminiProvider`, cu fallback pe 3
+modele: `gemini-3.5-flash` → `gemini-3.1-flash-lite` → `gemini-2.5-flash`, apelat prin `fetch`
+brut la `generativelanguage.googleapis.com`) și Moonshot/Kimi (`MoonshotProvider`, fallback
+secundar, format OpenAI-compatible, `moonshot-v1-8k`) orchestrate prin `fetchWithRetry`. Ambele au
+fost eliminate complet — motiv cost (Gemini) și context insuficient de 8k pentru prompturile
+lungi ale aplicației (Moonshot, risc de trunchiere silențioasă).
 
 ## 3. Testare
 
@@ -52,15 +57,21 @@ Funcția expune o acțiune specială pentru verificarea sănătății sistemului
 ```json
 { "action": "test_connection" }
 ```
-Aceasta instanțiază providerii și încearcă un apel "Hi" către fiecare, returnând statusul individual.
+Instanțiază `ClaudeProvider` și încearcă un apel "Hi", returnând `results.claude` cu statusul.
+
+### Endpoint `provider_status`
+```json
+{ "action": "provider_status" }
+```
+Returnează `{ claudeConfigured: boolean, activeProvider: 'claude' | 'none' }`.
 
 ## 4. Ghid de Extindere
 
-Pentru a adăuga un nou provider (ex. OpenAI):
+Pentru a adăuga un nou provider (ex. un fallback):
 1.  Adăugați cheia în `Config`.
-2.  Creați clasa `OpenAIProvider` care implementează `IAIProvider`.
+2.  Creați o clasă care implementează `IAIProvider`.
 3.  Adăugați instanța în lista din constructorul `AIOrchestrator`.
 
 ---
-*Versiune: v3.0-MODULAR*
-*Data: 2026-01-30*
+*Versiune: v4.0.0-CLAUDE*
+*Data: 2026-09-04*

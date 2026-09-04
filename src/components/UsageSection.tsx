@@ -170,7 +170,7 @@ const UsageSection: React.FC<Props> = ({ userId }) => {
             ))}
           </div>
           <p className="text-xs text-gray-400 mt-3">
-            * Costuri estimate pe baza prețurilor publice Google Gemini. Nu reprezintă o factură.
+            * Costuri estimate pe baza prețurilor publice Anthropic Claude. Nu reprezintă o factură.
           </p>
         </div>
       )}

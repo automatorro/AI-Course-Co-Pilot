@@ -11,13 +11,57 @@ Convenții:
 
 ---
 
-## ▶ REIA DE AICI (scris 2026-08-17, sesiunea S07 — audit de status pe `main`)
+## ▶ REIA DE AICI (scris 2026-09-04, sesiunea S08 — migrare LLM provider Gemini → Claude)
 
-**Stare curentă:** F2 e la T1 TODO · T2 IN_PROGRESS · T3 DONE · T4 DONE · T5 TODO. M2 rămâne TODO.
-Verificat pe cod în S07 (nu doar pe memorie): typecheck verde (0 erori), `npx vitest run` → 12/13
-verde, singurul eșec e `e2e_generation.test.ts` (D-003, pre-existent, ignorat conform `CLAUDE.md § 3`).
-Verificarea Supabase §B e **confirmată de owner** (2026-08-14) — tabelul §B e bifat, nu mai e coadă
-deschisă. **Noutatea majoră a lui S07: CI-ul s-a reparat și edge function-ul e deployat live — vezi D-014.**
+**Task-ul acestei sesiuni** (cerut direct de owner, NU parte din planul F0-F10 formal): înlocuirea
+completă a Google Gemini cu Anthropic Claude (`claude-sonnet-5`) ca provider LLM al aplicației,
+plus eliminarea fallback-ului Moonshot/Kimi (decizie explicită owner). Detalii complete în secțiunea
+nouă **„Migrare LLM provider: Gemini → Claude (2026-09-04)"** de mai jos.
+
+**Ce e gata (cod, verificat local):**
+- `supabase/functions/generate-course-content/index.ts` — `GeminiProvider`/`MoonshotProvider`/
+  `fetchWithRetry` șterse; `ClaudeProvider` nou (SDK `npm:@anthropic-ai/sdk`, model `claude-sonnet-5`,
+  `max_tokens: 8192`); `AIOrchestrator` cu un singur provider; `provider_status`/`test_connection`
+  actualizate.
+- `supabase/functions/analyze-slide/index.ts` — migrat similar (SDK Anthropic, același prompt/parsing JSON).
+- Frontend: `UsageSection.tsx`, `DashboardPage.tsx` (tip `ProviderStatus`, labels), `public/locales/{en,ro}.json`
+  (`health.claude` + tot copy-ul de marketing „Powered by Google Gemini" → Claude), `metadata.json`.
+- `supabase/functions/generate-course-content/README_ARCHITECTURE.md` — rescris pentru arhitectura nouă.
+- Migrație SQL nouă scrisă: `supabase/migrations/20260904_claude_pricing.sql` (branch de preț Claude
+  în view-ul `usage_logs_with_cost`, Gemini/Moonshot rămân neatinse pentru istoricul de cost).
+- `npm run typecheck` verde, `npx vitest run` → 12/13 verde (D-003 neschimbat, singurul eșec cunoscut).
+
+**Ce e BLOCAT — acțiune owner obligatorie înainte ca funcționalitatea să meargă live:**
+1. **Secret nou**: adaugă manual `ANTHROPIC_API_KEY` în Supabase Dashboard → Edge Functions → Secrets
+   (la fel cum sunt gestionate azi `GEMINI_API_KEY`/`MOONSHOT_API_KEY` — CI-ul nu setează niciodată
+   secrete, conform `CLAUDE.md § Convenții/CI`). `GEMINI_API_KEY`/`MOONSHOT_API_KEY` pot fi șterse
+   ulterior, opțional, nu blocant.
+2. **Migrație SQL**: rulează manual `supabase/migrations/20260904_claude_pricing.sql` (SQL-ul complet
+   a fost postat în chat conform `CLAUDE.md § Reguli owner → 1`) — până atunci, orice cost Claude
+   logat cade pe fallback-ul de preț Flash (greșit) în `UsageSection.tsx`.
+3. **Deploy + smoke**: după push, verifică explicit concluzia run-ului CI (`deploy-supabase-functions.yml`,
+   conform `CLAUDE.md § Convenții/CI` — nu presupune că a mers). Apoi în Dashboard: „Health check" arată
+   „Claude" ca provider activ; generează un curs mic complet; confirmă că `UsageSection` arată cost
+   calculat cu prețul Claude (nu Flash).
+
+**Pasul concret următor (task separat, marcat explicit de owner ca prioritate mare — NU se uită):**
+**Investigația facturii disproporționate Gemini** (~$30 pentru 3-4 cursuri iterate în 3 zile). Two
+leaduri concrete găsite deja în cod, netratate încă:
+- Apelul Gemini (acum șters, dar relevant istoric pentru „de ce s-a întâmplat") nu seta niciun
+  `generationConfig`/`maxOutputTokens` — output neplafonat. Claude rezolvă asta structural (`max_tokens`
+  obligatoriu), dar nu explică retroactiv factura.
+- Tabelul `ai_cache` (`supabase/migrations/20250224_add_ai_cache.sql`, cheie unică pe `prompt_hash`)
+  **hardcodat pentru caching de răspunsuri AI, dar niciodată referențiat în `index.ts`** — infrastructură
+  moartă, zero deduplicare de apeluri identice/retry-uri. Candidat solid pentru cost dublat/multiplicat.
+- De verificat și: bug-ul de „iterare per-modul" menționat în S05 (parțial reparat) — posibil apeluri
+  AI duplicate per modul dacă nu e complet reparat.
+
+**Task-ul F2-T5 din planul F0-F10** (test puritate lingvistică) rămâne TODO, neatins de această sesiune —
+vezi paragraful de status de mai jos, neschimbat față de S07.
+
+**Stare F0-F10 (neschimbată față de S07):** F2 e la T1 TODO · T2 IN_PROGRESS · T3 DONE · T4 DONE ·
+T5 TODO. M2 rămâne TODO. Verificarea Supabase §B e confirmată de owner (2026-08-14). CI-ul s-a reparat
+pe 15 august — vezi D-014.
 
 ### Blocantul #1 — smoke-ul F1-T4 (owner, ~15 min)
 
@@ -77,6 +121,80 @@ Niciuna din cele de mai sus nu e parte din F2–F10 formal. Sunt fix-uri/feature
 **Porți umane blocante (cer aprobare explicită a owner-ului):**
 1. **M4** — la finalul F3, aprobare contracte de modul valide pe etalon
 2. **M6** — la finalul F6, aprobare rubrică ≥4,0 pe RO+EN
+
+---
+
+## Migrare LLM provider: Gemini → Claude (2026-09-04, sesiunea S08)
+
+Inițiativă separată de planul de refactor F0-F10 — cerută direct de owner. Nu modifică nicio bornă
+M0-M10. Motiv: factură Gemini disproporționată (~$30 / 3-4 cursuri / 3 zile) + dorința de a testa
+modelul cel mai echilibrat cost/performanță din gama Anthropic curentă.
+
+**Decizie model:** `claude-sonnet-5` (nu Sonnet 4.5, cum bănuia inițial owner-ul — acela există încă,
+dar succesorul lui e simultan mai ieftin, $2/$10 per milion tokeni vs. ~$3/$15, ȘI mai capabil, deci
+nu există compromis).
+
+**Decizie fallback:** Moonshot (Kimi), fallback secundar activ azi în producție, a fost **eliminat
+complet** odată cu Gemini (decizie explicită owner, subsumă task-ul F10-T4 din planul de curățenie,
+care oricum îl programa la eliminare din cauza contextului de 8k, prea mic).
+
+### Fișiere modificate
+- `supabase/functions/generate-course-content/index.ts` — motorul principal. `Config.GEMINI_API_KEY`/
+  `MOONSHOT_API_KEY`/`MOONSHOT_API_URL` → `Config.ANTHROPIC_API_KEY`. `GeminiProvider`+`MoonshotProvider`+
+  `fetchWithRetry`+`RetryConfig` (cod mort, fără alți apelanți) șterse. `ClaudeProvider` nou — SDK oficial
+  (`npm:@anthropic-ai/sdk`, același pattern de import Deno deja folosit în `analyze-slide`), model
+  `claude-sonnet-5`, `max_tokens: 8192` (obligatoriu la Claude, spre deosebire de Gemini — plafon care
+  lipsea complet înainte). Erori tipate SDK (`AuthenticationError`/`RateLimitError`/`APIError`) distinse
+  explicit. `_lastCallUsage` populat identic ca înainte (contract neschimbat), deci logging-ul în
+  `user_usage` continuă să funcționeze. `AIOrchestrator` cu un singur provider. `provider_status` →
+  `{ claudeConfigured, activeProvider: 'claude'|'none' }`. `test_connection` → testează doar Claude.
+- `supabase/functions/analyze-slide/index.ts` — SDK Gemini → SDK Anthropic, `GEMINI_API_KEY` →
+  `ANTHROPIC_API_KEY`, lanțul de 3 modele Gemini → un singur apel `claude-sonnet-5`, prompt și parsare
+  JSON neschimbate (funcția oricum programată la eliminare din export la F7-T4).
+- `src/components/UsageSection.tsx` — footnote cost: „Google Gemini" → „Anthropic Claude".
+- `src/pages/DashboardPage.tsx` — tip `ProviderStatus`, health-check UI: `googleConfigured`/
+  `moonshotConfigured`/`activeProvider: 'google'|'moonshot'|'none'` → `claudeConfigured`/
+  `activeProvider: 'claude'|'none'`.
+- `public/locales/en.json` + `ro.json` — `health.google`/`health.moonshot` → `health.claude`;
+  copy de marketing (`footer.poweredBy`, `homepage.hero.poweredBy`, `homepage.feature5.layer1`,
+  `homepage.feature5.layer3_title`) actualizat de la „Google Gemini" la „Anthropic Claude".
+- `metadata.json` — descrierea aplicației: „with the help of Google Gemini" → Claude.
+- `supabase/functions/generate-course-content/README_ARCHITECTURE.md` — rescris (era deja desincronizat
+  cu codul dinainte de migrare — menționa `gemini-1.5-pro`, codul real folosea `gemini-3.5-flash`).
+- `src/services/geminiService.ts` — **neschimbat intenționat**: nu apelează Gemini direct (doar proxy
+  către edge function via `supabase.functions.invoke`), deci nicio schimbare de logică; numele fișierului
+  rămâne (redenumirea ar fi scope creep, fără impact funcțional).
+- `docs/CURATENIE-SI-MODERNIZARE-CourseCopilot.md`/`docs/AUDIT-...md` — **neatinse intenționat**, guvernate
+  separat de owner (plan activ / diagnostic static); mențiunile lor despre Gemini/Flash/Pro/`modelTier`
+  rămân relevante doar pentru deciziile viitoare F3-T6, la M4/M6.
+
+### Migrație SQL nouă — AȘTEAPTĂ DEPLOY OWNER
+`supabase/migrations/20260904_claude_pricing.sql` — adaugă branch de preț pentru modelele `claude-*`
+în view-ul `usage_logs_with_cost` (Claude Sonnet 5: $2/1M input, $10/1M output). Branch-urile
+Gemini/Moonshot existente rămân neatinse (istoric de cost trebuie să rămână corect retroactiv).
+SQL-ul complet a fost postat în chat conform `CLAUDE.md § Reguli owner → 1`. **Fără această migrare,
+orice cost Claude cade pe fallback-ul greșit (preț Flash).**
+
+### Secret nou — AȘTEAPTĂ ACȚIUNE OWNER
+`ANTHROPIC_API_KEY` trebuie adăugat manual în Supabase (Dashboard → Edge Functions → Secrets), în
+afara CI-ului (care nu setează niciodată secrete). `GEMINI_API_KEY`/`MOONSHOT_API_KEY` pot fi șterse
+ulterior, opțional.
+
+### Verificare făcută în sesiune
+- `npm run typecheck` → verde (0 erori), rulat după `npm ci` (node_modules nu era instalat la
+  începutul sesiunii).
+- `npx vitest run` → 12/13 verde, singurul eșec e `e2e_generation.test.ts` (D-003, pre-existent,
+  neschimbat de această migrare).
+- Grep final `gemini|moonshot` (case-insensitive) în `src/` și `supabase/functions/` → doar rezultate
+  așteptate (import-ul `geminiService` neschimbat intenționat, mențiuni istorice explicite în
+  `README_ARCHITECTURE.md`).
+- **Nu s-a putut testa generarea live** din acest mediu (fără `ANTHROPIC_API_KEY`, fără acces la
+  instanța Supabase reală) — vezi pașii de verificare owner mai sus, în §REIA DE AICI.
+
+### Task următor — investigația de cost (marcată explicit prioritate mare de owner)
+Vezi §REIA DE AICI de mai sus pentru leadurile deja identificate (`ai_cache` neconectat, lipsă
+`maxOutputTokens` la Gemini, posibil bug de iterare per-modul). Se abordează imediat după ce se
+confirmă migrarea Claude funcțională live.
 
 ---
 

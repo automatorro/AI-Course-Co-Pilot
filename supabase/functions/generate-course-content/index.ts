@@ -1,12 +1,12 @@
 // ==========================================
 // GENERATED BUNDLE: generate-course-content
-// VERSION: v3.0.1-MODULAR
-// ARCHITECTURE: Class-based, Multi-Provider, Resilient
-// FORCE DEPLOY: 2026-06-20
+// VERSION: v4.0.0-CLAUDE
+// ARCHITECTURE: Class-based, Claude (Anthropic) as sole LLM provider
 // ==========================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import Anthropic from "npm:@anthropic-ai/sdk";
 // --------------------------------------------------------------------------------
 // INLINED MODULE: Style Blocks
 // --------------------------------------------------------------------------------
@@ -627,18 +627,8 @@ class Config {
     return '';
   }
 
-  static get GEMINI_API_KEY(): string | undefined {
-    return this.sanitize(Deno.env.get('GEMINI_API_KEY'));
-  }
-
-  static get MOONSHOT_API_KEY(): string | undefined {
-    return this.sanitize(Deno.env.get('MOONSHOT_API_KEY'));
-  }
-
-  static get MOONSHOT_API_URL(): string {
-    const url = Deno.env.get("MOONSHOT_API_URL");
-    const baseUrl = url ? url.replace(/\/$/, '') : "https://api.moonshot.cn/v1";
-    return baseUrl.includes('chat/completions') ? baseUrl : `${baseUrl}/chat/completions`;
+  static get ANTHROPIC_API_KEY(): string | undefined {
+    return this.sanitize(Deno.env.get('ANTHROPIC_API_KEY'));
   }
 
   private static sanitize(key: string | undefined): string | undefined {
@@ -667,232 +657,63 @@ class Logger {
 // 2. AI SERVICE LAYER (RESILIENT)
 // ==========================================
 
-interface RetryConfig {
-  maxRetries: number;
-  baseDelay: number; // ms
-  maxDelay: number; // ms
-  timeout?: number; // ms
-}
-
-const DEFAULT_RETRY_CONFIG: RetryConfig = {
-  maxRetries: 3, // Increased for robustness
-  baseDelay: 1000,
-  maxDelay: 10000,
-  timeout: 180000 // 180s timeout per request (increased for Golden Module generation)
-};
-
-/**
- * Resilient Fetch Wrapper
- * Handles:
- * 1. Exponential Backoff
- * 2. Rate Limiting (429 Retry-After)
- * 3. Server Errors (5xx)
- * 4. Network Glitches
- * 5. Timeouts
- */
-async function fetchWithRetry(
-  url: string, 
-  options: RequestInit, 
-  config: RetryConfig = DEFAULT_RETRY_CONFIG
-): Promise<Response> {
-  let lastError: any;
-  
-  for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), config.timeout || 25000);
-    const fetchOptions = { ...options, signal: controller.signal };
-
-    try {
-      const response = await fetch(url, fetchOptions);
-      clearTimeout(timeoutId);
-      
-      // Success
-      if (response.ok) {
-        return response;
-      }
-      
-      // Handle Rate Limiting (429)
-      if (response.status === 429) {
-        const retryAfter = response.headers.get("Retry-After");
-        let delay = config.baseDelay * Math.pow(2, attempt); // Default exponential
-        
-        if (retryAfter) {
-          const seconds = parseInt(retryAfter, 10);
-          if (!isNaN(seconds)) {
-            delay = seconds * 1000;
-          }
-        }
-        
-        // Cap delay
-        delay = Math.min(delay, config.maxDelay);
-        
-        Logger.warn(`Rate limit hit (429). Retrying in ${delay}ms... (Attempt ${attempt + 1}/${config.maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-
-      // Handle Server Errors (5xx) - Retryable
-      if (response.status >= 500 && response.status < 600) {
-        const delay = Math.min(config.baseDelay * Math.pow(2, attempt), config.maxDelay);
-        Logger.warn(`Server error ${response.status}. Retrying in ${delay}ms... (Attempt ${attempt + 1}/${config.maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-
-      // Client Errors (4xx) - Usually NOT Retryable (except 429)
-      // Throw immediately for 400, 401, 403, 404
-      throw new Error(`Request failed with status ${response.status}: ${await response.text()}`);
-
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      lastError = error;
-      
-      // Don't retry if we just threw a non-retryable status error above
-      if (error.message.includes("Request failed with status")) {
-        throw error;
-      }
-
-      const delay = Math.min(config.baseDelay * Math.pow(2, attempt), config.maxDelay);
-      Logger.warn(`Network error: ${error.message}. Retrying in ${delay}ms... (Attempt ${attempt + 1}/${config.maxRetries})`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  
-  throw lastError;
-}
-
 interface IAIProvider {
   name: string;
   isConfigured(): boolean;
   generateContent(prompt: string): Promise<string>;
 }
 
-class GeminiProvider implements IAIProvider {
-  name = "Gemini";
+class ClaudeProvider implements IAIProvider {
+  name = "Claude";
 
   isConfigured(): boolean {
-    return !!Config.GEMINI_API_KEY;
+    return !!Config.ANTHROPIC_API_KEY;
   }
 
   async generateContent(prompt: string): Promise<string> {
-    const apiKey = Config.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("Gemini API Key missing");
+    const apiKey = Config.ANTHROPIC_API_KEY;
+    if (!apiKey) throw new Error("Anthropic API Key missing");
 
-    // We try modern models in order of preference, prioritizing Gemini 3 generation:
-    // 1. gemini-3.5-flash (Primary - latest and recommended)
-    // 2. gemini-3.1-flash-lite (Second choice - fast & cheap Gemini 3 Lite)
-    // 3. gemini-2.5-flash (Third choice - deprecated but active fallback until Oct 2026)
-    const models = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
-    
-    let lastError: any = null;
-    for (const model of models) {
-      try {
-        Logger.info(`Attempting Gemini model: ${model}...`);
-        return await this.callApi(model, apiKey, prompt);
-      } catch (error: any) {
-        lastError = error;
-        if (this.isFallbackTrigger(error)) {
-          Logger.warn(`Gemini model ${model} failed (${error.message}). Trying next fallback...`);
-          continue;
-        }
-        throw error;
-      }
-    }
-    throw new Error(`All Gemini models failed. Last error: ${lastError?.message}`);
-  }
-
-  private async callApi(model: string, key: string, prompt: string): Promise<string> {
-    // Try v1beta API - safest bet for now, v1 might need specific enablement
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-    const maskedKey = key.substring(0, 4) + "..." + key.substring(key.length - 4);
-    
-    // Log URL without key for debugging
-    Logger.info(`Calling Gemini API: ${url.replace(key, '***')} | Key: ${maskedKey}`);
+    const model = "claude-sonnet-5";
+    const maskedKey = apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length - 4);
+    Logger.info(`Calling Claude API: model=${model} | Key: ${maskedKey}`);
 
     try {
-      const response = await fetchWithRetry(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      const client = new Anthropic({ apiKey });
+      const response = await client.messages.create({
+        model,
+        max_tokens: 8192,
+        messages: [{ role: "user", content: prompt }]
       });
 
-      const data = await response.json();
-      
-      if (data.error) {
-         throw new Error(`Gemini API Error (${model}): ${data.error.message} [Key: ${maskedKey}]`);
+      let text = "";
+      for (const block of response.content) {
+        if (block.type === "text") {
+          text += block.text;
+        }
       }
 
-      if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          throw new Error(`Invalid response from Gemini (${model}): ${JSON.stringify(data)}`);
+      if (!text) {
+        throw new Error(`Invalid response from Claude (${model}): ${JSON.stringify(response)}`);
       }
+
       _lastCallUsage = {
-        inputTokens: data.usageMetadata?.promptTokenCount ?? 0,
-        outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
+        inputTokens: response.usage?.input_tokens ?? 0,
+        outputTokens: response.usage?.output_tokens ?? 0,
         model
       };
-      return data.candidates[0].content.parts[0].text;
+      return text;
     } catch (e: any) {
-      throw new Error(`Gemini Call Failed (${model}): ${e.message} [Key: ${maskedKey}]`);
-    }
-  }
-
-
-  private isFallbackTrigger(error: any): boolean {
-    // Fallback on 404 (not found), 503 (overloaded), or deprecation/retired errors
-    const msg = error.message || "";
-    return msg.includes("404") || 
-           msg.includes("503") || 
-           msg.includes("Overloaded") || 
-           msg.includes("deprecated") || 
-           msg.includes("retired") || 
-           msg.includes("not found");
-  }
-}
-
-class MoonshotProvider implements IAIProvider {
-  name = "Moonshot";
-
-  isConfigured(): boolean {
-    return !!Config.MOONSHOT_API_KEY;
-  }
-
-  async generateContent(prompt: string): Promise<string> {
-    const apiKey = Config.MOONSHOT_API_KEY;
-    if (!apiKey) throw new Error("Moonshot API Key missing");
-    
-    const maskedKey = apiKey.substring(0, 4) + "..." + apiKey.substring(apiKey.length - 4);
-    Logger.info(`Attempting Moonshot (Kimi)... Key: ${maskedKey}`);
-
-    try {
-      const response = await fetchWithRetry(Config.MOONSHOT_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: "moonshot-v1-8k",
-          messages: [
-            { role: "system", content: "You are a helpful assistant." },
-            { role: "user", content: prompt }
-          ],
-          temperature: 0.3
-        })
-      });
-
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(`Moonshot API Error: ${data.error.message} [Key: ${maskedKey}]`);
+      if (e instanceof Anthropic.AuthenticationError) {
+        throw new Error(`Claude API Key invalid [Key: ${maskedKey}]`);
       }
-      _lastCallUsage = {
-        inputTokens: data.usage?.prompt_tokens ?? 0,
-        outputTokens: data.usage?.completion_tokens ?? 0,
-        model: 'moonshot-v1-8k'
-      };
-      return data.choices[0].message.content;
-    } catch (e: any) {
-      throw new Error(`Moonshot Call Failed: ${e.message} [Key: ${maskedKey}]`);
+      if (e instanceof Anthropic.RateLimitError) {
+        throw new Error(`Claude Call Failed (${model}): rate limited [Key: ${maskedKey}]`);
+      }
+      if (e instanceof Anthropic.APIError) {
+        throw new Error(`Claude API Error (${model}): ${e.message} [Key: ${maskedKey}]`);
+      }
+      throw new Error(`Claude Call Failed (${model}): ${e.message} [Key: ${maskedKey}]`);
     }
   }
 }
@@ -902,8 +723,7 @@ class AIOrchestrator {
 
   constructor() {
     this.providers = [
-      new GeminiProvider(),
-      new MoonshotProvider()
+      new ClaudeProvider()
     ];
   }
 
@@ -3189,9 +3009,8 @@ serve(async (req) => {
 
     if (action === 'provider_status') {
       return new Response(JSON.stringify({
-        googleConfigured: !!Config.GEMINI_API_KEY,
-        moonshotConfigured: !!Config.MOONSHOT_API_KEY,
-        activeProvider: Config.GEMINI_API_KEY ? 'google' : (Config.MOONSHOT_API_KEY ? 'moonshot' : 'none')
+        claudeConfigured: !!Config.ANTHROPIC_API_KEY,
+        activeProvider: Config.ANTHROPIC_API_KEY ? 'claude' : 'none'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -3200,31 +3019,18 @@ serve(async (req) => {
     if (action === 'test_connection') {
        Logger.info("Starting connection test...");
        const results: any = {};
-       
-       // Test Gemini
-       try {
-         const gemini = new GeminiProvider();
-         if (gemini.isConfigured()) {
-            const resp = await gemini.generateContent("Hi");
-            results.gemini = { status: 200, ok: true, body: resp };
-         } else {
-            results.gemini = { status: "missing_key" };
-         }
-       } catch (e: any) {
-         results.gemini = { error: e.message };
-       }
 
-       // Test Moonshot
+       // Test Claude
        try {
-         const moonshot = new MoonshotProvider();
-         if (moonshot.isConfigured()) {
-            const resp = await moonshot.generateContent("Hi");
-            results.moonshot = { status: 200, ok: true, body: resp };
+         const claude = new ClaudeProvider();
+         if (claude.isConfigured()) {
+            const resp = await claude.generateContent("Hi");
+            results.claude = { status: 200, ok: true, body: resp };
          } else {
-            results.moonshot = { status: "missing_key" };
+            results.claude = { status: "missing_key" };
          }
        } catch (e: any) {
-         results.moonshot = { error: e.message };
+         results.claude = { error: e.message };
        }
 
        return new Response(JSON.stringify(results), {

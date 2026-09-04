@@ -1,11 +1,10 @@
 // ==========================================
 // EDGE FUNCTION: analyze-slide
-// VERSION: v2.5-FLASH
-// FORCE DEPLOY: 2026-06-20
+// VERSION: v3.0-CLAUDE
 // ==========================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { GoogleGenerativeAI } from "npm:@google/generative-ai";
+import Anthropic from "npm:@anthropic-ai/sdk";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,18 +26,18 @@ serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get('GEMINI_API_KEY');
+    const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!apiKey) {
-      throw new Error("GEMINI_API_KEY not configured");
+      throw new Error("ANTHROPIC_API_KEY not configured");
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const models = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"];
+    const client = new Anthropic({ apiKey });
+    const model = "claude-sonnet-5";
 
     const systemPrompt = `
-      You are an expert instructional designer and presentation architect. 
+      You are an expert instructional designer and presentation architect.
       Analyze the following slide content (Markdown) and decide on the best visual layout.
-      
+
       You MUST return a VALID JSON object with this exact structure:
       {
         "layout": "HERO" | "SPLIT_LEFT" | "SPLIT_RIGHT" | "BIG_STAT" | "COMPARISON" | "QUOTATION" | "TRIAD" | "TIMELINE" | "DEFAULT",
@@ -67,28 +66,32 @@ serve(async (req) => {
     let success = false;
     let lastError: any = null;
 
-    for (const modelName of models) {
-      try {
-        console.log(`[analyze-slide] Attempting model: ${modelName}...`);
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        responseText = response.text();
-        success = true;
-        break;
-      } catch (err: any) {
-        lastError = err;
-        console.warn(`[analyze-slide] Model ${modelName} failed (${err.message}). Trying next fallback...`);
+    try {
+      console.log(`[analyze-slide] Calling Claude model: ${model}...`);
+      const result = await client.messages.create({
+        model,
+        max_tokens: 2048,
+        messages: [{ role: "user", content: prompt }]
+      });
+
+      for (const block of result.content) {
+        if (block.type === "text") {
+          responseText += block.text;
+        }
       }
+      success = !!responseText;
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`[analyze-slide] Claude call failed (${err.message}).`);
     }
 
     if (!success) {
-      throw new Error(`All slide analysis models failed. Last error: ${lastError?.message}`);
+      throw new Error(`Slide analysis failed. Last error: ${lastError?.message}`);
     }
 
     // Clean up markdown code blocks if present
     const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-    
+
     let jsonResponse;
     try {
         jsonResponse = JSON.parse(cleanedText);
