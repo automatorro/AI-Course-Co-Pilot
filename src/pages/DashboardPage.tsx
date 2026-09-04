@@ -9,6 +9,7 @@ import { supabase } from '../services/supabaseClient';
 import { Course, GenerationEnvironment } from '../types';
 import { PRICING_PLANS } from '../constants';
 import { deleteCourseById } from '../services/courseService';
+import { generateLocalizedLabels } from '../services/geminiService';
 import { PlusCircle, Loader2, Edit, Copy, Download, Trash2, Rocket, X } from 'lucide-react';
 import { exportCourseAsZip, getSlideModelsForPreview, getPedagogicWarnings } from '../services/exportService';
 import ConfirmModal from '../components/ConfirmModal';
@@ -121,6 +122,12 @@ const DashboardPage: React.FC = () => {
   }) => {
     if (!user) return;
 
+    const localizedLabels = await generateLocalizedLabels({
+      language: details.language,
+      title: details.title,
+      subject: details.subject,
+    });
+
     // 1. Insert the course
     const { data: newCourseData, error: courseError } = await supabase
       .from('courses')
@@ -132,6 +139,7 @@ const DashboardPage: React.FC = () => {
         environment: details.environment,
         language: details.language,
         learning_objectives: details.learningObjectives || null,
+        localized_labels: localizedLabels,
         progress: 0,
       })
       .select('*, steps:course_steps(*)')
@@ -167,6 +175,7 @@ const DashboardPage: React.FC = () => {
         environment: originalCourse.environment,
         language: originalCourse.language,
         learning_objectives: originalCourse.learning_objectives || null,
+        localized_labels: originalCourse.localized_labels || null,
         blueprint: originalCourse.blueprint || null,
         dna: originalCourse.dna || null,
         progress: 0,

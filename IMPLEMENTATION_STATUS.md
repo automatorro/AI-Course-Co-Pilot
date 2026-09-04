@@ -11,14 +11,26 @@ Convenții:
 
 ---
 
-## ▶ REIA DE AICI (scris 2026-09-04, sesiunea S08 — migrare LLM provider Gemini → Claude)
+## ▶ REIA DE AICI (scris 2026-09-04, sesiunea S11 — migrare LLM provider Gemini → Claude)
 
-**Task-ul acestei sesiuni** (cerut direct de owner, NU parte din planul F0-F10 formal): înlocuirea
-completă a Google Gemini cu Anthropic Claude (`claude-sonnet-5`) ca provider LLM al aplicației,
-plus eliminarea fallback-ului Moonshot/Kimi (decizie explicită owner). Detalii complete în secțiunea
-nouă **„Migrare LLM provider: Gemini → Claude (2026-09-04)"** de mai jos.
+**Stare F2 (moștenită din S08-S10, neatinsă de S11):** F2 e la T1 IN_PROGRESS · T2 IN_PROGRESS ·
+T3 DONE · T4 DONE · T5 DONE. M2 rămâne TODO. În S08 a fost creat `src/tests/languagePurity.test.ts`
+(2/2 verde). În S09-S10 a fost construit mecanismul `LocalizedLabels` (contract static + fallback EN
+în `src/constants/localizedLabels.ts`, câmpul `Course.localized_labels`, migrarea
+`supabase/migrations/20260903_add_localized_labels_to_courses.sql` — **rulată și confirmată de
+owner pe 2026-09-03**, acțiunea server `generate_localized_labels`, wrapper client
+`generateLocalizedLabels` în `geminiService.ts`, persistare la creare/duplicare curs în
+`DashboardPage.tsx`). Rămâne TODO din S10: validarea executabilă în checkout-ul sincronizat și
+sterilizarea consumatorilor activi rămași care încă au etichete hardcodate (nu `{{label_*}}`).
 
-**Ce e gata (cod, verificat local):**
+**Task-ul S11** (cerut direct de owner, NU parte din planul F0-F10 formal): înlocuirea completă a
+Google Gemini cu Anthropic Claude (`claude-sonnet-5`) ca provider LLM al aplicației, plus eliminarea
+fallback-ului Moonshot/Kimi (decizie explicită owner). Detalii complete în secțiunea nouă
+**„Migrare LLM provider: Gemini → Claude (2026-09-04)"** de mai jos. `generate_localized_labels`
+(din S09-S10) rulează automat prin noul `ClaudeProvider` odată cu acest merge — folosește `callLLM`,
+neschimbat de migrare.
+
+**Ce e gata (cod, verificat local, S11):**
 - `supabase/functions/generate-course-content/index.ts` — `GeminiProvider`/`MoonshotProvider`/
   `fetchWithRetry` șterse; `ClaudeProvider` nou (SDK `npm:@anthropic-ai/sdk`, model `claude-sonnet-5`,
   `max_tokens: 8192`); `AIOrchestrator` cu un singur provider; `provider_status`/`test_connection`
@@ -30,8 +42,12 @@ nouă **„Migrare LLM provider: Gemini → Claude (2026-09-04)"** de mai jos.
 - Migrație SQL nouă scrisă: `supabase/migrations/20260904_claude_pricing.sql` (branch de preț Claude
   în view-ul `usage_logs_with_cost`, Gemini/Moonshot rămân neatinse pentru istoricul de cost).
 - `npm run typecheck` verde, `npx vitest run` → 12/13 verde (D-003 neschimbat, singurul eșec cunoscut).
+- Merge cu `origin/main` (commit-urile S08-S10, „Localised Labels") efectuat local — fără conflicte
+  de logică reale, doar pe acest fișier de status. `IMPLEMENTATION_STATUS.md`, `DashboardPage.tsx` și
+  `index.ts` s-au suprapus, dar pe zone diferite de cod — rezolvate manual, typecheck+teste re-verificate
+  după merge.
 
-**Ce e BLOCAT — acțiune owner obligatorie înainte ca funcționalitatea să meargă live:**
+**Ce e BLOCAT — acțiune owner obligatorie înainte ca funcționalitatea Claude să meargă live:**
 1. **Secret nou**: adaugă manual `ANTHROPIC_API_KEY` în Supabase Dashboard → Edge Functions → Secrets
    (la fel cum sunt gestionate azi `GEMINI_API_KEY`/`MOONSHOT_API_KEY` — CI-ul nu setează niciodată
    secrete, conform `CLAUDE.md § Convenții/CI`). `GEMINI_API_KEY`/`MOONSHOT_API_KEY` pot fi șterse
@@ -39,29 +55,17 @@ nouă **„Migrare LLM provider: Gemini → Claude (2026-09-04)"** de mai jos.
 2. **Migrație SQL**: rulează manual `supabase/migrations/20260904_claude_pricing.sql` (SQL-ul complet
    a fost postat în chat conform `CLAUDE.md § Reguli owner → 1`) — până atunci, orice cost Claude
    logat cade pe fallback-ul de preț Flash (greșit) în `UsageSection.tsx`.
-3. **Deploy + smoke**: după push, verifică explicit concluzia run-ului CI (`deploy-supabase-functions.yml`,
-   conform `CLAUDE.md § Convenții/CI` — nu presupune că a mers). Apoi în Dashboard: „Health check" arată
-   „Claude" ca provider activ; generează un curs mic complet; confirmă că `UsageSection` arată cost
-   calculat cu prețul Claude (nu Flash).
+3. **Deploy + smoke**: din S11 înainte, push-ul merge direct pe `main` (regulă nouă owner, vezi
+   `CLAUDE.md § Convenții/Git`) — verifică explicit concluzia run-ului CI
+   (`deploy-supabase-functions.yml`) după fiecare push care atinge `supabase/functions/**`. Apoi în
+   Dashboard: „Health check" arată „Claude" ca provider activ; generează un curs mic complet; confirmă
+   că `UsageSection` arată cost calculat cu prețul Claude (nu Flash).
 
-**Pasul concret următor (task separat, marcat explicit de owner ca prioritate mare — NU se uită):**
-**Investigația facturii disproporționate Gemini** (~$30 pentru 3-4 cursuri iterate în 3 zile). Two
-leaduri concrete găsite deja în cod, netratate încă:
-- Apelul Gemini (acum șters, dar relevant istoric pentru „de ce s-a întâmplat") nu seta niciun
-  `generationConfig`/`maxOutputTokens` — output neplafonat. Claude rezolvă asta structural (`max_tokens`
-  obligatoriu), dar nu explică retroactiv factura.
-- Tabelul `ai_cache` (`supabase/migrations/20250224_add_ai_cache.sql`, cheie unică pe `prompt_hash`)
-  **hardcodat pentru caching de răspunsuri AI, dar niciodată referențiat în `index.ts`** — infrastructură
-  moartă, zero deduplicare de apeluri identice/retry-uri. Candidat solid pentru cost dublat/multiplicat.
-- De verificat și: bug-ul de „iterare per-modul" menționat în S05 (parțial reparat) — posibil apeluri
-  AI duplicate per modul dacă nu e complet reparat.
-
-**Task-ul F2-T5 din planul F0-F10** (test puritate lingvistică) rămâne TODO, neatins de această sesiune —
-vezi paragraful de status de mai jos, neschimbat față de S07.
-
-**Stare F0-F10 (neschimbată față de S07):** F2 e la T1 TODO · T2 IN_PROGRESS · T3 DONE · T4 DONE ·
-T5 TODO. M2 rămâne TODO. Verificarea Supabase §B e confirmată de owner (2026-08-14). CI-ul s-a reparat
-pe 15 august — vezi D-014.
+**Investigația de cost (cerută explicit de owner ca prioritate mare, IMPLEMENTATĂ în S11 — vezi
+secțiunea dedicată mai jos):** cele trei recomandări (deduplicare `ai_cache`, plafon global de retry,
+logare completă a token-ilor indiferent de validarea proprie) au fost cerute obligatoriu de owner și
+implementate în aceeași sesiune. Detalii complete + avertismentul despre ce NU e acoperit de aceste
+trei fixuri în secțiunea **„Investigație cost — fixuri implementate (2026-09-04, S11)"** de mai jos.
 
 ### Blocantul #1 — smoke-ul F1-T4 (owner, ~15 min)
 
@@ -70,10 +74,16 @@ Nu mai e blocat de deploy. `generate-course-content` rulează live exact codul d
 creează cursul-etalon RO → generează complet → cele 3 verificări). Când confirmi „F1 smoke OK",
 M1 devine DONE. Până atunci M1 rămâne ALMOST și F1-T4 rămâne BLOCKED — nu se bifează pe presupunere.
 
-### Task următor de cod: F2-T5 — Test puritate lingvistică
+### Task imediat următor: validare F2-T1/T2 și consumatorii activi
 
-De scris `src/tests/languagePurity.test.ts`. Pe etalonul EN: 0 apariții headere RO și 0 diacritice;
-pe RO: 0 headere EN. Node 22 e disponibil în mediul remote, deci se scrie și se rulează direct.
+F2-T5 este validat: `npx vitest run src/tests/languagePurity.test.ts` → 2/2 verde, iar `npm run typecheck`
+→ 0 erori. În S09 a fost adăugat contractul static `LocalizedLabels` + fallback-ul EN în
+`src/constants/localizedLabels.ts`, câmpul opțional `Course.localized_labels` și migrarea
+`supabase/migrations/20260903_add_localized_labels_to_courses.sql`. Ownerul a confirmat pe 2026-09-03
+că migrarea a fost rulată și este în ordine. În S10 inventarul celor 18 etichete active a devenit
+contract runtime; acțiunea `generate_localized_labels` are prompt JSON strict, validare de schemă și
+fallback EN. Fluxul de creare/duplicare persistă rezultatul în `courses.localized_labels`. Rămâne
+validarea executabilă în checkout-ul sincronizat și sterilizarea consumatorilor activi rămași.
 **Atenție la comandă:** `npm test` e `vitest` în **watch mode** — blochează la infinit într-o
 sesiune neinteractivă. Rulează `npx vitest run` (vezi nota din §A).
 
@@ -124,7 +134,7 @@ Niciuna din cele de mai sus nu e parte din F2–F10 formal. Sunt fix-uri/feature
 
 ---
 
-## Migrare LLM provider: Gemini → Claude (2026-09-04, sesiunea S08)
+## Migrare LLM provider: Gemini → Claude (2026-09-04, sesiunea S11)
 
 Inițiativă separată de planul de refactor F0-F10 — cerută direct de owner. Nu modifică nicio bornă
 M0-M10. Motiv: factură Gemini disproporționată (~$30 / 3-4 cursuri / 3 zile) + dorința de a testa
@@ -191,10 +201,35 @@ ulterior, opțional.
 - **Nu s-a putut testa generarea live** din acest mediu (fără `ANTHROPIC_API_KEY`, fără acces la
   instanța Supabase reală) — vezi pașii de verificare owner mai sus, în §REIA DE AICI.
 
-### Task următor — investigația de cost (marcată explicit prioritate mare de owner)
-Vezi §REIA DE AICI de mai sus pentru leadurile deja identificate (`ai_cache` neconectat, lipsă
-`maxOutputTokens` la Gemini, posibil bug de iterare per-modul). Se abordează imediat după ce se
-confirmă migrarea Claude funcțională live.
+### Investigație cost — fixuri implementate (2026-09-04, S11)
+
+Owner-ul a cerut explicit, obligatoriu, implementarea imediată a celor trei recomandări (nu doar
+documentarea lor), în aceeași sesiune ca migrarea Claude. Detalii per fix:
+
+1. **Deduplicare `ai_cache`** — conectat în `callLLM`: înainte de `orchestrator.execute(prompt)`,
+   se caută un hash SHA-256 al promptului în `ai_cache`; dacă există, se returnează `response`-ul
+   cached fără niciun apel LLM nou. După un apel reușit, răspunsul se scrie în `ai_cache` (fire-and-forget,
+   nu blochează răspunsul către utilizator). Elimină costul retry-urilor pe prompt identic.
+2. **Plafon global de retry per generare** — variabilă nouă `_retryBudget` (per-request, resetată la
+   începutul fiecărei acțiuni), decrementată la fiecare `retryWithStrictInstructions`; peste prag,
+   se oprește cu „best effort" în loc să tot reîncerce. Nu elimină retry-ul per-modul din
+   `GenerationProgressModal.tsx` (client-side, alt fișier/strat) — doar plafonează stratul server.
+3. **Logare completă a token-ilor** — `_lastCallUsage` se populează acum din `response.usage` **imediat**
+   ce Claude API întoarce un răspuns cu `usage`, înainte de orice validare proprie (conținut gol, JSON
+   invalid etc.) — deci un apel care consumă tokeni reali dar eșuează validarea internă tot ajunge în
+   `user_usage`, nu mai e invizibil.
+
+**Avertisment onest, ca să nu se creadă că problema e 100% închisă:** aceste trei fixuri acoperă
+mecanismele găsite prin analiză statică a codului — nu am avut acces la factura reală Google Cloud
+sau la datele reale din `user_usage` pentru cursurile în cauză, deci nu pot confirma că sunt SINGURA
+cauză. Rămân neverificate/neexcluse: bug-ul de „iterare per-modul" din S05 (verificat parțial reparat,
+nu 100% reconfirmat aici); eventuale cursuri abandonate la jumătate în timpul testării manuale a
+owner-ului (fiecare buton apăsat = tokeni reali consumați, indiferent dacă cursul a fost dus la capăt);
+și o posibilă cursă de concurență teoretică pe `_lastCallUsage` (variabilă globală la nivel de modul,
+într-un isolate Deno cald care poate servi request-uri concurente) — semnalată, dar nedemonstrată,
+neremediată aici (ar necesita eliminarea completă a stării globale mutable, schimbare mai amplă decât
+plafonul acceptat pentru un fix imediat). Dacă factura rămâne disproporționată și cu Claude, aceste
+piste rămân de verificat în continuare.
 
 ---
 
@@ -260,7 +295,7 @@ rând cu ☐, se postează SQL-ul complet în chat, se bifează doar după confi
 - **DoD F1:** M1 parțial — typecheck ✔, 12/12 teste (D-003), deploy live ✔ (D-014). Grep `ProtagonistEnforcer|refineCourseContent|editorRefineButton|inferProtagonistFromAudience|getOrCreateStoryArc|story_arc` în src/+supabase/ → **2 rezultate, ambele acceptabile** (verificat 2026-08-17; formularea „→ 0" de dinainte era inexactă): ambele sunt în `supabase/migrations/20240128000001_add_story_arc_to_courses.sql`, migrația istorică ce a adăugat coloana `courses.story_arc`. Migrațiile deja rulate nu se rescriu — sunt istoric, nu cod viu. În `src/` și în `supabase/functions/` grep-ul dă efectiv 0. **Consecință de reținut:** coloana `courses.story_arc` probabil încă există în DB deși conceptul a fost șters din cod → intră în „migrația de curățare" din F10-T4. Rămâne smoke-ul live la owner.
 
 ### F2 — Fundația de localizare (2 zile) · Risc: mediu
-- **F2-T1** [TODO] `localizedLabels`: inventar complet + promptul A.4.1 + migrație `courses.localized_labels jsonb` + fallback EN static + generare la crearea cursului. Notă 2026-08-08: există deja un mecanism separat, paralel — `GoldenModuleData.localizedLabels` (schema `types.ts`, generat de `GOLDEN_MASTER_PROMPT`) — AI-generat per apel, fără migrație/fallback static. F2-T1, când se face, trebuie să decidă dacă înlocuiește sau se construiește peste acest mecanism existent, nu să-l ignore.
+- **F2-T1** [IN_PROGRESS 2026-09-03] `LocalizedLabels` + fallback EN static, schema runtime, promptul `generate_localized_labels`, wrapper-ul client și persistarea la creare/duplicare adăugate; migrarea rulată și confirmată de owner. Rămân validarea executabilă în checkout-ul sincronizat și conectarea consumatorilor activi la labels. Mecanismul paralel `GoldenModuleData.localizedLabels` rămâne separat până la F3/F4.
 - **F2-T2** [IN_PROGRESS] Sterilizarea șabloanelor cu headere/etichete hardcodate în română, indiferent de `{{language}}`. **Verificat 2026-08-08 că bug-ul e live**: `WORKBOOK_PROMPT`, `MANUAL_PROMPT`, `EXERCISES_PROMPT`, `VIDEO_SCRIPT_PROMPT` sunt toate atinse prin `handleGoldenStep` → `generateLessonContent`/generare per-modul (calea implicită, `contractPipeline: true`) — deci NU sunt cod mort. Corectat (2 commit-uri, 2026-08-08):
   - Cele 4 șabloane de mai sus: headere/etichete traduse din română + regulă explicită de traducere adăugată. `SLIDES_PROMPT` era deja curat.
   - `COST_ZERO_SLIDES_LABELS`/`generateCostZeroSlides`: fallback-ul alegea RO pentru orice limbă ≠ EN (deci și DE/FR/ES/IT din `src/languages.ts` — ~100 limbi în `ALL_LANGUAGES` — primeau etichete românești); corectat să cadă pe EN pentru orice ≠ RO. Adăugate și 2 bullet-uri hardcodate RO lipsă din dicționar.
@@ -269,10 +304,10 @@ rând cu ☐, se postează SQL-ul complet în chat, se bifează doar după confi
   - `buildFallbackModuleContext`, fallback-ul final din generarea obiectivelor, fallback-urile de eroare din `handleChatOnboarding` (analiză + blueprint), `generateWorkbookIntro`/`generateWorkbookOutro`: toate aveau text hardcodat RO în ramuri de fallback/eroare, folosit indiferent de `course.language`/`lang` — deși variabila de limbă era deja disponibilă în scope. Corectate cu ramificare pe limbă (RO explicit, altfel EN).
   - **Verificat și exclus din scope** (documentat, neatins): `GOLDEN_SAMPLES.structure_online`/`exercises_live` și întregul subsistem `GoldenModuleData`/`GOLDEN_MASTER_PROMPT`/`renderToMarkdown`/`renderWorkbookSection` etc. — cod mort confirmat, zero apelanți (`renderToMarkdown` nu e apelat de nicăieri; `prompts/golden-master.ts` nu e importat în `index.ts`) — vezi D-011. Mesajul de „credit_limit_exceeded" (linia ~2954) rămâne hardcodat RO — e nivel de aplicație/utilizator, nu conținut de curs, deci în afara scope-ului F2 (candidat pentru o localizare separată a UI-ului de eroare, nu a materialelor generate).
   - Nu s-a putut rula typecheck local (fără Node/npm, D-012) — verificare manuală, diff simetric, backtick-uri verificate pereche cu pereche. (Rulat ulterior: typecheck verde, vezi D-013.)
-  - Rămas TODO: prompturile globale rămase (structure/blueprint în afara celor verificate), inventarul complet cerut de F2-T1 pentru migrația spre `{{label_*}}`.
+   - Rămas TODO: prompturile globale rămase (structure/blueprint în afara celor verificate) și înlocuirea etichetelor hardcodate din consumatorii activi cu `{{label_*}}`.
 - **F2-T3** [DONE 2026-08-14] Validare de limbă uniformă: `skipAiValidation` eliminat complet (parametru șters din `callLLM`, `retryWithStrictInstructions` și toate cele 5 funcții generatoare — `generateWorkbookContent`, `generateManualContent`, `generateExercisesContent`, `generateVideoScriptContent`, `generateExamplesContent`); detectorul rulează acum pe orice output ≥400 chars (prag pe conținut raw, nu pe sample); `LANG_SIGNATURES` extins cu `it`, `pt`, `nl`, `pl`; adăugat `NON_LATIN_SCRIPTS` (regex Unicode) pentru 26 limbi cu scripturi non-latine (ar, he, ru, uk, bg, sr, zh, zh-TW, ja, ko, el, hi, bn, th, ka, am, km, lo, my, si, ta, te, kn, ml, gu, pa) — detecție fiabilă fără n-gram counting. Maximum 1 retry deja implementat (neschimbat). Typecheck verde.
 - **F2-T4** [DONE 2026-08-14] Meta-instrucțiuni EN, conținut verbatim (regula A.1) — MANUAL_PROMPT: eliminat "Romanian" din CRITICAL RULES + eliminat "# Modul:" hardcodat din OUTPUT FORMAT
-- **F2-T5** [TODO] `src/tests/languagePurity.test.ts`: pe etalonul EN → 0 apariții headere RO și 0 diacritice; pe RO → 0 headere EN
+- **F2-T5** [DONE 2026-09-03] `src/tests/languagePurity.test.ts`; pe etalonul EN → 0 apariții headere RO și 0 diacritice; pe RO → 0 headere EN. Test focalizat 2/2 verde; typecheck verde.
 - **DoD F2:** M2 — testul verde pe EN și RO; inspecție manuală fără amestec
 
 ### F3 — Instalarea arhitecturii de prompturi + contractul de modul (3 zile) · Risc: mare, izolat

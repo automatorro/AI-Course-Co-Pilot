@@ -686,6 +686,16 @@ class ClaudeProvider implements IAIProvider {
         messages: [{ role: "user", content: prompt }]
       });
 
+      // Capture usage immediately — the tokens are billed by Anthropic as soon as
+      // the response comes back, regardless of whether our own text-extraction
+      // check below finds usable content. Setting this after the check would
+      // silently lose real spend whenever a response fails our validation.
+      _lastCallUsage = {
+        inputTokens: response.usage?.input_tokens ?? 0,
+        outputTokens: response.usage?.output_tokens ?? 0,
+        model
+      };
+
       let text = "";
       for (const block of response.content) {
         if (block.type === "text") {
@@ -697,11 +707,6 @@ class ClaudeProvider implements IAIProvider {
         throw new Error(`Invalid response from Claude (${model}): ${JSON.stringify(response)}`);
       }
 
-      _lastCallUsage = {
-        inputTokens: response.usage?.input_tokens ?? 0,
-        outputTokens: response.usage?.output_tokens ?? 0,
-        model
-      };
       return text;
     } catch (e: any) {
       if (e instanceof Anthropic.AuthenticationError) {
@@ -761,6 +766,12 @@ let _lastCallUsage = { inputTokens: 0, outputTokens: 0, model: 'unknown' };
 // Set once per request from the auth header; read by callLLM for logging.
 let _requestUserId = '';
 let _requestAction = 'generate';
+// Global retry budget for the CURRENT request (reset in the top-level `serve` handler).
+// callLLM can be invoked many times while handling one action (module context,
+// per-section content, etc.); without a cross-call cap, each of those calls could
+// independently retry on a language-purity failure, compounding cost unboundedly
+// across a single request. Once exhausted, callLLM returns best-effort instead of retrying.
+let _retryBudget = 5;
 
 // Cost in AI operations per action type — derived from actual frontend action names
 const ACTION_OPERATION_COSTS: Record<string, number> = {
@@ -773,6 +784,7 @@ const ACTION_OPERATION_COSTS: Record<string, number> = {
   generate_step_content: 1,
   generate_blueprint: 1,
   generate_learning_objectives: 1,
+  generate_localized_labels: 1,
   backfill_key_takeaways: 1,
   // Legacy names (kept for backward compat)
   generate_workbook: 2,
@@ -1098,32 +1110,95 @@ function containsBannedPhrases(content: string, language: string = 'ro'): boolea
   return false;
 }
 
+// ==========================================
+// AI RESPONSE CACHE (dedup on identical prompts — see ai_cache table)
+// ==========================================
+
+function getServiceClient() {
+  return createClient(Config.SUPABASE_URL, Config.SUPABASE_SERVICE_ROLE_KEY);
+}
+
+async function hashPrompt(prompt: string): Promise<string> {
+  const bytes = new TextEncoder().encode(prompt);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function getCachedResponse(promptHash: string): Promise<string | null> {
+  try {
+    const { data, error } = await getServiceClient()
+      .from('ai_cache')
+      .select('response')
+      .eq('prompt_hash', promptHash)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data.response ?? null;
+  } catch (e) {
+    Logger.warn(`[ai_cache] Read failed: ${e}`);
+    return null;
+  }
+}
+
+function cacheResponseFireAndForget(promptHash: string, prompt: string, response: string, model: string): void {
+  getServiceClient()
+    .from('ai_cache')
+    .insert({ prompt_hash: promptHash, prompt: prompt.slice(0, 5000), response, model, provider: 'anthropic' })
+    .then(({ error }: { error: any }) => {
+      // 23505 = unique_violation: another concurrent call already cached this prompt — not an error.
+      if (error && error.code !== '23505') {
+        Logger.warn(`[ai_cache] Insert failed: ${error.message}`);
+      }
+    });
+}
+
 // Helper wrapper for existing business logic with RETRY & CLEANUP
 async function callLLM(prompt: string, language: string = 'ro', isRetry: boolean = false): Promise<string> {
-  let response = await orchestrator.execute(prompt);
-
-  // Log token usage fire-and-forget after each successful AI call
-  if (_requestUserId && _lastCallUsage.inputTokens > 0) {
-    logUsageFireAndForget(_requestUserId, _lastCallUsage.inputTokens, _lastCallUsage.outputTokens, _lastCallUsage.model, _requestAction);
+  const promptHash = await hashPrompt(prompt);
+  if (!isRetry) {
+    const cached = await getCachedResponse(promptHash);
+    if (cached) {
+      Logger.info('[ai_cache] Cache hit — skipping LLM call.');
+      return cached;
+    }
   }
+
+  // Reset before the attempt so a call that fails BEFORE getting any response
+  // (auth/network error) never re-logs a stale usage value from a prior call.
+  _lastCallUsage = { inputTokens: 0, outputTokens: 0, model: 'unknown' };
+  let response: string;
+  try {
+    response = await orchestrator.execute(prompt);
+  } finally {
+    // Log whatever usage the provider captured for THIS attempt, even if it
+    // then threw (e.g. our own text-validation rejected an otherwise-billed
+    // response) — real spend must not go untracked just because our own
+    // validation rejected the output.
+    if (_requestUserId && _lastCallUsage.inputTokens > 0) {
+      logUsageFireAndForget(_requestUserId, _lastCallUsage.inputTokens, _lastCallUsage.outputTokens, _lastCallUsage.model, _requestAction);
+    }
+  }
+
+  cacheResponseFireAndForget(promptHash, prompt, response, _lastCallUsage.model);
 
   // Phase 1: Fast Static Check
   if (containsBannedPhrases(response, language)) {
-    if (isRetry) {
-      Logger.warn("Content still contains banned phrases after retry. Returning best effort.");
+    if (isRetry || _retryBudget <= 0) {
+      Logger.warn("Content still contains banned phrases after retry (or retry budget exhausted). Returning best effort.");
       return response;
     }
     Logger.warn(`Banned phrases detected (Static Check - Lang: ${language}). Retrying...`);
+    _retryBudget--;
     return retryWithStrictInstructions(prompt, language, "Contains banned phrases (e.g. English words in Romanian text).");
   }
 
   // Phase 2: Deterministic Language Detector (replaces LLM Judge — zero extra AI calls)
   const langCheck = detectLanguageDeterministically(response, language);
   if (!langCheck.valid) {
-    if (isRetry) {
-      Logger.warn(`[callLLM] Language check rejected RETRY attempt: ${langCheck.reason}. Returning best effort.`);
+    if (isRetry || _retryBudget <= 0) {
+      Logger.warn(`[callLLM] Language check rejected RETRY attempt or retry budget exhausted: ${langCheck.reason}. Returning best effort.`);
     } else {
       Logger.warn(`[callLLM] Language mismatch detected (confidence: ${Math.round((langCheck.confidence || 0) * 100)}%): ${langCheck.reason}. Retrying with strict instructions.`);
+      _retryBudget--;
       return retryWithStrictInstructions(prompt, language, langCheck.reason);
     }
   } else {
@@ -2902,6 +2977,10 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
+    // Reset the per-request retry budget so a prior (warm-isolate) request's
+    // leftover count can never affect this one.
+    _retryBudget = 5;
+
     Logger.info(`Request received. Action: ${action}`);
 
     // ==========================================
@@ -3071,6 +3150,14 @@ serve(async (req) => {
         return new Response(JSON.stringify({ content: result }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
+    }
+
+    if (action === 'generate_localized_labels') {
+      const { course, language } = body;
+      const result = await handleGenerateLocalizedLabels(course, language);
+      return new Response(JSON.stringify({ labels: result }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     if (action === 'chat_onboarding') {
@@ -4593,6 +4680,50 @@ async function handleCompleteSectionsForImport(blueprint: any, environment: stri
   `;
 
   return await callLLM(prompt);
+}
+
+const LOCALIZED_LABEL_KEYS = [
+  'duration', 'format', 'section', 'theory', 'keyTakeaways', 'actionPlan', 'reflection',
+  'trainerInstructions', 'method', 'logistics', 'script', 'activity', 'objective',
+  'instructionsParticipant', 'instructionsFacilitator', 'debrief', 'example', 'videoScript',
+] as const;
+
+type LocalizedLabels = Record<typeof LOCALIZED_LABEL_KEYS[number], string>;
+
+function getDefaultEnglishLabels(): LocalizedLabels {
+  return {
+    duration: 'Duration', format: 'Format', section: 'Section', theory: 'Theory & Concepts',
+    keyTakeaways: 'Key Takeaways', actionPlan: 'Action Plan', reflection: 'Reflection',
+    trainerInstructions: 'Trainer Instructions', method: 'Method', logistics: 'Logistics',
+    script: 'Script', activity: 'Activity', objective: 'Objective',
+    instructionsParticipant: 'Participant Instructions', instructionsFacilitator: 'Facilitator Instructions',
+    debrief: 'Debrief', example: 'Example', videoScript: 'Video Script',
+  };
+}
+
+async function handleGenerateLocalizedLabels(course: any, language: string = 'en'): Promise<LocalizedLabels> {
+  const fallback = getDefaultEnglishLabels();
+  const prompt = `
+You are a localization editor for training materials.
+Translate the 18 UI and heading labels below into ${language}.
+Return ONLY one JSON object with exactly these keys and string values. Do not add or remove keys.
+Keep the meaning concise and natural for professional training materials.
+
+Keys: ${LOCALIZED_LABEL_KEYS.join(', ')}
+Course title: ${course?.title || 'Training course'}
+Subject: ${course?.subject || 'General training'}
+`;
+
+  try {
+    const raw = await callLLM(prompt, language);
+    const parsed = repairAndParseJson<Partial<LocalizedLabels>>(raw);
+    const valid = LOCALIZED_LABEL_KEYS.every(key => typeof parsed?.[key] === 'string' && parsed[key]!.trim().length > 0);
+    if (valid) return parsed as LocalizedLabels;
+    Logger.warn('[LocalizedLabels] Invalid label set; using English fallback.');
+  } catch (error) {
+    Logger.warn('[LocalizedLabels] Generation failed; using English fallback.', error);
+  }
+  return fallback;
 }
 
 async function handleGenerateLearningObjectives(course: any): Promise<string> {
