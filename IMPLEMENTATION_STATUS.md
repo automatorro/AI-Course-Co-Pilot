@@ -78,8 +78,26 @@ anon key-ul public din `src/services/supabaseClient.ts`, acțiuni fără cost AI
 `{"claude":{"status":200,"ok":true,"body":"Hi! How can I help you today?"}}`. `analyze-slide` la fel,
 confirmat anterior. **Migrarea Gemini → Claude e complet funcțională end-to-end.**
 
-Rămâne un singur pas, ne-blocant pentru cod: **owner-ul verifică generarea reală a unui curs complet**
-din UI (nu doar health-check), ca ultimă confirmare că totul se leagă corect cap-coadă.
+**Testul real din UI (owner, 2026-09-05) a mai găsit o problemă — dar NU de cod, NU de Claude:**
+„Edge Function returned a non-2xx status code" la „Define Learning Objectives". Diagnosticat din
+logurile Supabase trimise de owner:
+```
+[CreditGate] User 0a6d90f6-b687-49b2-b392-c78e794e5af3 is over limit: 56/50
+```
+Cererea a fost blocată de **gate-ul intern de credite AI al aplicației** (`profiles.ai_operations_used`
+vs `ai_operations_limit`, plan Trial = 50/lună — `supabase/migrations/20260621_credit_system.sql`),
+**înainte** de a ajunge la Claude — confirmat și de Claude Console (owner): $0.00 cheltuit luna asta.
+**Nicio legătură cu bani/tokeni Anthropic** — contul avea deja 56 operații acumulate (testare anterioară,
+inclusiv era Gemini) și a depășit plafonul de 50. Reset automat doar după 30 de zile de la
+`plan_reset_at` (`increment_ai_operations`, linia 76-86 din migrația de mai sus) — prea lent pentru
+testare activă. **Fix (owner, DML simplu, postat în chat, AȘTEAPTĂ RULARE)**: reset manual
+`ai_operations_used=0` + `ai_operations_limit=500` (temporar, pentru perioada de testare a migrării)
+pe rândul `profiles` al owner-ului.
+
+**Concluzie finală:** migrarea de cod Gemini → Claude e 100% funcțională și verificată live (auth,
+workspace, boot, apel real la Claude — toate confirmate). Singurul obstacol rămas pentru un test complet
+de generare curs e plafonul intern de credite, nelegat de migrare — se rezolvă cu update-ul SQL de mai
+sus, apoi owner-ul reia testul din UI.
 
 **Investigația de cost (cerută explicit de owner ca prioritate mare, IMPLEMENTATĂ în S11 — vezi
 secțiunea dedicată mai jos):** cele trei recomandări (deduplicare `ai_cache`, plafon global de retry,
