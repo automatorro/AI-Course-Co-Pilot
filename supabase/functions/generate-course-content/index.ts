@@ -631,6 +631,16 @@ class Config {
     return this.sanitize(Deno.env.get('ANTHROPIC_API_KEY'));
   }
 
+  // Only required for identity-linked (personal/service-account) API keys that
+  // aren't scoped to a single workspace at creation time — see
+  // https://platform.claude.com/docs/en/manage-claude/authentication#select-a-workspace.
+  // Legacy "Workspace" keys (bound to one workspace by construction) never need this.
+  // Defaults to the org's only workspace so this works without adding a new Supabase
+  // secret; override via ANTHROPIC_WORKSPACE_ID if that ever changes.
+  static get ANTHROPIC_WORKSPACE_ID(): string {
+    return this.sanitize(Deno.env.get('ANTHROPIC_WORKSPACE_ID')) || 'wrkspc_01CfRoZ5D1KYnNSLd7i8C1Yz';
+  }
+
   private static sanitize(key: string | undefined): string | undefined {
     if (!key) return undefined;
     return key.trim().replace(/^["']|["']$/g, '').replace(/^Bearer\s+/i, '');
@@ -679,7 +689,10 @@ class ClaudeProvider implements IAIProvider {
     Logger.info(`Calling Claude API: model=${model} | Key: ${maskedKey}`);
 
     try {
-      const client = new Anthropic({ apiKey });
+      const client = new Anthropic({
+        apiKey,
+        defaultHeaders: { 'anthropic-workspace-id': Config.ANTHROPIC_WORKSPACE_ID }
+      });
       const response = await client.messages.create({
         model,
         max_tokens: 8192,

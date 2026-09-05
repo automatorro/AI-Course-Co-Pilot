@@ -30,8 +30,11 @@ serve(async (req) => {
     if (!apiKey) {
       throw new Error("ANTHROPIC_API_KEY not configured");
     }
+    // Only needed for identity-linked keys not scoped to one workspace at creation —
+    // see https://platform.claude.com/docs/en/manage-claude/authentication#select-a-workspace.
+    const workspaceId = Deno.env.get('ANTHROPIC_WORKSPACE_ID') || 'wrkspc_01CfRoZ5D1KYnNSLd7i8C1Yz';
 
-    const client = new Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey, defaultHeaders: { 'anthropic-workspace-id': workspaceId } });
     const model = "claude-sonnet-5";
 
     const systemPrompt = `
