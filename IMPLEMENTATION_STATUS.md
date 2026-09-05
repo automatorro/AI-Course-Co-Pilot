@@ -11,17 +11,52 @@ Convenții:
 
 ---
 
-## ▶ REIA DE AICI (scris 2026-09-04, sesiunea S11 — migrare LLM provider Gemini → Claude)
+## ▶ REIA DE AICI (scris 2026-09-05, sesiunea S12 — F2 închis, pregătire F3)
 
-**Stare F2 (moștenită din S08-S10, neatinsă de S11):** F2 e la T1 IN_PROGRESS · T2 IN_PROGRESS ·
-T3 DONE · T4 DONE · T5 DONE. M2 rămâne TODO. În S08 a fost creat `src/tests/languagePurity.test.ts`
-(2/2 verde). În S09-S10 a fost construit mecanismul `LocalizedLabels` (contract static + fallback EN
-în `src/constants/localizedLabels.ts`, câmpul `Course.localized_labels`, migrarea
-`supabase/migrations/20260903_add_localized_labels_to_courses.sql` — **rulată și confirmată de
-owner pe 2026-09-03**, acțiunea server `generate_localized_labels`, wrapper client
-`generateLocalizedLabels` în `geminiService.ts`, persistare la creare/duplicare curs în
-`DashboardPage.tsx`). Rămâne TODO din S10: validarea executabilă în checkout-ul sincronizat și
-sterilizarea consumatorilor activi rămași care încă au etichete hardcodate (nu `{{label_*}}`).
+**Context de sesiune**: owner-ul a cerut o pauză de reconciliere după migrarea Claude (S11) — „am
+făcut o mare paranteză, să vedem cum stăm cu planul de implementare". Am auditat direct în cod (nu
+doar status file) starea F0-F10: **F3-F10 sunt 0% începute** — verificat: `grep "ModuleContract|
+buildPrompt(|buildTonePreamble"` în `index.ts` → 0 rezultate; `DNAEditModal.tsx` încă are 23
+apariții Mentor/Coach/Buddy/narrativeUniverse/etc. Flag-ul `contractPipeline: true` (activ azi) NU e
+arhitectura din plan — e un mecanism informal din august (D-009), mult mai simplu.
+
+**Decizie owner (2026-09-05): opțiunea A — înlocuire curată.** La F3, `handleGoldenStep`/
+`CONTRACT_STEPS_ORDER` (generare text-liber-direct) se înlocuiesc integral cu fluxul
+contract→validare→randare din plan, nu se construiește peste mecanismul informal existent.
+
+**Înainte de F3, am închis F2** (regula planului §1.2: „faza N+1 nu începe fără faza N DONE" — F2
+nu era DONE, avea muncă reală rămasă):
+- **F2-T1**: infrastructura `LocalizedLabels` (deja construită în S09-S10) confirmată funcțională.
+  Conectarea la „consumatorii activi" (WORKBOOK_PROMPT etc.) **re-scopată intenționat**: acele
+  șabloane sunt exact ce înlocuiește F4-T2 — a le cabla acum ar fi efort aruncat. Detalii în §F2-T1.
+- **F2-T2**: audit exhaustiv (nu punctual) — toate cele 99 de linii cu diacritice RO din `index.ts`
+  verificate una câte una. Zero bug-uri noi; tot ce a rămas e fie ramificat corect pe limbă, fie cod
+  mort confirmat (D-011). Prompturile structure/blueprint verificate explicit — curate.
+- **M2 confirmat DONE**: testul de puritate lingvistică verde + inspecție manuală completă, fără amestec.
+
+**Două lacune reale găsite în planul F3/F4, semnalate owner-ului ÎNAINTE de a le lovi în execuție**
+(nu descoperite pe drum):
+1. **F4-T7** cere comparație „nou vs baseline F0", dar F0-T3 (generarea baseline-ului) a fost SKIPPED
+   prin decizie owner din iulie. **Soluție propusă, neconfirmată încă**: generăm comparația live la
+   momentul F4-T7 din fluxul legacy (`handleLegacyStep`, tot există în cod), nu dintr-un baseline vechi.
+2. **F3-T4** cere „dicționar de verbi Bloom per nivel per limbă" — aplicația suportă ~100 de limbi;
+   nerealist complet. **Propunere, neconfirmată încă**: dicționar riguros doar RO+EN (etalon), restul
+   cu degradare grațioasă + warning logat (precedent deja acceptat la F2-T3).
+
+**Task următor: F3, task cu task, cu typecheck+test+commit după fiecare** (nu totul dintr-o rafală).
+Ordinea din plan: F3-T1 (buildPrompt/buildTonePreamble + ștergere arhetipuri Mentor/Coach/Buddy din
+`DNAEditModal.tsx` — atenție: `buildDNABlocks()` alimentează >10 puncte din prompturi, D-008; se
+simplifică chirurgical, nu se șterge tot) → F3-T2 (cele 7 fișiere de prompt, A.4) → F3-T3 (schema
+`ModuleContract`) → F3-T4 (validare determinist, cu propunerea de mai sus pentru dicționarul Bloom) →
+F3-T5 (persistență, migrație nouă) → F3-T6 (`modelTier`, adaptat la Claude: azi un singur model
+`claude-sonnet-5`, parametrul rămâne plumbing pentru o eventuală escaladare la Opus, nu Flash/Pro).
+
+**Blocant separat, tot deschis, ieftin de închis**: F1-T4 (smoke manual pe cursul-etalon) — owner,
+~15 minute, restanță din 15 august. Nu blochează F3, dar M1 rămâne ALMOST până se confirmă.
+
+---
+
+## ▶ REIA DE AICI — istoric (scris 2026-09-04, sesiunea S11 — migrare LLM provider Gemini → Claude)
 
 **Task-ul S11** (cerut direct de owner, NU parte din planul F0-F10 formal): înlocuirea completă a
 Google Gemini cu Anthropic Claude (`claude-sonnet-5`) ca provider LLM al aplicației, plus eliminarea
@@ -168,7 +203,7 @@ Niciuna din cele de mai sus nu e parte din F2–F10 formal. Sunt fix-uri/feature
 |---|---|---|---|
 | M0 | F0 | Tag + status file + baseline „before" + fixture etalon | DONE (baseline SKIPPED prin decizie owner — vezi F0-T3) |
 | M1 | F1 | Cod mort șters (butoane editor, ProtagonistEnforcer, fixes/); build verde | ALMOST (cod șters + typecheck verde + **deploy live confirmat**, D-014; rămâne DOAR smoke-ul manual F1-T4 la owner) |
-| M2 | F2 | Test puritate lingvistică verde (EN fără RO, RO fără EN) | TODO |
+| M2 | F2 | Test puritate lingvistică verde (EN fără RO, RO fără EN) | DONE (2026-09-05 — F2-T1..T5 toate DONE; testul verde + audit exhaustiv manual, zero amestec găsit) |
 | M3 | F3 | Arhitectura de prompturi instalată: prompts/ + changelog + preambul de ton | TODO |
 | M4 | F4 | Contracte de modul valide pe etalon; **aprobate de owner** (poarta umană 1) | TODO |
 | M5 | F5 | Cele 5 livrabile randate din contract, validare deterministă verde | TODO |
@@ -345,8 +380,8 @@ rând cu ☐, se postează SQL-ul complet în chat, se bifează doar după confi
 - **DoD F1:** M1 parțial — typecheck ✔, 12/12 teste (D-003), deploy live ✔ (D-014). Grep `ProtagonistEnforcer|refineCourseContent|editorRefineButton|inferProtagonistFromAudience|getOrCreateStoryArc|story_arc` în src/+supabase/ → **2 rezultate, ambele acceptabile** (verificat 2026-08-17; formularea „→ 0" de dinainte era inexactă): ambele sunt în `supabase/migrations/20240128000001_add_story_arc_to_courses.sql`, migrația istorică ce a adăugat coloana `courses.story_arc`. Migrațiile deja rulate nu se rescriu — sunt istoric, nu cod viu. În `src/` și în `supabase/functions/` grep-ul dă efectiv 0. **Consecință de reținut:** coloana `courses.story_arc` probabil încă există în DB deși conceptul a fost șters din cod → intră în „migrația de curățare" din F10-T4. Rămâne smoke-ul live la owner.
 
 ### F2 — Fundația de localizare (2 zile) · Risc: mediu
-- **F2-T1** [IN_PROGRESS 2026-09-03] `LocalizedLabels` + fallback EN static, schema runtime, promptul `generate_localized_labels`, wrapper-ul client și persistarea la creare/duplicare adăugate; migrarea rulată și confirmată de owner. Rămân validarea executabilă în checkout-ul sincronizat și conectarea consumatorilor activi la labels. Mecanismul paralel `GoldenModuleData.localizedLabels` rămâne separat până la F3/F4.
-- **F2-T2** [IN_PROGRESS] Sterilizarea șabloanelor cu headere/etichete hardcodate în română, indiferent de `{{language}}`. **Verificat 2026-08-08 că bug-ul e live**: `WORKBOOK_PROMPT`, `MANUAL_PROMPT`, `EXERCISES_PROMPT`, `VIDEO_SCRIPT_PROMPT` sunt toate atinse prin `handleGoldenStep` → `generateLessonContent`/generare per-modul (calea implicită, `contractPipeline: true`) — deci NU sunt cod mort. Corectat (2 commit-uri, 2026-08-08):
+- **F2-T1** [DONE 2026-09-05, scop re-evaluat] `LocalizedLabels` + fallback EN static, schema runtime, promptul `generate_localized_labels`, wrapper-ul client și persistarea la creare/duplicare — toate funcționale, verificate. **Decizie (sesiunea F3-pregătire, 2026-09-05):** conectarea acestui mecanism la „consumatorii activi" (șabloanele WORKBOOK_PROMPT/MANUAL_PROMPT/EXERCISES_PROMPT/VIDEO_SCRIPT_PROMPT) NU se mai face aici — acele 4 șabloane sunt exact ce înlocuiește F4-T2 cu noile prompturi din A.4, care oricum consumă `localizedLabels` determinist (P3). A cabla etichete acum în cod programat la ștergere ar fi efort aruncat. Infrastructura (partea reutilizabilă, cerută de A.4.1) rămâne DONE; conectarea la randare se mută natural în F3-T2/F4-T3. Mecanismul paralel `GoldenModuleData.localizedLabels` rămâne cod mort confirmat (D-011), neatins.
+- **F2-T2** [DONE 2026-09-05] Sterilizarea șabloanelor cu headere/etichete hardcodate în română, indiferent de `{{language}}`. **Verificat 2026-08-08 că bug-ul e live**: `WORKBOOK_PROMPT`, `MANUAL_PROMPT`, `EXERCISES_PROMPT`, `VIDEO_SCRIPT_PROMPT` sunt toate atinse prin `handleGoldenStep` → `generateLessonContent`/generare per-modul (calea implicită, `contractPipeline: true`) — deci NU sunt cod mort. Corectat (2 commit-uri, 2026-08-08):
   - Cele 4 șabloane de mai sus: headere/etichete traduse din română + regulă explicită de traducere adăugată. `SLIDES_PROMPT` era deja curat.
   - `COST_ZERO_SLIDES_LABELS`/`generateCostZeroSlides`: fallback-ul alegea RO pentru orice limbă ≠ EN (deci și DE/FR/ES/IT din `src/languages.ts` — ~100 limbi în `ALL_LANGUAGES` — primeau etichete românești); corectat să cadă pe EN pentru orice ≠ RO. Adăugate și 2 bullet-uri hardcodate RO lipsă din dicționar.
   - `getDepthSpecs`: typo `STRUCTURĂ`→`STRUCTURE`.
@@ -354,7 +389,7 @@ rând cu ☐, se postează SQL-ul complet în chat, se bifează doar după confi
   - `buildFallbackModuleContext`, fallback-ul final din generarea obiectivelor, fallback-urile de eroare din `handleChatOnboarding` (analiză + blueprint), `generateWorkbookIntro`/`generateWorkbookOutro`: toate aveau text hardcodat RO în ramuri de fallback/eroare, folosit indiferent de `course.language`/`lang` — deși variabila de limbă era deja disponibilă în scope. Corectate cu ramificare pe limbă (RO explicit, altfel EN).
   - **Verificat și exclus din scope** (documentat, neatins): `GOLDEN_SAMPLES.structure_online`/`exercises_live` și întregul subsistem `GoldenModuleData`/`GOLDEN_MASTER_PROMPT`/`renderToMarkdown`/`renderWorkbookSection` etc. — cod mort confirmat, zero apelanți (`renderToMarkdown` nu e apelat de nicăieri; `prompts/golden-master.ts` nu e importat în `index.ts`) — vezi D-011. Mesajul de „credit_limit_exceeded" (linia ~2954) rămâne hardcodat RO — e nivel de aplicație/utilizator, nu conținut de curs, deci în afara scope-ului F2 (candidat pentru o localizare separată a UI-ului de eroare, nu a materialelor generate).
   - Nu s-a putut rula typecheck local (fără Node/npm, D-012) — verificare manuală, diff simetric, backtick-uri verificate pereche cu pereche. (Rulat ulterior: typecheck verde, vezi D-013.)
-   - Rămas TODO: prompturile globale rămase (structure/blueprint în afara celor verificate) și înlocuirea etichetelor hardcodate din consumatorii activi cu `{{label_*}}`.
+  - **Finalizat 2026-09-05**: audit exhaustiv (nu punctual) — grep după toate diacriticele românești (`ăâîșțĂÂÎȘȚ`) în tot `index.ts`, 99 de linii găsite, verificate una câte una. Toate se încadrează în categorii deja corecte: ramificare pe limbă existentă (`isRo ? [RO] : [EN]`), dicționare de detecție a contaminării lingvistice (au nevoie de semnătura RO ca să funcționeze), sau `GOLDEN_SAMPLES.structure_online`/liniile 391-402 și 549-559 — cod mort confirmat (D-011), neatins intenționat. **Zero bug-uri noi găsite.** Prompturile structure/blueprint (`architectPrompt`, promptul de „Structure & Agenda", sinteza de blueprint din import documente) — verificate explicit, curate (fără RO hardcodat, deja engleză + `${lang}` corect).
 - **F2-T3** [DONE 2026-08-14] Validare de limbă uniformă: `skipAiValidation` eliminat complet (parametru șters din `callLLM`, `retryWithStrictInstructions` și toate cele 5 funcții generatoare — `generateWorkbookContent`, `generateManualContent`, `generateExercisesContent`, `generateVideoScriptContent`, `generateExamplesContent`); detectorul rulează acum pe orice output ≥400 chars (prag pe conținut raw, nu pe sample); `LANG_SIGNATURES` extins cu `it`, `pt`, `nl`, `pl`; adăugat `NON_LATIN_SCRIPTS` (regex Unicode) pentru 26 limbi cu scripturi non-latine (ar, he, ru, uk, bg, sr, zh, zh-TW, ja, ko, el, hi, bn, th, ka, am, km, lo, my, si, ta, te, kn, ml, gu, pa) — detecție fiabilă fără n-gram counting. Maximum 1 retry deja implementat (neschimbat). Typecheck verde.
 - **F2-T4** [DONE 2026-08-14] Meta-instrucțiuni EN, conținut verbatim (regula A.1) — MANUAL_PROMPT: eliminat "Romanian" din CRITICAL RULES + eliminat "# Modul:" hardcodat din OUTPUT FORMAT
 - **F2-T5** [DONE 2026-09-03] `src/tests/languagePurity.test.ts`; pe etalonul EN → 0 apariții headere RO și 0 diacritice; pe RO → 0 headere EN. Test focalizat 2/2 verde; typecheck verde.
