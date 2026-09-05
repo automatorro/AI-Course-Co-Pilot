@@ -3578,30 +3578,6 @@ function isValidGoldenData(data: any): boolean {
   return true;
 }
 
-function getDefaultEnglishLabels(): Record<string, string> {
-  // Default English
-  return {
-    duration: "Duration",
-    format: "Format",
-    section: "Section",
-    theory: "Theory & Concepts",
-    keyTakeaways: "Key Takeaways",
-    actionPlan: "Action Plan",
-    reflection: "Reflection",
-    trainerInstructions: "Trainer Instructions",
-    method: "Method",
-    logistics: "Logistics",
-    script: "Script",
-    activity: "Activity",
-    objective: "Objective",
-    instructionsParticipant: "Participant Instructions",
-    instructionsFacilitator: "Facilitator Instructions",
-    debrief: "Debrief Questions",
-    example: "Example",
-    videoScript: "Video Script"
-  };
-}
-
 function getLivrableDbKey(stepType: string): string | null {
   const s = stepType.toLowerCase();
   if (s.includes('workbook')) return 'course.livrables.participant_workbook';
