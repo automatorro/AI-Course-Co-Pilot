@@ -69,19 +69,23 @@ de test):
    se confirmă, planul B e înlocuirea SDK-ului cu `fetch` brut către `api.anthropic.com/v1/messages`
    în acest fișier (exact pattern-ul folosit înainte pentru Gemini în același fișier — zero risc nou
    de import).
-2. **BLOCANT — cheia `ANTHROPIC_API_KEY` e de tip greșit**: `analyze-slide` PORNEȘTE corect și ajunge
-   la Claude, dar Anthropic respinge cererea: `"anthropic-workspace-id is required when authenticating
-   with an identity-linked API key; send the id of the workspace this request acts in."` — cheia
-   adăugată e una „identity-linked" (ex. generată prin login OAuth/`ant auth login`, legată de un cont
-   personal ce poate acoperi mai multe workspace-uri), nu o cheie API standard de consolă, legată de UN
-   singur workspace. **Fix simplu**: generează o cheie nouă din Claude Console →
-   Settings → API Keys → Create Key (cheie standard `sk-ant-...`, NU login OAuth), și înlocuiește
-   valoarea `ANTHROPIC_API_KEY` din Supabase cu aceasta.
+2. **REZOLVAT 2026-09-05** — cheia `ANTHROPIC_API_KEY` era de tip „Personal" (identity-linked),
+   nescopată la un singur workspace. **Corecție la explicația inițială**: nu are legătură cu
+   OAuth/`ant auth login` — owner-ul a confirmat cu screenshot din Consolă că toate cele 6 chei
+   vechi sunt de tip „Workspace (legacy)" (scopate implicit, niciodată nu au avut nevoie de header),
+   iar Consola generează acum implicit chei „Personal" (identity-backed) la „Create key", care
+   necesită `anthropic-workspace-id` explicit dacă nu sunt scopate la creare — comportament nou al
+   Consolei, nu ceva ce owner-ul a schimbat în felul de lucru. Fix aplicat în cod (nu în Consolă,
+   mai robust): `Config.ANTHROPIC_WORKSPACE_ID` (nou, în ambele edge functions), cu default hardcodat
+   la `wrkspc_01CfRoZ5D1KYnNSLd7i8C1Yz` (singurul workspace al organizației, vizibil în Consolă —
+   ID public, nu secret), trimis ca header `anthropic-workspace-id` pe fiecare apel Claude.
+   **Verificat live**: `analyze-slide` acum răspunde 200 cu JSON valid de la Claude Sonnet 5 — cheia
+   și workspace-ul funcționează complet.
 
-**Concluzie:** migrarea de cod e completă și corectă (confirmat: `analyze-slide` ajunge efectiv la
-Claude), dar generarea reală de cursuri **nu funcționează încă** — blocată de aceste 2 probleme de
-configurare/infrastructură, nu de cod. Task următor: owner trimite eroarea de boot din logs +
-înlocuiește cheia API, apoi se re-rulează smoke-ul.
+**Concluzie 2026-09-05:** migrarea de cod + autentificarea Claude sunt complet funcționale
+(`analyze-slide` confirmă end-to-end). Rămâne STRICT problema #1 de mai sus — `generate-course-content`
+nu pornește — izolată acum de orice problemă de cheie/workspace. Task următor, blocant: owner trimite
+eroarea exactă de boot din Supabase Studio → Edge Functions → `generate-course-content` → Logs.
 
 **Investigația de cost (cerută explicit de owner ca prioritate mare, IMPLEMENTATĂ în S11 — vezi
 secțiunea dedicată mai jos):** cele trei recomandări (deduplicare `ai_cache`, plafon global de retry,
