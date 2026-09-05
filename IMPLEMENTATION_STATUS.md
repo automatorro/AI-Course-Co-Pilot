@@ -51,41 +51,35 @@ neschimbat de migrare.
   `conclusion: success`** — codul cu Claude e live. Rămân doar pașii owner de mai jos (secret +
   migrație SQL) pentru ca generarea reală să funcționeze.
 
-**Smoke test rulat 2026-09-04 (owner a confirmat: secret `ANTHROPIC_API_KEY` adăugat + migrația SQL
-rulată). Rezultat: 2 probleme reale, blocante, găsite prin apel direct la funcțiile live** (anon key
-public din `src/services/supabaseClient.ts`, acțiuni fără cost AI — `ping`/`analyze-slide` cu conținut
-de test):
+**Smoke test 2026-09-04 → 2026-09-05: SMOKE OK — toate cele 3 acțiuni de sănătate răspund verde pe
+funcția live.** Cronologia celor 2 probleme reale găsite și reparate (apel direct la funcțiile live cu
+anon key-ul public din `src/services/supabaseClient.ts`, acțiuni fără cost AI):
 
-1. **BLOCANT — `generate-course-content` nu pornește deloc**: `{"code":"BOOT_ERROR","message":"Function
-   failed to start (please check logs)"}`, HTTP 503, reprodus consistent de 3 ori (nu e tranzitoriu).
-   `unsplash-search` funcționează normal (infrastructura CI/deploy generală e OK). **Cauza exactă
-   necunoscută** — sesiunea curentă nu are acces la logs-urile Supabase (Dashboard/Management API).
-   Ipoteză neconfirmată: `generate-course-content/index.ts` combină un import `npm:@anthropic-ai/sdk`
-   CU un import `https://esm.sh/@supabase/supabase-js@2.7.1` în același fișier — posibil conflict de
-   rezolvare de dependențe în runtime-ul Deno al Supabase. `analyze-slide` (care are DOAR importul
-   `npm:@anthropic-ai/sdk`, fără esm.sh) **pornește fără probleme** — diferența dintre cele două
-   susține (dar nu demonstrează) ipoteza. **Acțiune owner necesară**: Supabase Studio → Edge Functions
-   → `generate-course-content` → Logs, copiază eroarea exactă de boot și trimite-o aici. Dacă ipoteza
-   se confirmă, planul B e înlocuirea SDK-ului cu `fetch` brut către `api.anthropic.com/v1/messages`
-   în acest fișier (exact pattern-ul folosit înainte pentru Gemini în același fișier — zero risc nou
-   de import).
-2. **REZOLVAT 2026-09-05** — cheia `ANTHROPIC_API_KEY` era de tip „Personal" (identity-linked),
-   nescopată la un singur workspace. **Corecție la explicația inițială**: nu are legătură cu
-   OAuth/`ant auth login` — owner-ul a confirmat cu screenshot din Consolă că toate cele 6 chei
-   vechi sunt de tip „Workspace (legacy)" (scopate implicit, niciodată nu au avut nevoie de header),
-   iar Consola generează acum implicit chei „Personal" (identity-backed) la „Create key", care
-   necesită `anthropic-workspace-id` explicit dacă nu sunt scopate la creare — comportament nou al
-   Consolei, nu ceva ce owner-ul a schimbat în felul de lucru. Fix aplicat în cod (nu în Consolă,
-   mai robust): `Config.ANTHROPIC_WORKSPACE_ID` (nou, în ambele edge functions), cu default hardcodat
-   la `wrkspc_01CfRoZ5D1KYnNSLd7i8C1Yz` (singurul workspace al organizației, vizibil în Consolă —
-   ID public, nu secret), trimis ca header `anthropic-workspace-id` pe fiecare apel Claude.
-   **Verificat live**: `analyze-slide` acum răspunde 200 cu JSON valid de la Claude Sonnet 5 — cheia
-   și workspace-ul funcționează complet.
+1. **Cheia `ANTHROPIC_API_KEY` era de tip „Personal" (identity-linked), nescopată la un singur
+   workspace** — nu are legătură cu OAuth/`ant auth login` (corecție la o explicație inițială greșită):
+   owner-ul a confirmat cu screenshot din Consolă că toate cele 6 chei vechi sunt „Workspace (legacy)"
+   (scopate implicit, niciodată nu au avut nevoie de header), iar Consola generează acum implicit chei
+   „Personal" (identity-backed) la „Create key", care necesită `anthropic-workspace-id` explicit dacă
+   nu sunt scopate la creare — comportament nou al Consolei, nu ceva schimbat de owner. **Fix**:
+   `Config.ANTHROPIC_WORKSPACE_ID` (ambele edge functions), default hardcodat la
+   `wrkspc_01CfRoZ5D1KYnNSLd7i8C1Yz` (singurul workspace al organizației — ID public, nu secret),
+   trimis ca header `anthropic-workspace-id` pe fiecare apel Claude.
+2. **`generate-course-content` nu pornea deloc**: `BOOT_ERROR`, HTTP 503. Log-ul Supabase (cerut
+   owner-ului, primit) a dat cauza exactă: `Uncaught SyntaxError: Identifier 'getDefaultEnglishLabels'
+   has already been declared` — două funcții cu același nume, apărute din combinarea acestei sesiuni cu
+   munca paralelă „Localised Labels" (una veche, moartă, zero apelanți; una nouă, activă). Ipoteza mea
+   inițială (conflict `npm:` vs `esm.sh`) era greșită — am șters funcția moartă și am verificat cu un
+   parse AST complet că nu mai există alte coliziuni de identificatori la nivel de top-level în fișier
+   (`ts.transpileModule`, folosit inițial, NU detectează asta — face doar verificare de sintaxă, nu de
+   scope/binding; e o lecție de reținut pentru verificări viitoare pe acest fișier).
 
-**Concluzie 2026-09-05:** migrarea de cod + autentificarea Claude sunt complet funcționale
-(`analyze-slide` confirmă end-to-end). Rămâne STRICT problema #1 de mai sus — `generate-course-content`
-nu pornește — izolată acum de orice problemă de cheie/workspace. Task următor, blocant: owner trimite
-eroarea exactă de boot din Supabase Studio → Edge Functions → `generate-course-content` → Logs.
+**Verificat live, toate 3 acțiuni pe `generate-course-content`:** `ping` → pong; `provider_status` →
+`{"claudeConfigured":true,"activeProvider":"claude"}`; `test_connection` →
+`{"claude":{"status":200,"ok":true,"body":"Hi! How can I help you today?"}}`. `analyze-slide` la fel,
+confirmat anterior. **Migrarea Gemini → Claude e complet funcțională end-to-end.**
+
+Rămâne un singur pas, ne-blocant pentru cod: **owner-ul verifică generarea reală a unui curs complet**
+din UI (nu doar health-check), ca ultimă confirmare că totul se leagă corect cap-coadă.
 
 **Investigația de cost (cerută explicit de owner ca prioritate mare, IMPLEMENTATĂ în S11 — vezi
 secțiunea dedicată mai jos):** cele trei recomandări (deduplicare `ai_cache`, plafon global de retry,
