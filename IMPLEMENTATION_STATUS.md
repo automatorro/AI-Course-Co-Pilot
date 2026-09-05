@@ -90,13 +90,25 @@ vs `ai_operations_limit`, plan Trial = 50/lună — `supabase/migrations/2026062
 **Nicio legătură cu bani/tokeni Anthropic** — contul avea deja 56 operații acumulate (testare anterioară,
 inclusiv era Gemini) și a depășit plafonul de 50. Reset automat doar după 30 de zile de la
 `plan_reset_at` (`increment_ai_operations`, linia 76-86 din migrația de mai sus) — prea lent pentru
-testare activă. **Fix (owner, DML simplu, postat în chat, AȘTEAPTĂ RULARE)**: reset manual
-`ai_operations_used=0` + `ai_operations_limit=500` (temporar, pentru perioada de testare a migrării)
-pe rândul `profiles` al owner-ului.
+testare activă.
+
+**Cerință owner (2026-09-05), decizie permanentă, nu doar stopgap**: administratorul (owner-ul) trebuie
+să aibă operații AI **nelimitate** — plafonat DOAR de facturarea reală Anthropic — iar restul
+utilizatorilor (Trial/Basic/Pro) rămân **neatinși**, cu limitele lor actuale exact ca înainte. Rezolvat
+la nivel de bază de date (sursă unică de adevăr, nu duplicat în TypeScript), reutilizând conceptul deja
+existent `profiles.role = 'admin'` (deja folosit în `DashboardPage.tsx` pentru bypass-ul limitei de
+cursuri — pattern consistent, nu o soluție nouă paralelă). Migrație nouă:
+`supabase/migrations/20260905_admin_unlimited_ai_credits.sql` — `CREATE OR REPLACE` pe
+`increment_ai_operations`/`get_ai_credit_status`: dacă `role='admin'`, `allowed`/`is_over_limit` devin
+mereu permisive; pentru orice alt `role`, condiția se reduce algebric exact la comportamentul vechi
+(`v_used <= v_limit`), deci zero risc de a afecta userii normali. Contorul `ai_operations_used` tot se
+incrementează pentru admin (vizibilitate proprie asupra consumului), doar gate-ul de blocare e dezactivat.
+SQL-ul complet postat în chat, **AȘTEAPTĂ RULARE OWNER**. (Update-ul DML de reset manual/limită 500,
+propus inițial ca soluție rapidă, devine inutil odată aplicată această migrație — nu mai trebuie rulat.)
 
 **Concluzie finală:** migrarea de cod Gemini → Claude e 100% funcțională și verificată live (auth,
 workspace, boot, apel real la Claude — toate confirmate). Singurul obstacol rămas pentru un test complet
-de generare curs e plafonul intern de credite, nelegat de migrare — se rezolvă cu update-ul SQL de mai
+de generare curs e plafonul intern de credite, nelegat de migrare — se rezolvă cu migrația SQL de mai
 sus, apoi owner-ul reia testul din UI.
 
 **Investigația de cost (cerută explicit de owner ca prioritate mare, IMPLEMENTATĂ în S11 — vezi
